@@ -1,0 +1,84 @@
+//
+//  Synaptics DSX I2C Driver
+/////////////////////////////////////////////////////////////
+
+v1.20 May 13, 2013 scott.lin@tw.synaptics.com
+   - Rescan PDT after device finishes CRC checking and enters UI mode during device query
+   - Add version checking mechanism in re-flash process
+   - Add support for using firmware ID in updated image header format to do version checking
+   - Add option to do firmware update using built-in image at end of initialization 
+
+v1.19 Apr 26, 2013 scott.lin@tw.synaptics.com
+   - Add sysfs entry for triggering suspend and resume functions (1 = suspend ; 0 = resume)
+   - Use default setting of No Sleep bit in F01_RMI_CTRL00 when resuming from suspend
+   - Correct placement of workqueue removal in error exit sequence of probe
+
+v1.18 Apr 23, 2013 scott.lin@tw.synaptics.com
+   - Use one-shot mechanism for queuing work to add/remove driver modules
+
+v1.17 Apr 20, 2013 scott.lin@tw.synaptics.com
+   - Add support to do re-flash based on DS4 (V5 bootloader) firmware
+   - Fix conflicts in completion object names when building driver as one single module
+
+v1.16 Apr 19, 2013 scott.lin@tw.synaptics.com
+   - Clean up init and remove procedures of driver modules
+   - Allow driver modules to be built as individual loadable kernel modules
+
+v1.15 Apr 18, 2013 scott.lin@tw.synaptics.com
+   - Move setting of delay time after reset to platform data
+   - Add delay time after powering on device during initialization and resume
+   - Clear storage of current RMI page after powering on device during resume
+   - Add support for swapping of axes
+
+v1.14 Apr 15, 2013 scott.lin@tw.synaptics.com
+   - Move instances of omap_mux_init_signal to appropriate __init section in board file
+   - Add unregistering of early suspend handler upon driver removal
+
+v1.13 Apr 13, 2013 scott.lin@tw.synaptics.com
+   - Set up Tx/Rx electrode mapping of 0D buttons for testing purposes
+
+v1.12 Apr 11, 2013 scott.lin@tw.synaptics.com
+   - Add support for configuring hardware reset GPIO
+   - Add option to ignore init failure of functions such as 0D buttons
+   - Do device reset at beginning of device query PDT scanning
+
+v1.11 Apr 06, 2013 scott.lin@tw.synaptics.com
+   - Remove direct interaction between core driver and expansion modules through rmi4_data
+   - Set up interrupt enable/disable mechanism in rmidev module for sysfs interface usage
+
+v1.10 Apr 02, 2013 scott.lin@tw.synaptics.com
+   - Enable user space to poll attn_state sysfs entry for interrupt triggering of both edges
+
+v1.9 Apr 01, 2013 scott.lin@tw.synaptics.com
+   - Fix bug in clearing interrupt status register during PDT scanning
+
+v1.8 Apr 01, 2013 scott.lin@tw.synaptics.com
+   - Restructure rmidev sysfs interface to reduce time of register access
+   - New rmidev sysfs interface works with reg_access v1.2
+
+v1.7 Mar 31, 2013 scott.lin@tw.synaptics.com
+   - Fix bug in clearing interrupt status register during PDT scanning
+
+v1.6 Mar 29, 2013 scott.lin@tw.synaptics.com
+   - Clear interrupt status register during PDT scanning
+
+v1.5 Mar 29, 2013 scott.lin@tw.synaptics.com
+   - Add handling of BTN_TOUCH and BTN_TOOL_FINGER events upon finger release
+
+v1.4 Mar 21, 2013 scott.lin@tw.synaptics.com
+   - Change file permissions of sysfs entries to allow writing without root privileges
+
+v1.3 Mar 18, 2013 scott.lin@tw.synaptics.com
+   - Use appropriate (BL or UI mode) F01_RMI_CMD00 address when doing reset
+   - Limit write privileges of sysfs entries to user and group classes
+   - Release all fingers when F12_2D_DATA15 reports all zero's
+   - Check device status when scanning F01 PDT to ensure CRC testing in BL mode is done
+
+v1.2 Feb 07, 2013 alexandra.chin@tw.synaptics.com
+   - Add F12_2D_DATA15 support
+
+v1.0 Dec 27, 2012 scott.lin@tw.synaptics.com
+   - 2D touch
+   - 0D buttons
+   - RMI Dev (char device & sysfs)
+   - Firmware update
