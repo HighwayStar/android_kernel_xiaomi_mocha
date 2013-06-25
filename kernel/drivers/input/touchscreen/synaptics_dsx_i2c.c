@@ -2415,6 +2415,11 @@ static int synaptics_rmi4_reset_device(struct synaptics_rmi4_data *rmi4_data,
 			rmi4_data->max_touch_width, 0, 0);
 #endif
 
+#ifdef TYPE_B_PROTOCOL
+	input_mt_init_slots(rmi4_data->input_dev,
+			rmi4_data->num_of_fingers);
+#endif
+
 	f1a = NULL;
 	if (!list_empty(&rmi->support_fn_list)) {
 		list_for_each_entry(fhandler, &rmi->support_fn_list, link) {
