@@ -2,11 +2,16 @@
 //  Synaptics DSX I2C Driver
 /////////////////////////////////////////////////////////////
 
+v1.21 Jun 20, 2013 scott.lin@tw.synaptics.com
+   - Add support for doing lockdown during re-flash
+   - Wrap #ifdef CONFIG_HAS_EARLYSUSPEND around early_suspend (struct early_suspend)
+   - Re-register number of fingers for TYPE_B_PROTOCOL after doing reset
+
 v1.20 May 13, 2013 scott.lin@tw.synaptics.com
    - Rescan PDT after device finishes CRC checking and enters UI mode during device query
    - Add version checking mechanism in re-flash process
    - Add support for using firmware ID in updated image header format to do version checking
-   - Add option to do firmware update using built-in image at end of initialization 
+   - Add option to do firmware update using built-in image at end of initialization
 
 v1.19 Apr 26, 2013 scott.lin@tw.synaptics.com
    - Add sysfs entry for triggering suspend and resume functions (1 = suspend ; 0 = resume)
