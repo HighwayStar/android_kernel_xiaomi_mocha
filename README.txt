@@ -1,11 +1,6 @@
 IMPORTANT NOTE
 --------------
 
-This tarball contains alpha-quality pre-release code.  Not all features are
-completely implemented.  Not all functions are completely debugged or code
-reviewed.  Some features or functions may crash unexpectedly, and others may
-not be present at all.
-
 If you find bugs or errors in this code, please let us know.  If you fix
 any bugs or errors in this code, or add new enhancements, please send us the
 code changes, so we can be sure we implement the changes correctly.
