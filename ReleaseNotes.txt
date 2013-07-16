@@ -2,6 +2,9 @@
 //  Synaptics DSX I2C Driver
 /////////////////////////////////////////////////////////////
 
+v1.22 Jul 16, 2013 scott.lin@tw.synaptics.com
+   - Use list_for_each_entry_safe when deleting entries in linked lists.
+
 v1.21 Jun 20, 2013 scott.lin@tw.synaptics.com
    - Add support for doing lockdown during re-flash
    - Wrap #ifdef CONFIG_HAS_EARLYSUSPEND around early_suspend (struct early_suspend)
