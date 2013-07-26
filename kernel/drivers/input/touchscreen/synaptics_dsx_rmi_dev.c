@@ -243,13 +243,18 @@ static ssize_t rmidev_sysfs_release_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
 	unsigned int input;
+	unsigned short f01_cmd_base_addr;
 	struct synaptics_rmi4_data *rmi4_data = rmidev->rmi4_data;
+
+	f01_cmd_base_addr = rmi4_data->f01_cmd_base_addr;
 
 	if (sscanf(buf, "%u", &input) != 1)
 		return -EINVAL;
 
 	if (input != 1)
 		return -EINVAL;
+
+	rmi4_data->reset_device(rmi4_data, f01_cmd_base_addr);
 
 	rmidev_sysfs_irq_enable(rmi4_data, false);
 	rmidev->fn_ptr->enable(rmi4_data, true);
@@ -459,11 +464,17 @@ static int rmidev_open(struct inode *inp, struct file *filp)
  */
 static int rmidev_release(struct inode *inp, struct file *filp)
 {
+	unsigned short f01_cmd_base_addr;
+	struct synaptics_rmi4_data *rmi4_data = rmidev->rmi4_data;
 	struct rmidev_data *dev_data =
 			container_of(inp->i_cdev, struct rmidev_data, main_dev);
 
+	f01_cmd_base_addr = rmi4_data->f01_cmd_base_addr;
+
 	if (!dev_data)
 		return -EACCES;
+
+	rmi4_data->reset_device(rmi4_data, f01_cmd_base_addr);
 
 	mutex_lock(&(dev_data->file_mutex));
 
