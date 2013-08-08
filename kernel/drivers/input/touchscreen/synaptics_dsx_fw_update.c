@@ -555,6 +555,8 @@ static int fwu_write_f34_command(unsigned char cmd)
 	int retval;
 	unsigned char command = cmd & MASK_4BIT;
 
+	fwu->command = cmd;
+
 	retval = fwu->fn_ptr->write(fwu->rmi4_data,
 			fwu->f34_fd.data_base_addr + fwu->flash_cmd_off,
 			&command,
@@ -565,8 +567,6 @@ static int fwu_write_f34_command(unsigned char cmd)
 				__func__, command);
 		return retval;
 	}
-
-	fwu->command = cmd;
 
 	return 0;
 }
