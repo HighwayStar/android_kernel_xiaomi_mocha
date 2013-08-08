@@ -3,7 +3,11 @@
 /////////////////////////////////////////////////////////////
 
 v1.22 Jul 16, 2013 scott.lin@tw.synaptics.com
-   - Use list_for_each_entry_safe when deleting entries in linked lists.
+   - Use list_for_each_entry_safe when deleting entries in linked lists
+   - Jump to config area of image file if given packrat image for doing write UI config
+   - Do reset at end of RMI Dev session
+   - Mask use of F12_2D_Data15 until firmware reports finger lift events properly
+   - Store command in fwu data structure first before issuing command to avoid race condition
 
 v1.21 Jun 20, 2013 scott.lin@tw.synaptics.com
    - Add support for doing lockdown during re-flash
