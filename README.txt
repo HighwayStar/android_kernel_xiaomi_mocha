@@ -24,15 +24,11 @@ drivers/input/touchscreen/synaptics_dsx_fw_update.c
    The source code of the firmware update module used for carrying out both
    in-system and command-line reflash.
 
-drivers/input/touchscreen/Kconfig_panda
+drivers/input/touchscreen/Kconfig
    Example Kconfig for the OMAP Panda Board.
-drivers/input/touchscreen/Kconfig_beagle
-   Example Kconfig for the OMAP Beagle Board.
 
-drivers/input/touchscreen/Makefile_panda
+drivers/input/touchscreen/Makefile
    Example Makefile for the OMAP Panda Board.
-drivers/input/touchscreen/Makefile_beagle
-   Example Makefile for the OMAP Beagle Board.
 
 firmware/Makefile
    Example Makefile for the OMAP Panda Board for the inclusion of the firmware
@@ -43,13 +39,9 @@ include/linux/input/synaptics_dsx.h
 
 arch/arm/configs/panda_defconfig
    Example defconfig for the OMAP Panda Board.
-arch/arm/configs/omap3_beagle_android_defconfig
-   Example defconfig for the OMAP Beagle Board.
 
 arch/arm/mach-omap2/board-omap4panda.c
    Example board file for the OMAP Panda Board.
-arch/arm/mach-omap2/board-omap3beagle.c
-   Example board file for the OMAP Beagle Board.
 
 
 
@@ -66,11 +58,11 @@ HOW TO INSTALL THE DRIVER
    directory to include support for building the Synaptics DSX driver. Use the
    equivalent files in the tarball as examples.
 
-** Update your defconfig by referring to the defconfigs in the tarball as
-   examples.
+** Update your defconfig by referring to the defconfig in the tarball as
+   an example.
 
-** Update your board file by referring to the board files in the tarball as
-   examples.
+** Update your board file by referring to the board file in the tarball as
+   an example.
 
 ** "make clean" your kernel.
 
