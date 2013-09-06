@@ -1,6 +1,11 @@
 //
 //  Synaptics DSX I2C Driver
-/////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////
+
+v1.23 Sep 06, 2013 scott.lin@tw.synaptics.com
+   - Add GPIO control for power and reset
+   - Use correct F$01 address when doing soft reset in bootloader mode
+   - Allow handling of F$01 interrupt
 
 v1.22 Jul 16, 2013 scott.lin@tw.synaptics.com
    - Use list_for_each_entry_safe when deleting entries in linked lists
