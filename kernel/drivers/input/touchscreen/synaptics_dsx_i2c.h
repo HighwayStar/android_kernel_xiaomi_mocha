@@ -238,8 +238,7 @@ struct synaptics_rmi4_data {
 	int (*i2c_write)(struct synaptics_rmi4_data *pdata, unsigned short addr,
 			unsigned char *data, unsigned short length);
 	int (*irq_enable)(struct synaptics_rmi4_data *rmi4_data, bool enable);
-	int (*reset_device)(struct synaptics_rmi4_data *rmi4_data,
-			unsigned short f01_cmd_base_addr);
+	int (*reset_device)(struct synaptics_rmi4_data *rmi4_data);
 };
 
 enum exp_fn {
