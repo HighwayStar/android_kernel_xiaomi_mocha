@@ -95,57 +95,60 @@
 #define WILINK_UART_DEV_NAME	"/dev/ttyO1"
 
 /* Synaptics changes for Panda Board */
-static int synaptics_gpio_setup(int gpio, bool configure);
+static int synaptics_gpio_setup(int gpio, bool configure, int dir, int state);
 
 #if (SYNAPTICS_MODULE == TM2448)
 #define DSX_I2C_ADDR 0x20
 #define DSX_ATTN_GPIO 39
 #define DSX_ATTN_MUX_NAME "gpmc_ad15.gpio_39"
+#define DSX_POWER_GPIO 140
+#define DSX_POWER_MUX_NAME "mcspi1_cs3.gpio_140"
+#define DSX_POWER_ON_STATE 1
+#define DSX_POWER_DELAY_MS 160
 #define DSX_RESET_GPIO -1
-
-static unsigned char tm2448_cap_button_codes[] = {};
-
-static struct synaptics_dsx_cap_button_map tm2448_cap_button_map = {
-	.nbuttons = ARRAY_SIZE(tm2448_cap_button_codes),
-	.map = tm2448_cap_button_codes,
-};
-
-static struct synaptics_dsx_platform_data dsx_platformdata = {
-	.irq_flags = IRQF_TRIGGER_FALLING,
-	.irq_gpio = DSX_ATTN_GPIO,
-	.reset_delay_ms = 100,
-	.reset_gpio = DSX_RESET_GPIO,
- 	.gpio_config = synaptics_gpio_setup,
- 	.cap_button_map = &tm2448_cap_button_map,
-};
-
-static struct i2c_board_info bus4_i2c_devices[] = {
-	{
-		I2C_BOARD_INFO("synaptics_dsx_i2c", DSX_I2C_ADDR),
-		.platform_data = &dsx_platformdata,
-	},
-};
+#define DSX_RESET_ON_STATE 0
+#define DSX_RESET_DELAY_MS 100
+#define DSX_RESET_ACTIVE_MS 20
+#define DSX_IRQ_FLAGS IRQF_TRIGGER_FALLING
+static unsigned char regulator_name[] = "";
+static unsigned char cap_button_codes[] =
+		{};
 
 #elif (SYNAPTICS_MODULE == TM1940)
 #define DSX_I2C_ADDR 0x20
 #define DSX_ATTN_GPIO 39
 #define DSX_ATTN_MUX_NAME "gpmc_ad15.gpio_39"
+#define DSX_POWER_GPIO -1
+#define DSX_POWER_ON_STATE 1
+#define DSX_POWER_DELAY_MS 160
 #define DSX_RESET_GPIO -1
+#define DSX_RESET_ON_STATE 0
+#define DSX_RESET_DELAY_MS 100
+#define DSX_RESET_ACTIVE_MS 20
+#define DSX_IRQ_FLAGS IRQF_TRIGGER_FALLING
+static unsigned char regulator_name[] = "";
+static unsigned char cap_button_codes[] =
+		{KEY_MENU, KEY_HOME, KEY_BACK, KEY_SEARCH};
+#endif
 
-static unsigned char tm1940_cap_button_codes[] = {KEY_MENU, KEY_HOME, KEY_BACK, KEY_SEARCH};
-
-static struct synaptics_dsx_cap_button_map tm1940_cap_button_map = {
-	.nbuttons = ARRAY_SIZE(tm1940_cap_button_codes),
-	.map = tm1940_cap_button_codes,
+static struct synaptics_dsx_cap_button_map cap_button_map = {
+	.nbuttons = ARRAY_SIZE(cap_button_codes),
+	.map = cap_button_codes,
 };
 
 static struct synaptics_dsx_platform_data dsx_platformdata = {
-	.irq_flags = IRQF_TRIGGER_FALLING,
 	.irq_gpio = DSX_ATTN_GPIO,
-	.reset_delay_ms = 100,
+	.irq_flags = DSX_IRQ_FLAGS,
+	.power_gpio = DSX_POWER_GPIO,
+	.power_on_state = DSX_POWER_ON_STATE,
+	.power_delay_ms = DSX_POWER_DELAY_MS,
 	.reset_gpio = DSX_RESET_GPIO,
-	.gpio_config = synaptics_gpio_setup,
-	.cap_button_map = &tm1940_cap_button_map,
+	.reset_on_state = DSX_RESET_ON_STATE,
+	.reset_delay_ms = DSX_RESET_DELAY_MS,
+	.reset_active_ms = DSX_RESET_ACTIVE_MS,
+ 	.gpio_config = synaptics_gpio_setup,
+ 	.regulator_name = regulator_name,
+ 	.cap_button_map = &cap_button_map,
 };
 
 static struct i2c_board_info bus4_i2c_devices[] = {
@@ -154,9 +157,8 @@ static struct i2c_board_info bus4_i2c_devices[] = {
 		.platform_data = &dsx_platformdata,
 	},
 };
-#endif
 
-static int synaptics_gpio_setup(int gpio, bool configure)
+static int synaptics_gpio_setup(int gpio, bool configure, int dir, int state)
 {
 	int retval = 0;
 	unsigned char buf[16];
@@ -170,11 +172,35 @@ static int synaptics_gpio_setup(int gpio, bool configure)
 					__func__, gpio, retval);
 			return retval;
 		}
+
+		if (dir == 0)
+			retval = gpio_direction_input(gpio);
+		else
+			retval = gpio_direction_output(gpio, state);
+		if (retval) {
+			pr_err("%s: Failed to set gpio %d direction",
+					__func__, gpio);
+			return retval;
+		}
 	} else {
 		gpio_free(gpio);
 	}
 
 	return retval;
+}
+
+static void synaptics_gpio_init(void)
+{
+#ifdef DSX_ATTN_MUX_NAME
+		omap_mux_init_signal(DSX_ATTN_MUX_NAME, OMAP_PIN_INPUT_PULLUP);
+#endif
+#ifdef DSX_POWER_MUX_NAME
+		omap_mux_init_signal(DSX_POWER_MUX_NAME, OMAP_PIN_OUTPUT);
+#endif
+#ifdef DSX_RESET_MUX_NAME
+		omap_mux_init_signal(DSX_RESET_MUX_NAME, OMAP_PIN_OUTPUT);
+#endif
+	return;
 }
 /* End of Synaptics changes for Panda Board */
 
@@ -635,17 +661,11 @@ static int __init omap4_panda_i2c_init(void)
 	 */
 	omap_register_i2c_bus(3, 100, panda_i2c_eeprom,
 					ARRAY_SIZE(panda_i2c_eeprom));
-	if(ARRAY_SIZE(bus4_i2c_devices)) {
-#ifdef DSX_ATTN_MUX_NAME
-		omap_mux_init_signal(DSX_ATTN_MUX_NAME, OMAP_PIN_INPUT_PULLUP);
-#endif
-#ifdef DSX_RESET_MUX_NAME
-		omap_mux_init_signal(DSX_RESET_MUX_NAME, OMAP_PIN_OUTPUT);
-#endif
+	if(ARRAY_SIZE(bus4_i2c_devices))
 		omap_register_i2c_bus(4, 400, bus4_i2c_devices, ARRAY_SIZE(bus4_i2c_devices));
-	} else {
+	else
 		omap_register_i2c_bus(4, 400, NULL, 0);
-	}
+
 	return 0;
 }
 
@@ -981,6 +1001,8 @@ static void __init omap4_panda_init(void)
 	omap_vram_set_sdram_vram(PANDA_FB_RAM_SIZE, 0);
 	omapfb_set_platform_data(&panda_fb_pdata);
 	omap4_panda_display_init();
+
+	synaptics_gpio_init();
 
 	if (cpu_is_omap446x()) {
 		/* Vsel0 = gpio, vsel1 = gnd */

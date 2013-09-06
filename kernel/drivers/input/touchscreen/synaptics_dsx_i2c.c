@@ -2298,6 +2298,81 @@ err_input_device:
 	return retval;
 }
 
+static int synaptics_rmi4_set_gpio(struct synaptics_rmi4_data *rmi4_data)
+{
+	int retval;
+	int power_on;
+	int reset_on;
+	const struct synaptics_dsx_platform_data *platform_data =
+			rmi4_data->i2c_client->dev.platform_data;
+
+	power_on = platform_data->power_on_state;
+	reset_on = platform_data->reset_on_state;
+
+	retval = platform_data->gpio_config(
+			platform_data->irq_gpio,
+			true, 0, 0);
+	if (retval < 0) {
+		dev_err(&rmi4_data->i2c_client->dev,
+				"%s: Failed to configure attention GPIO\n",
+				__func__);
+		goto err_gpio_irq;
+	}
+
+	if (platform_data->power_gpio >= 0) {
+		retval = platform_data->gpio_config(
+				platform_data->power_gpio,
+				true, 1, !power_on);
+		if (retval < 0) {
+			dev_err(&rmi4_data->i2c_client->dev,
+					"%s: Failed to configure power GPIO\n",
+					__func__);
+			goto err_gpio_power;
+		}
+	}
+
+	if (platform_data->reset_gpio >= 0) {
+		retval = platform_data->gpio_config(
+				platform_data->reset_gpio,
+				true, 1, !reset_on);
+		if (retval < 0) {
+			dev_err(&rmi4_data->i2c_client->dev,
+					"%s: Failed to configure reset GPIO\n",
+					__func__);
+			goto err_gpio_reset;
+		}
+	}
+
+	if (platform_data->power_gpio >= 0) {
+		gpio_set_value(platform_data->power_gpio, power_on);
+		msleep(platform_data->power_delay_ms);
+	}
+
+	if (platform_data->reset_gpio >= 0) {
+		gpio_set_value(platform_data->reset_gpio, reset_on);
+		msleep(platform_data->reset_active_ms);
+		gpio_set_value(platform_data->reset_gpio, !reset_on);
+		msleep(platform_data->reset_delay_ms);
+	}
+
+	return 0;
+
+err_gpio_reset:
+	if (platform_data->power_gpio >= 0) {
+		platform_data->gpio_config(
+				platform_data->power_gpio,
+				false, 0, 0);
+	}
+
+err_gpio_power:
+	platform_data->gpio_config(
+			platform_data->irq_gpio,
+			false, 0, 0);
+
+err_gpio_irq:
+	return retval;
+}
+
 static int synaptics_rmi4_free_fingers(struct synaptics_rmi4_data *rmi4_data)
 {
 	unsigned char ii;
@@ -2570,8 +2645,9 @@ static int __devinit synaptics_rmi4_probe(struct i2c_client *client,
 		return -ENOMEM;
 	}
 
-	if (platform_data->regulator_en) {
-		rmi4_data->regulator = regulator_get(&client->dev, "vdd");
+	if (*platform_data->regulator_name != 0x00) {
+		rmi4_data->regulator = regulator_get(&client->dev,
+				platform_data->regulator_name);
 		if (IS_ERR(rmi4_data->regulator)) {
 			dev_err(&client->dev,
 					"%s: Failed to get regulator\n",
@@ -2580,7 +2656,7 @@ static int __devinit synaptics_rmi4_probe(struct i2c_client *client,
 			goto err_regulator;
 		}
 		regulator_enable(rmi4_data->regulator);
-		msleep(platform_data->reset_delay_ms);
+		msleep(platform_data->power_delay_ms);
 	}
 
 	rmi4_data->i2c_client = client;
@@ -2601,6 +2677,16 @@ static int __devinit synaptics_rmi4_probe(struct i2c_client *client,
 
 	i2c_set_clientdata(client, rmi4_data);
 
+	if (platform_data->gpio_config) {
+		retval = synaptics_rmi4_set_gpio(rmi4_data);
+		if (retval < 0) {
+			dev_err(&client->dev,
+					"%s: Failed to set up GPIO's\n",
+					__func__);
+			goto err_set_gpio;
+		}
+	}
+
 	retval = synaptics_rmi4_set_input_dev(rmi4_data);
 	if (retval < 0) {
 		dev_err(&client->dev,
@@ -2615,30 +2701,6 @@ static int __devinit synaptics_rmi4_probe(struct i2c_client *client,
 	rmi4_data->early_suspend.resume = synaptics_rmi4_late_resume;
 	register_early_suspend(&rmi4_data->early_suspend);
 #endif
-
-	if (platform_data->gpio_config) {
-		retval = platform_data->gpio_config(
-				platform_data->irq_gpio,
-				true);
-		if (retval < 0) {
-			dev_err(&client->dev,
-					"%s: Failed to configure attention GPIO\n",
-					__func__);
-			goto err_gpio_attn;
-		}
-
-		if (platform_data->reset_gpio >= 0) {
-			retval = platform_data->gpio_config(
-					platform_data->reset_gpio,
-					true);
-			if (retval < 0) {
-				dev_err(&client->dev,
-						"%s: Failed to configure reset GPIO\n",
-						__func__);
-				goto err_gpio_reset;
-			}
-		}
-	}
 
 	rmi4_data->irq = gpio_to_irq(platform_data->irq_gpio);
 
@@ -2690,24 +2752,35 @@ err_sysfs:
 	synaptics_rmi4_irq_enable(rmi4_data, false);
 
 err_enable_irq:
-	if (platform_data->gpio_config && (platform_data->reset_gpio >= 0))
-		platform_data->gpio_config(platform_data->reset_gpio, false);
-
-err_gpio_reset:
-	if (platform_data->gpio_config)
-		platform_data->gpio_config(platform_data->irq_gpio, false);
-
-err_gpio_attn:
-	synaptics_rmi4_empty_fn_list(rmi4_data);
-
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	unregister_early_suspend(&rmi4_data->early_suspend);
 #endif
+
+	synaptics_rmi4_empty_fn_list(rmi4_data);
 	input_unregister_device(rmi4_data->input_dev);
 	rmi4_data->input_dev = NULL;
 
 err_set_input_dev:
-	if (platform_data->regulator_en) {
+	if (platform_data->gpio_config) {
+		platform_data->gpio_config(
+				platform_data->irq_gpio,
+				false, 0, 0);
+
+		if (platform_data->reset_gpio >= 0) {
+			platform_data->gpio_config(
+					platform_data->reset_gpio,
+					false, 0, 0);
+		}
+
+		if (platform_data->power_gpio >= 0) {
+			platform_data->gpio_config(
+					platform_data->power_gpio,
+					false, 0, 0);
+		}
+	}
+
+err_set_gpio:
+	if (rmi4_data->regulator) {
 		regulator_disable(rmi4_data->regulator);
 		regulator_put(rmi4_data->regulator);
 	}
@@ -2735,20 +2808,6 @@ static int __devexit synaptics_rmi4_remove(struct i2c_client *client)
 	const struct synaptics_dsx_platform_data *platform_data =
 			rmi4_data->board;
 
-	synaptics_rmi4_irq_enable(rmi4_data, false);
-
-	if (platform_data->gpio_config) {
-		platform_data->gpio_config(
-				platform_data->irq_gpio,
-				false);
-
-		if (platform_data->reset_gpio >= 0) {
-			platform_data->gpio_config(
-					platform_data->reset_gpio,
-					false);
-		}
-	}
-
 	for (attr_count = 0; attr_count < ARRAY_SIZE(attrs); attr_count++) {
 		sysfs_remove_file(&rmi4_data->input_dev->dev.kobj,
 				&attrs[attr_count].attr);
@@ -2758,14 +2817,35 @@ static int __devexit synaptics_rmi4_remove(struct i2c_client *client)
 	flush_workqueue(exp_data.workqueue);
 	destroy_workqueue(exp_data.workqueue);
 
-	synaptics_rmi4_empty_fn_list(rmi4_data);
+	synaptics_rmi4_irq_enable(rmi4_data, false);
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	unregister_early_suspend(&rmi4_data->early_suspend);
 #endif
-	input_unregister_device(rmi4_data->input_dev);
 
-	if (platform_data->regulator_en) {
+	synaptics_rmi4_empty_fn_list(rmi4_data);
+	input_unregister_device(rmi4_data->input_dev);
+	rmi4_data->input_dev = NULL;
+
+	if (platform_data->gpio_config) {
+		platform_data->gpio_config(
+				platform_data->irq_gpio,
+				false, 0, 0);
+
+		if (platform_data->reset_gpio >= 0) {
+			platform_data->gpio_config(
+					platform_data->reset_gpio,
+					false, 0, 0);
+		}
+
+		if (platform_data->power_gpio >= 0) {
+			platform_data->gpio_config(
+					platform_data->power_gpio,
+					false, 0, 0);
+		}
+	}
+
+	if (rmi4_data->regulator) {
 		regulator_disable(rmi4_data->regulator);
 		regulator_put(rmi4_data->regulator);
 	}
@@ -2950,8 +3030,6 @@ static void synaptics_rmi4_late_resume(struct early_suspend *h)
 static int synaptics_rmi4_suspend(struct device *dev)
 {
 	struct synaptics_rmi4_data *rmi4_data = dev_get_drvdata(dev);
-	const struct synaptics_dsx_platform_data *platform_data =
-			rmi4_data->board;
 
 	if (rmi4_data->staying_awake)
 		return 0;
@@ -2963,7 +3041,7 @@ static int synaptics_rmi4_suspend(struct device *dev)
 		synaptics_rmi4_free_fingers(rmi4_data);
 	}
 
-	if (platform_data->regulator_en)
+	if (rmi4_data->regulator)
 		regulator_disable(rmi4_data->regulator);
 
 	return 0;
@@ -2989,7 +3067,7 @@ static int synaptics_rmi4_resume(struct device *dev)
 	if (rmi4_data->staying_awake)
 		return 0;
 
-	if (platform_data->regulator_en) {
+	if (rmi4_data->regulator) {
 		regulator_enable(rmi4_data->regulator);
 		msleep(platform_data->reset_delay_ms);
 		rmi4_data->current_page = MASK_8BIT;

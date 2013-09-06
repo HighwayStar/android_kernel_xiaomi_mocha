@@ -34,12 +34,18 @@ struct synaptics_dsx_cap_button_map {
  * struct synaptics_dsx_platform_data - dsx platform data
  * @x_flip: x flip flag
  * @y_flip: y flip flag
- * @regulator_en: regulator enable flag
- * @reset_gpio: reset gpio
  * @irq_gpio: attention interrupt gpio
+ * @power_gpio: power switch gpio
+ * @power_on_state: power switch active state
+ * @reset_gpio: reset gpio
+ * @reset_on_state: reset active state
  * @irq_flags: irq flags
  * @panel_x: x-axis resolution of display panel
  * @panel_y: y-axis resolution of display panel
+ * @power_delay_ms: delay time to wait after power-on
+ * @reset_delay_ms: delay time to wait after reset
+ * @reset_active_ms: reset active time
+ * @regulator_name: pointer to name of regulator
  * @gpio_config: pointer to gpio configuration function
  * @cap_button_map: pointer to 0d button map
  */
@@ -47,14 +53,19 @@ struct synaptics_dsx_platform_data {
 	bool x_flip;
 	bool y_flip;
 	bool swap_axes;
-	bool regulator_en;
-	int reset_gpio;
 	int irq_gpio;
+	int power_gpio;
+	int power_on_state;
+	int reset_gpio;
+	int reset_on_state;
 	unsigned long irq_flags;
 	unsigned int panel_x;
 	unsigned int panel_y;
+	unsigned int power_delay_ms;
 	unsigned int reset_delay_ms;
-	int (*gpio_config)(int gpio, bool configure);
+	unsigned int reset_active_ms;
+	unsigned char *regulator_name;
+	int (*gpio_config)(int gpio, bool configure, int dir, int state);
 	struct synaptics_dsx_cap_button_map *cap_button_map;
 };
 
