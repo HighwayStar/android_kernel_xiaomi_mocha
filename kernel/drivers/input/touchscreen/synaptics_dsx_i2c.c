@@ -1320,6 +1320,49 @@ static int synaptics_rmi4_irq_enable(struct synaptics_rmi4_data *rmi4_data,
 	return retval;
 }
 
+static void synaptics_rmi4_set_intr_mask(struct synaptics_rmi4_fn *fhandler,
+		struct synaptics_rmi4_fn_desc *fd,
+		unsigned int intr_count)
+{
+	unsigned char ii;
+	unsigned char intr_offset;
+
+	fhandler->intr_reg_num = (intr_count + 7) / 8;
+	if (fhandler->intr_reg_num != 0)
+		fhandler->intr_reg_num -= 1;
+
+	/* Set an enable bit for each data source */
+	intr_offset = intr_count % 8;
+	fhandler->intr_mask = 0;
+	for (ii = intr_offset;
+			ii < ((fd->intr_src_count & MASK_3BIT) +
+			intr_offset);
+			ii++)
+		fhandler->intr_mask |= 1 << ii;
+
+	return;
+}
+
+static int synaptics_rmi4_f01_init(struct synaptics_rmi4_data *rmi4_data,
+		struct synaptics_rmi4_fn *fhandler,
+		struct synaptics_rmi4_fn_desc *fd,
+		unsigned int intr_count)
+{
+	fhandler->fn_number = fd->fn_number;
+	fhandler->num_of_data_sources = fd->intr_src_count;
+	fhandler->data = NULL;
+	fhandler->extra = NULL;
+
+	synaptics_rmi4_set_intr_mask(fhandler, fd, intr_count);
+
+	rmi4_data->f01_query_base_addr = fd->query_base_addr;
+	rmi4_data->f01_ctrl_base_addr = fd->ctrl_base_addr;
+	rmi4_data->f01_data_base_addr = fd->data_base_addr;
+	rmi4_data->f01_cmd_base_addr = fd->cmd_base_addr;
+
+	return 0;
+}
+
  /**
  * synaptics_rmi4_f11_init()
  *
@@ -1337,8 +1380,6 @@ static int synaptics_rmi4_f11_init(struct synaptics_rmi4_data *rmi4_data,
 		unsigned int intr_count)
 {
 	int retval;
-	unsigned char ii;
-	unsigned char intr_offset;
 	unsigned char abs_data_size;
 	unsigned char abs_data_blk_size;
 	unsigned char query[F11_STD_QUERY_LEN];
@@ -1382,18 +1423,7 @@ static int synaptics_rmi4_f11_init(struct synaptics_rmi4_data *rmi4_data,
 
 	rmi4_data->max_touch_width = MAX_F11_TOUCH_WIDTH;
 
-	fhandler->intr_reg_num = (intr_count + 7) / 8;
-	if (fhandler->intr_reg_num != 0)
-		fhandler->intr_reg_num -= 1;
-
-	/* Set an enable bit for each data source */
-	intr_offset = intr_count % 8;
-	fhandler->intr_mask = 0;
-	for (ii = intr_offset;
-			ii < ((fd->intr_src_count & MASK_3BIT) +
-			intr_offset);
-			ii++)
-		fhandler->intr_mask |= 1 << ii;
+	synaptics_rmi4_set_intr_mask(fhandler, fd, intr_count);
 
 	abs_data_size = query[5] & MASK_2BIT;
 	abs_data_blk_size = 3 + (2 * (abs_data_size == 0 ? 1 : 0));
@@ -1440,8 +1470,6 @@ static int synaptics_rmi4_f12_init(struct synaptics_rmi4_data *rmi4_data,
 		unsigned int intr_count)
 {
 	int retval;
-	unsigned char ii;
-	unsigned char intr_offset;
 	unsigned char size_of_2d_data;
 	unsigned char size_of_query8;
 	unsigned char ctrl_8_offset;
@@ -1590,18 +1618,7 @@ static int synaptics_rmi4_f12_init(struct synaptics_rmi4_data *rmi4_data,
 	rmi4_data->max_touch_width = max(rmi4_data->num_of_rx,
 			rmi4_data->num_of_tx);
 
-	fhandler->intr_reg_num = (intr_count + 7) / 8;
-	if (fhandler->intr_reg_num != 0)
-		fhandler->intr_reg_num -= 1;
-
-	/* Set an enable bit for each data source */
-	intr_offset = intr_count % 8;
-	fhandler->intr_mask = 0;
-	for (ii = intr_offset;
-			ii < ((fd->intr_src_count & MASK_3BIT) +
-			intr_offset);
-			ii++)
-		fhandler->intr_mask |= 1 << ii;
+	synaptics_rmi4_set_intr_mask(fhandler, fd, intr_count);
 
 	/* Allocate memory for finger data storage space */
 	fhandler->data_size = num_of_fingers * size_of_2d_data;
@@ -1745,24 +1762,11 @@ static int synaptics_rmi4_f1a_init(struct synaptics_rmi4_data *rmi4_data,
 		unsigned int intr_count)
 {
 	int retval;
-	unsigned char ii;
-	unsigned short intr_offset;
 
 	fhandler->fn_number = fd->fn_number;
 	fhandler->num_of_data_sources = fd->intr_src_count;
 
-	fhandler->intr_reg_num = (intr_count + 7) / 8;
-	if (fhandler->intr_reg_num != 0)
-		fhandler->intr_reg_num -= 1;
-
-	/* Set an enable bit for each data source */
-	intr_offset = intr_count % 8;
-	fhandler->intr_mask = 0;
-	for (ii = intr_offset;
-			ii < ((fd->intr_src_count & MASK_3BIT) +
-			intr_offset);
-			ii++)
-		fhandler->intr_mask |= 1 << ii;
+	synaptics_rmi4_set_intr_mask(fhandler, fd, intr_count);
 
 	retval = synaptics_rmi4_f1a_alloc_mem(rmi4_data, fhandler);
 	if (retval < 0)
@@ -1996,14 +2000,23 @@ rescan_pdt:
 
 			switch (rmi_fd.fn_number) {
 			case SYNAPTICS_RMI4_F01:
-				rmi4_data->f01_query_base_addr =
-						rmi_fd.query_base_addr;
-				rmi4_data->f01_ctrl_base_addr =
-						rmi_fd.ctrl_base_addr;
-				rmi4_data->f01_data_base_addr =
-						rmi_fd.data_base_addr;
-				rmi4_data->f01_cmd_base_addr =
-						rmi_fd.cmd_base_addr;
+				if (rmi_fd.intr_src_count == 0)
+					break;
+
+				retval = synaptics_rmi4_alloc_fh(&fhandler,
+						&rmi_fd, page_number);
+				if (retval < 0) {
+					dev_err(&rmi4_data->i2c_client->dev,
+							"%s: Failed to alloc for F%d\n",
+							__func__,
+							rmi_fd.fn_number);
+					return retval;
+				}
+
+				retval = synaptics_rmi4_f01_init(rmi4_data,
+						fhandler, &rmi_fd, intr_count);
+				if (retval < 0)
+					return retval;
 
 				retval = synaptics_rmi4_check_status(rmi4_data,
 						&was_in_bl_mode);
@@ -2014,8 +2027,11 @@ rescan_pdt:
 					return retval;
 				}
 
-				if (was_in_bl_mode)
+				if (was_in_bl_mode) {
+					kfree(fhandler);
+					fhandler = NULL;
 					goto rescan_pdt;
+				}
 
 				if (rmi4_data->flash_prog_mode)
 					goto flash_prog_mode;
