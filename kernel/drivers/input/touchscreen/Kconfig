@@ -409,6 +409,20 @@ config TOUCHSCREEN_SYNAPTICS_DSX_FW_UPDATE
 	  This enables support for firmware update for Synaptics DSX
 	  touchscreens.
 
+config TOUCHSCREEN_SYNAPTICS_DSX_TEST_REPORTING
+	tristate "Synaptics DSX touchscreen test reporting"
+	depends on TOUCHSCREEN_SYNAPTICS_DSX_I2C
+	help
+	  This enables support for test reporting for Synaptics DSX
+	  touchscreens.
+
+config TOUCHSCREEN_SYNAPTICS_DSX_PROXIMITY
+	tristate "Synaptics DSX touchscreen proximity"
+	depends on TOUCHSCREEN_SYNAPTICS_DSX_I2C
+	help
+	  This enables support for proximity for Synaptics DSX
+	  touchscreens.
+
 config TOUCHSCREEN_TOUCHRIGHT
 	tristate "Touchright serial touchscreen"
 	select SERIO

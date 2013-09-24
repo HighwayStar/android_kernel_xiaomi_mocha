@@ -2,6 +2,11 @@
 //  Synaptics DSX I2C Driver
 ///////////////////////////////////////////////////////////
 
+v2.0 Sep 24, 2013 scott.lin@tw.synaptics.com
+   - Update registration interface for expansion modules
+   - Add support for optional test reporting and proximity modules
+   - Add workaround for using F12_2D_Data15
+
 v1.23 Sep 06, 2013 scott.lin@tw.synaptics.com
    - Add GPIO control for power and reset
    - Use correct F$01 address when doing soft reset in bootloader mode

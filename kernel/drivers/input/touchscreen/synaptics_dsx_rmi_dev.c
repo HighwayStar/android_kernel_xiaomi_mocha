@@ -56,7 +56,7 @@ struct rmidev_handle {
 	dev_t dev_no;
 	struct device dev;
 	struct synaptics_rmi4_data *rmi4_data;
-	struct synaptics_rmi4_exp_fn_ptr *fn_ptr;
+	struct synaptics_rmi4_access_ptr *fn_ptr;
 	struct kobject *sysfs_dir;
 	void *data;
 	bool irq_enabled;
@@ -753,22 +753,32 @@ exit:
 	return;
 }
 
+static struct synaptics_rmi4_exp_fn rmidev_module = {
+	.fn_type = RMI_DEV,
+	.init = rmidev_init_device,
+	.remove = rmidev_remove_device,
+	.reset = NULL,
+	.reinit = NULL,
+	.early_suspend = NULL,
+	.suspend = NULL,
+	.resume = NULL,
+	.late_resume = NULL,
+	.attn = NULL,
+};
+
 static int __init rmidev_module_init(void)
 {
-	synaptics_rmi4_new_function(RMI_DEV, true,
-			rmidev_init_device,
-			rmidev_remove_device,
-			NULL);
+	synaptics_rmi4_new_function(&rmidev_module, true);
+
 	return 0;
 }
 
 static void __exit rmidev_module_exit(void)
 {
-	synaptics_rmi4_new_function(RMI_DEV, false,
-			rmidev_init_device,
-			rmidev_remove_device,
-			NULL);
+	synaptics_rmi4_new_function(&rmidev_module, false);
+
 	wait_for_completion(&rmidev_remove_complete);
+
 	return;
 }
 

@@ -271,7 +271,7 @@ struct synaptics_rmi4_fwu_handle {
 	struct workqueue_struct *fwu_workqueue;
 	struct delayed_work fwu_work;
 	struct synaptics_rmi4_fn_desc f34_fd;
-	struct synaptics_rmi4_exp_fn_ptr *fn_ptr;
+	struct synaptics_rmi4_access_ptr *fn_ptr;
 	struct synaptics_rmi4_data *rmi4_data;
 };
 
@@ -1817,22 +1817,32 @@ exit:
 	return;
 }
 
+static struct synaptics_rmi4_exp_fn fwu_module = {
+	.fn_type = RMI_FW_UPDATER,
+	.init = synaptics_rmi4_fwu_init,
+	.remove = synaptics_rmi4_fwu_remove,
+	.reset = NULL,
+	.reinit = NULL,
+	.early_suspend = NULL,
+	.suspend = NULL,
+	.resume = NULL,
+	.late_resume = NULL,
+	.attn = synaptics_rmi4_fwu_attn,
+};
+
 static int __init rmi4_fw_update_module_init(void)
 {
-	synaptics_rmi4_new_function(RMI_FW_UPDATER, true,
-			synaptics_rmi4_fwu_init,
-			synaptics_rmi4_fwu_remove,
-			synaptics_rmi4_fwu_attn);
+	synaptics_rmi4_new_function(&fwu_module, true);
+
 	return 0;
 }
 
 static void __exit rmi4_fw_update_module_exit(void)
 {
-	synaptics_rmi4_new_function(RMI_FW_UPDATER, false,
-			synaptics_rmi4_fwu_init,
-			synaptics_rmi4_fwu_remove,
-			synaptics_rmi4_fwu_attn);
+	synaptics_rmi4_new_function(&fwu_module, false);
+
 	wait_for_completion(&fwu_remove_complete);
+
 	return;
 }
 

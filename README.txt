@@ -24,6 +24,14 @@ drivers/input/touchscreen/synaptics_dsx_fw_update.c
    The source code of the firmware update module used for carrying out both
    in-system and command-line reflash.
 
+[optional] drivers/input/touchscreen/synaptics_dsx_test_reporting.c
+   The source code of the test reporting module used for accessing analog
+   diagnostic and control functions and reading production test reports.
+
+[optional] drivers/input/touchscreen/synaptics_dsx_proximity.c
+   The source code of the proximity module used for providing proximity
+   functionalities.
+
 drivers/input/touchscreen/Kconfig
    Example Kconfig for the OMAP Panda Board.
 

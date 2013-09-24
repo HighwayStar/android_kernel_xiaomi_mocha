@@ -44,9 +44,7 @@
 */
 #define REPORT_2D_W
 
-/*
-#define USE_F12_DATA_15
-*/
+#define F12_DATA_15_WORKAROUND
 
 /*
 #define IGNORE_FN_INIT_FAILURE
@@ -327,13 +325,10 @@ struct synaptics_rmi4_f1a_handle {
 	struct synaptics_rmi4_f1a_control button_control;
 };
 
-struct synaptics_rmi4_exp_fn {
-	enum exp_fn fn_type;
-	bool inserted;
-	int (*func_init)(struct synaptics_rmi4_data *rmi4_data);
-	void (*func_remove)(struct synaptics_rmi4_data *rmi4_data);
-	void (*func_attn)(struct synaptics_rmi4_data *rmi4_data,
-			unsigned char intr_mask);
+struct synaptics_rmi4_exp_fhandler {
+	struct synaptics_rmi4_exp_fn *exp_fn;
+	bool insert;
+	bool remove;
 	struct list_head link;
 };
 
@@ -884,13 +879,16 @@ static int synaptics_rmi4_f12_abs_report(struct synaptics_rmi4_data *rmi4_data,
 	struct synaptics_rmi4_f12_extra_data *extra_data;
 	struct synaptics_rmi4_f12_finger_data *data;
 	struct synaptics_rmi4_f12_finger_data *finger_data;
+#ifdef F12_DATA_15_WORKAROUND
+	static unsigned char fingers_already_present;
+#endif
 
 	fingers_to_process = fhandler->num_of_data_points;
 	data_addr = fhandler->full_addr.data_base;
 	extra_data = (struct synaptics_rmi4_f12_extra_data *)fhandler->extra;
 	size_of_2d_data = sizeof(struct synaptics_rmi4_f12_finger_data);
 
-#ifdef USE_F12_DATA_15
+
 	/* Determine the total number of fingers to process */
 	if (extra_data->data15_size) {
 		retval = synaptics_rmi4_i2c_read(rmi4_data,
@@ -922,11 +920,14 @@ static int synaptics_rmi4_f12_abs_report(struct synaptics_rmi4_data *rmi4_data,
 			__func__, fingers_to_process);
 	}
 
+#ifdef F12_DATA_15_WORKAROUND
+	fingers_to_process = max(fingers_to_process, fingers_already_present);
+#endif
+
 	if (!fingers_to_process) {
 		synaptics_rmi4_free_fingers(rmi4_data);
 		return 0;
 	}
-#endif
 
 	retval = synaptics_rmi4_i2c_read(rmi4_data,
 			data_addr + extra_data->data1_offset,
@@ -939,15 +940,8 @@ static int synaptics_rmi4_f12_abs_report(struct synaptics_rmi4_data *rmi4_data,
 
 	for (finger = 0; finger < fingers_to_process; finger++) {
 		finger_data = data + finger;
-		finger_status = finger_data->object_type_and_status & MASK_2BIT;
+		finger_status = finger_data->object_type_and_status & MASK_1BIT;
 
-		/*
-		 * Each 2-bit finger status field represents the following:
-		 * 00 = finger not present
-		 * 01 = finger present and data accurate
-		 * 10 = finger present but data may be inaccurate
-		 * 11 = reserved
-		 */
 #ifdef TYPE_B_PROTOCOL
 		input_mt_slot(rmi4_data->input_dev, finger);
 		input_mt_report_slot_state(rmi4_data->input_dev,
@@ -955,6 +949,10 @@ static int synaptics_rmi4_f12_abs_report(struct synaptics_rmi4_data *rmi4_data,
 #endif
 
 		if (finger_status) {
+#ifdef F12_DATA_15_WORKAROUND
+			fingers_already_present = finger + 1;
+#endif
+
 			x = (finger_data->x_msb << 8) | (finger_data->x_lsb);
 			y = (finger_data->y_msb << 8) | (finger_data->y_lsb);
 #ifdef REPORT_2D_W
@@ -1187,7 +1185,7 @@ static void synaptics_rmi4_sensor_report(struct synaptics_rmi4_data *rmi4_data)
 	unsigned char *intr = &data[1];
 	struct synaptics_rmi4_f01_device_status status;
 	struct synaptics_rmi4_fn *fhandler;
-	struct synaptics_rmi4_exp_fn *exp_fhandler;
+	struct synaptics_rmi4_exp_fhandler *exp_fhandler;
 	struct synaptics_rmi4_device_info *rmi;
 
 	rmi = &(rmi4_data->rmi4_mod_info);
@@ -1238,9 +1236,10 @@ static void synaptics_rmi4_sensor_report(struct synaptics_rmi4_data *rmi4_data)
 	mutex_lock(&exp_data.mutex);
 	if (!list_empty(&exp_data.list)) {
 		list_for_each_entry(exp_fhandler, &exp_data.list, link) {
-			if (exp_fhandler->inserted &&
-					(exp_fhandler->func_attn != NULL))
-				exp_fhandler->func_attn(rmi4_data, intr[0]);
+			if (!exp_fhandler->insert &&
+					!exp_fhandler->remove &&
+					(exp_fhandler->exp_fn->attn != NULL))
+				exp_fhandler->exp_fn->attn(rmi4_data, intr[0]);
 		}
 	}
 	mutex_unlock(&exp_data.mutex);
@@ -2416,6 +2415,7 @@ static int synaptics_rmi4_reinit_device(struct synaptics_rmi4_data *rmi4_data)
 	unsigned char ii;
 	unsigned short intr_addr;
 	struct synaptics_rmi4_fn *fhandler;
+	struct synaptics_rmi4_exp_fhandler *exp_fhandler;
 	struct synaptics_rmi4_device_info *rmi;
 
 	rmi = &(rmi4_data->rmi4_mod_info);
@@ -2448,6 +2448,14 @@ static int synaptics_rmi4_reinit_device(struct synaptics_rmi4_data *rmi4_data)
 		}
 	}
 
+	mutex_lock(&exp_data.mutex);
+	if (!list_empty(&exp_data.list)) {
+		list_for_each_entry(exp_fhandler, &exp_data.list, link)
+			if (exp_fhandler->exp_fn->reinit != NULL)
+				exp_fhandler->exp_fn->reinit(rmi4_data);
+	}
+	mutex_unlock(&exp_data.mutex);
+
 	synaptics_rmi4_set_configured(rmi4_data);
 
 	retval = 0;
@@ -2462,6 +2470,7 @@ static int synaptics_rmi4_reset_device(struct synaptics_rmi4_data *rmi4_data)
 	int retval;
 	int temp;
 	unsigned char command = 0x01;
+	struct synaptics_rmi4_exp_fhandler *exp_fhandler;
 
 	mutex_lock(&(rmi4_data->rmi4_reset_mutex));
 
@@ -2502,6 +2511,14 @@ static int synaptics_rmi4_reset_device(struct synaptics_rmi4_data *rmi4_data)
 
 	synaptics_rmi4_set_params(rmi4_data);
 
+	mutex_lock(&exp_data.mutex);
+	if (!list_empty(&exp_data.list)) {
+		list_for_each_entry(exp_fhandler, &exp_data.list, link)
+			if (exp_fhandler->exp_fn->reset != NULL)
+				exp_fhandler->exp_fn->reset(rmi4_data);
+	}
+	mutex_unlock(&exp_data.mutex);
+
 	rmi4_data->touch_stopped = false;
 
 	mutex_unlock(&(rmi4_data->rmi4_reset_mutex));
@@ -2520,8 +2537,9 @@ static int synaptics_rmi4_reset_device(struct synaptics_rmi4_data *rmi4_data)
 */
 static void synaptics_rmi4_exp_fn_work(struct work_struct *work)
 {
-	struct synaptics_rmi4_exp_fn *exp_fhandler;
-	struct synaptics_rmi4_exp_fn *exp_fhandler_temp;
+	int retval;
+	struct synaptics_rmi4_exp_fhandler *exp_fhandler;
+	struct synaptics_rmi4_exp_fhandler *exp_fhandler_temp;
 	struct synaptics_rmi4_data *rmi4_data = exp_data.rmi4_data;
 
 	mutex_lock(&exp_data.mutex);
@@ -2530,13 +2548,18 @@ static void synaptics_rmi4_exp_fn_work(struct work_struct *work)
 				exp_fhandler_temp,
 				&exp_data.list,
 				link) {
-			if ((exp_fhandler->func_init != NULL) &&
-					(exp_fhandler->inserted == false)) {
-				exp_fhandler->func_init(rmi4_data);
-				exp_fhandler->inserted = true;
-			} else if ((exp_fhandler->func_init == NULL) &&
-					(exp_fhandler->inserted == true)) {
-				exp_fhandler->func_remove(rmi4_data);
+			if ((exp_fhandler->exp_fn->init != NULL) &&
+					exp_fhandler->insert) {
+				retval = exp_fhandler->exp_fn->init(rmi4_data);
+				if (retval < 0) {
+					list_del(&exp_fhandler->link);
+					kfree(exp_fhandler);
+				} else {
+					exp_fhandler->insert = false;
+				}
+			} else if ((exp_fhandler->exp_fn->remove != NULL) &&
+					exp_fhandler->remove) {
+				exp_fhandler->exp_fn->remove(rmi4_data);
 				list_del(&exp_fhandler->link);
 				kfree(exp_fhandler);
 			}
@@ -2559,13 +2582,10 @@ static void synaptics_rmi4_exp_fn_work(struct work_struct *work)
 * can be inserted or removed dynamically at module init and exit times,
 * respectively.
 */
-void synaptics_rmi4_new_function(enum exp_fn fn_type, bool insert,
-		int (*func_init)(struct synaptics_rmi4_data *rmi4_data),
-		void (*func_remove)(struct synaptics_rmi4_data *rmi4_data),
-		void (*func_attn)(struct synaptics_rmi4_data *rmi4_data,
-		unsigned char intr_mask))
+void synaptics_rmi4_new_function(struct synaptics_rmi4_exp_fn *exp_fn,
+		bool insert)
 {
-	struct synaptics_rmi4_exp_fn *exp_fhandler;
+	struct synaptics_rmi4_exp_fhandler *exp_fhandler;
 
 	if (!exp_data.initialized) {
 		mutex_init(&exp_data.mutex);
@@ -2581,17 +2601,15 @@ void synaptics_rmi4_new_function(enum exp_fn fn_type, bool insert,
 					__func__);
 			goto exit;
 		}
-		exp_fhandler->fn_type = fn_type;
-		exp_fhandler->func_init = func_init;
-		exp_fhandler->func_attn = func_attn;
-		exp_fhandler->func_remove = func_remove;
-		exp_fhandler->inserted = false;
+		exp_fhandler->exp_fn = exp_fn;
+		exp_fhandler->insert = true;
+		exp_fhandler->remove = false;
 		list_add_tail(&exp_fhandler->link, &exp_data.list);
 	} else if (!list_empty(&exp_data.list)) {
 		list_for_each_entry(exp_fhandler, &exp_data.list, link) {
-			if (exp_fhandler->fn_type == fn_type) {
-				exp_fhandler->func_init = NULL;
-				exp_fhandler->func_attn = NULL;
+			if (exp_fhandler->exp_fn->fn_type == exp_fn->fn_type) {
+				exp_fhandler->insert = false;
+				exp_fhandler->remove = true;
 				goto exit;
 			}
 		}
@@ -2968,6 +2986,7 @@ static void synaptics_rmi4_sensor_wake(struct synaptics_rmi4_data *rmi4_data)
  */
 static void synaptics_rmi4_early_suspend(struct early_suspend *h)
 {
+	struct synaptics_rmi4_exp_fhandler *exp_fhandler;
 	struct synaptics_rmi4_data *rmi4_data =
 			container_of(h, struct synaptics_rmi4_data,
 			early_suspend);
@@ -2983,6 +3002,14 @@ static void synaptics_rmi4_early_suspend(struct early_suspend *h)
 	synaptics_rmi4_irq_enable(rmi4_data, false);
 	synaptics_rmi4_sensor_sleep(rmi4_data);
 	synaptics_rmi4_free_fingers(rmi4_data);
+
+	mutex_lock(&exp_data.mutex);
+	if (!list_empty(&exp_data.list)) {
+		list_for_each_entry(exp_fhandler, &exp_data.list, link)
+			if (exp_fhandler->exp_fn->early_suspend != NULL)
+				exp_fhandler->exp_fn->early_suspend(rmi4_data);
+	}
+	mutex_unlock(&exp_data.mutex);
 
 	if (rmi4_data->full_pm_cycle)
 		synaptics_rmi4_suspend(&(rmi4_data->input_dev->dev));
@@ -3002,6 +3029,7 @@ static void synaptics_rmi4_early_suspend(struct early_suspend *h)
 static void synaptics_rmi4_late_resume(struct early_suspend *h)
 {
 	int retval;
+	struct synaptics_rmi4_exp_fhandler *exp_fhandler;
 	struct synaptics_rmi4_data *rmi4_data =
 			container_of(h, struct synaptics_rmi4_data,
 			early_suspend);
@@ -3015,7 +3043,6 @@ static void synaptics_rmi4_late_resume(struct early_suspend *h)
 	if (rmi4_data->sensor_sleep == true) {
 		synaptics_rmi4_sensor_wake(rmi4_data);
 		synaptics_rmi4_irq_enable(rmi4_data, true);
-		rmi4_data->touch_stopped = false;
 		retval = synaptics_rmi4_reinit_device(rmi4_data);
 		if (retval < 0) {
 			dev_err(&rmi4_data->i2c_client->dev,
@@ -3023,6 +3050,16 @@ static void synaptics_rmi4_late_resume(struct early_suspend *h)
 					__func__);
 		}
 	}
+
+	mutex_lock(&exp_data.mutex);
+	if (!list_empty(&exp_data.list)) {
+		list_for_each_entry(exp_fhandler, &exp_data.list, link)
+			if (exp_fhandler->exp_fn->late_resume != NULL)
+				exp_fhandler->exp_fn->late_resume(rmi4_data);
+	}
+	mutex_unlock(&exp_data.mutex);
+
+	rmi4_data->touch_stopped = false;
 
 	return;
 }
@@ -3040,6 +3077,7 @@ static void synaptics_rmi4_late_resume(struct early_suspend *h)
  */
 static int synaptics_rmi4_suspend(struct device *dev)
 {
+	struct synaptics_rmi4_exp_fhandler *exp_fhandler;
 	struct synaptics_rmi4_data *rmi4_data = dev_get_drvdata(dev);
 
 	if (rmi4_data->staying_awake)
@@ -3051,6 +3089,14 @@ static int synaptics_rmi4_suspend(struct device *dev)
 		synaptics_rmi4_sensor_sleep(rmi4_data);
 		synaptics_rmi4_free_fingers(rmi4_data);
 	}
+
+	mutex_lock(&exp_data.mutex);
+	if (!list_empty(&exp_data.list)) {
+		list_for_each_entry(exp_fhandler, &exp_data.list, link)
+			if (exp_fhandler->exp_fn->suspend != NULL)
+				exp_fhandler->exp_fn->suspend(rmi4_data);
+	}
+	mutex_unlock(&exp_data.mutex);
 
 	if (rmi4_data->regulator)
 		regulator_disable(rmi4_data->regulator);
@@ -3071,6 +3117,7 @@ static int synaptics_rmi4_suspend(struct device *dev)
 static int synaptics_rmi4_resume(struct device *dev)
 {
 	int retval;
+	struct synaptics_rmi4_exp_fhandler *exp_fhandler;
 	struct synaptics_rmi4_data *rmi4_data = dev_get_drvdata(dev);
 	const struct synaptics_dsx_platform_data *platform_data =
 			rmi4_data->board;
@@ -3086,7 +3133,6 @@ static int synaptics_rmi4_resume(struct device *dev)
 
 	synaptics_rmi4_sensor_wake(rmi4_data);
 	synaptics_rmi4_irq_enable(rmi4_data, true);
-	rmi4_data->touch_stopped = false;
 	retval = synaptics_rmi4_reinit_device(rmi4_data);
 	if (retval < 0) {
 		dev_err(&rmi4_data->i2c_client->dev,
@@ -3094,6 +3140,16 @@ static int synaptics_rmi4_resume(struct device *dev)
 				__func__);
 		return retval;
 	}
+
+	mutex_lock(&exp_data.mutex);
+	if (!list_empty(&exp_data.list)) {
+		list_for_each_entry(exp_fhandler, &exp_data.list, link)
+			if (exp_fhandler->exp_fn->resume != NULL)
+				exp_fhandler->exp_fn->resume(rmi4_data);
+	}
+	mutex_unlock(&exp_data.mutex);
+
+	rmi4_data->touch_stopped = false;
 
 	return 0;
 }

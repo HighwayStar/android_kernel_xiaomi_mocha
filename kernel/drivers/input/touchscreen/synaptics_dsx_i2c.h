@@ -22,7 +22,7 @@
 #define SYNAPTICS_DS4 (1 << 0)
 #define SYNAPTICS_DS5 (1 << 1)
 #define SYNAPTICS_DSX_DRIVER_PRODUCT (SYNAPTICS_DS4 | SYNAPTICS_DS5)
-#define SYNAPTICS_DSX_DRIVER_VERSION 0x1017
+#define SYNAPTICS_DSX_DRIVER_VERSION 0x2000
 
 #include <linux/version.h>
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -53,6 +53,7 @@
 #define SYNAPTICS_RMI4_F34 (0x34)
 #define SYNAPTICS_RMI4_F51 (0x51)
 #define SYNAPTICS_RMI4_F54 (0x54)
+#define SYNAPTICS_RMI4_F55 (0x55)
 
 #define SYNAPTICS_RMI4_PRODUCT_INFO_SIZE 2
 #define SYNAPTICS_RMI4_DATE_CODE_SIZE 3
@@ -73,6 +74,15 @@
 #define MASK_3BIT 0x07
 #define MASK_2BIT 0x03
 #define MASK_1BIT 0x01
+
+enum exp_fn {
+	RMI_DEV = 0,
+	RMI_F54,
+	RMI_FW_UPDATER,
+	RMI_PROXIMITY,
+	RMI_ACTIVE_PEN,
+	RMI_LAST,
+};
 
 /*
  * struct synaptics_rmi4_fn_desc - function descriptor fields in PDT
@@ -241,14 +251,21 @@ struct synaptics_rmi4_data {
 	int (*reset_device)(struct synaptics_rmi4_data *rmi4_data);
 };
 
-enum exp_fn {
-	RMI_DEV = 0,
-	RMI_F54,
-	RMI_FW_UPDATER,
-	RMI_LAST,
+struct synaptics_rmi4_exp_fn {
+	enum exp_fn fn_type;
+	int (*init)(struct synaptics_rmi4_data *rmi4_data);
+	void (*remove)(struct synaptics_rmi4_data *rmi4_data);
+	void (*reset)(struct synaptics_rmi4_data *rmi4_data);
+	void (*reinit)(struct synaptics_rmi4_data *rmi4_data);
+	void (*early_suspend)(struct synaptics_rmi4_data *rmi4_data);
+	void (*suspend)(struct synaptics_rmi4_data *rmi4_data);
+	void (*resume)(struct synaptics_rmi4_data *rmi4_data);
+	void (*late_resume)(struct synaptics_rmi4_data *rmi4_data);
+	void (*attn)(struct synaptics_rmi4_data *rmi4_data,
+			unsigned char intr_mask);
 };
 
-struct synaptics_rmi4_exp_fn_ptr {
+struct synaptics_rmi4_access_ptr {
 	int (*read)(struct synaptics_rmi4_data *rmi4_data, unsigned short addr,
 			unsigned char *data, unsigned short length);
 	int (*write)(struct synaptics_rmi4_data *rmi4_data, unsigned short addr,
@@ -256,11 +273,8 @@ struct synaptics_rmi4_exp_fn_ptr {
 	int (*enable)(struct synaptics_rmi4_data *rmi4_data, bool enable);
 };
 
-void synaptics_rmi4_new_function(enum exp_fn fn_type, bool insert,
-		int (*func_init)(struct synaptics_rmi4_data *rmi4_data),
-		void (*func_remove)(struct synaptics_rmi4_data *rmi4_data),
-		void (*func_attn)(struct synaptics_rmi4_data *rmi4_data,
-				unsigned char intr_mask));
+void synaptics_rmi4_new_function(struct synaptics_rmi4_exp_fn *exp_fn_module,
+		bool insert);
 
 int synaptics_fw_updater(unsigned char *fw_data);
 
