@@ -11,6 +11,8 @@ menuconfig INPUT_TOUCHSCREEN
 
 if INPUT_TOUCHSCREEN
 
+source "drivers/input/touchscreen/synaptics_dsx/Kconfig"
+
 config TOUCHSCREEN_88PM860X
 	tristate "Marvell 88PM860x touchscreen"
 	depends on MFD_88PM860X
@@ -382,46 +384,6 @@ config TOUCHSCREEN_TNETV107X
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called tnetv107x-ts.
-
-config TOUCHSCREEN_SYNAPTICS_DSX_I2C
-	tristate "Synaptics DSX I2C touchscreen"
-	depends on I2C
-	help
-	  Say Y here if you have a Synaptics DSX I2C touchscreen
-	  connected to your system.
-
-	  If unsure, say N.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called synaptics_dsx_i2c.
-
-config TOUCHSCREEN_SYNAPTICS_DSX_RMI_DEV
-	tristate "Synaptics DSX touchscreen char device"
-	depends on TOUCHSCREEN_SYNAPTICS_DSX_I2C
-	help
-	  This enables support for direct register access for Synaptics DSX
-	  touchscreens.
-
-config TOUCHSCREEN_SYNAPTICS_DSX_FW_UPDATE
-	tristate "Synaptics DSX touchscreen firmware update"
-	depends on TOUCHSCREEN_SYNAPTICS_DSX_I2C
-	help
-	  This enables support for firmware update for Synaptics DSX
-	  touchscreens.
-
-config TOUCHSCREEN_SYNAPTICS_DSX_TEST_REPORTING
-	tristate "Synaptics DSX touchscreen test reporting"
-	depends on TOUCHSCREEN_SYNAPTICS_DSX_I2C
-	help
-	  This enables support for test reporting for Synaptics DSX
-	  touchscreens.
-
-config TOUCHSCREEN_SYNAPTICS_DSX_PROXIMITY
-	tristate "Synaptics DSX touchscreen proximity"
-	depends on TOUCHSCREEN_SYNAPTICS_DSX_I2C
-	help
-	  This enables support for proximity for Synaptics DSX
-	  touchscreens.
 
 config TOUCHSCREEN_TOUCHRIGHT
 	tristate "Touchright serial touchscreen"

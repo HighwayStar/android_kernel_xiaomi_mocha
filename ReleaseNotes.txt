@@ -2,6 +2,14 @@
 //  Synaptics DSX I2C Driver
 ///////////////////////////////////////////////////////////
 
+v2.1 Nov 01, 2013 scott.lin@tw.synaptics.com
+   - Add bus abstraction layer
+   - Add support for SPI
+   - Add support for optional active pen module
+   - Update proximity module to utilize generic F$12 registers
+   - Add support for updating display configuration in firmware update module
+   - Fix bug in PDT scanning logic to operate for loop correctly on each page
+
 v2.0 Sep 24, 2013 scott.lin@tw.synaptics.com
    - Update registration interface for expansion modules
    - Add support for optional test reporting and proximity modules
