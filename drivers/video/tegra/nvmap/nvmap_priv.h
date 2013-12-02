@@ -258,6 +258,10 @@ int nvmap_page_pool_fini(struct nvmap_device *dev);
 struct page *nvmap_page_pool_alloc(struct nvmap_page_pool *pool);
 bool nvmap_page_pool_fill(struct nvmap_page_pool *pool, struct page *page);
 int nvmap_page_pool_clear(void);
+int __nvmap_page_pool_alloc_lots_locked(struct nvmap_page_pool *pool,
+					struct page **pages, u32 nr);
+int __nvmap_page_pool_fill_lots_locked(struct nvmap_page_pool *pool,
+				       struct page **pages, u32 nr);
 #endif
 
 struct nvmap_client {
