@@ -71,17 +71,6 @@ static void pp_clean_cache(void)
 	}
 }
 
-
-static inline void nvmap_page_pool_lock(struct nvmap_page_pool *pool)
-{
-	mutex_lock(&pool->lock);
-}
-
-static inline void nvmap_page_pool_unlock(struct nvmap_page_pool *pool)
-{
-	mutex_unlock(&pool->lock);
-}
-
 /*
  * Allocate n pages one by one. Not the most efficient allocation scheme ever;
  * however, it will make it easier later on to handle single or small number of
