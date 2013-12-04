@@ -491,6 +491,7 @@ static struct platform_device *ardbeg_devices[] __initdata = {
 #if defined(CONFIG_CRYPTO_DEV_TEGRA_AES)
 	&tegra_aes_device,
 #endif
+	&tegra_ptm_device,
 };
 
 static struct tegra_usb_platform_data tegra_udc_pdata = {
