@@ -39,6 +39,7 @@
 #define DC_CTRL_MODE	TEGRA_DC_OUT_CONTINUOUS_MODE
 
 static struct tegra_dsi_out dsi_j_1440_810_5_8_pdata;
+static struct tegra_dc_out *j_1440_810_dc_out;
 
 static bool reg_requested;
 static bool gpio_requested;
@@ -473,8 +474,12 @@ static int dsi_j_1440_810_5_8_postpoweron(struct device *dev)
 		pr_err("dsi gpio request failed\n");
 		goto fail;
 	}
-	gpio_direction_output(dsi_j_1440_810_5_8_pdata.dsi_panel_rst_gpio, 0);
-	gpio_direction_output(DSI_PANEL_EN_GPIO, 0);
+
+	if (!(j_1440_810_dc_out->flags & TEGRA_DC_OUT_INITIALIZED_MODE)) {
+		gpio_direction_output(
+			dsi_j_1440_810_5_8_pdata.dsi_panel_rst_gpio, 0);
+		gpio_direction_output(DSI_PANEL_EN_GPIO, 0);
+	}
 
 	if (vdd_lcd_s_1v8) {
 		err = regulator_enable(vdd_lcd_s_1v8);
@@ -512,10 +517,12 @@ static int dsi_j_1440_810_5_8_postpoweron(struct device *dev)
 	}
 	usleep_range(3000, 5000);
 
-	gpio_direction_output(dsi_j_1440_810_5_8_pdata.dsi_panel_rst_gpio, 1);
-	msleep(20);
-	gpio_set_value(DSI_PANEL_EN_GPIO, 1);
-	msleep(20);
+	if (!(j_1440_810_dc_out->flags & TEGRA_DC_OUT_INITIALIZED_MODE)) {
+		gpio_set_value(dsi_j_1440_810_5_8_pdata.dsi_panel_rst_gpio, 1);
+		msleep(20);
+		gpio_set_value(DSI_PANEL_EN_GPIO, 1);
+		msleep(20);
+	}
 
 	return 0;
 fail:
@@ -603,7 +610,8 @@ static void dsi_j_1440_810_5_8_dc_out_init(struct tegra_dc_out *dc)
 	dc->postpoweron = dsi_j_1440_810_5_8_postpoweron;
 	dc->width = 130;
 	dc->height = 74;
-	dc->flags = DC_CTRL_MODE;
+	dc->flags = DC_CTRL_MODE | TEGRA_DC_OUT_INITIALIZED_MODE;
+	j_1440_810_dc_out = dc;
 }
 
 static void dsi_j_1440_810_5_8_fb_data_init(struct tegra_fb_data *fb)
