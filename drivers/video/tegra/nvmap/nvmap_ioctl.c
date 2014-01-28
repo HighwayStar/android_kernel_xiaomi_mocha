@@ -160,6 +160,7 @@ int nvmap_ioctl_pinop(struct file *filp, bool is_pin, void __user *arg,
 		}
 	} else {
 		refs = on_stack;
+
 		/* Yes, we're storing a u32 in a pointer */
 		on_stack[0] = unmarshal_user_handle((u32)(uintptr_t)op.handles);
 		if (!on_stack[0]) {
