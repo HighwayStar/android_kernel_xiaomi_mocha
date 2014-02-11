@@ -1284,9 +1284,6 @@ static void __init tegra_ardbeg_late_init(void)
 
 	if (board_info.board_id == BOARD_PM374)
 		norrin_kbc_init();
-	else if (board_info.board_id == BOARD_E2548 ||
-			board_info.board_id == BOARD_P2530)
-		loki_kbc_init();
 
 #ifdef CONFIG_TEGRA_WDT_RECOVERY
 	tegra_wdt_recovery_init();
