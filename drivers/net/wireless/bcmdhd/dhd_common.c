@@ -87,6 +87,7 @@ uint32 dhd_conn_event;
 uint32 dhd_conn_status;
 uint32 dhd_conn_reason;
 
+extern disable_proptx;
 extern int dhd_iscan_request(void * dhdp, uint16 action);
 extern void dhd_ind_scan_confirm(void *h, bool status);
 extern int dhd_iscan_in_progress(void *h);
@@ -456,6 +457,7 @@ dhd_doiovar(dhd_pub_t *dhd_pub, const bcm_iovar_t *vi, uint32 actionid, const ch
 
 	case IOV_SVAL(IOV_PROPTXSTATUS_ENABLE):
 		dhd_pub->wlfc_enabled = int_val? 1 : 0;
+		disable_proptx = int_val ? 0 : 1;
 		break;
 
 	case IOV_GVAL(IOV_PROPTXSTATUS_MODE): {
