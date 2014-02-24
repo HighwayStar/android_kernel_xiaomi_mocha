@@ -3455,7 +3455,7 @@ int gk20a_pmu_destroy(struct gk20a *g)
 	g->pg_ungating_time_us += (u64)elpg_ungating_time;
 	g->pg_gating_cnt += gating_cnt;
 
-	pmu_enable(pmu, false);
+	pmu_enable_hw(pmu, false);
 
 	if (pmu->remove_support) {
 		pmu->remove_support(pmu);
