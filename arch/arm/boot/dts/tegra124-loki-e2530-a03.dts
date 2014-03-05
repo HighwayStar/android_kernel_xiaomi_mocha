@@ -9,4 +9,12 @@
 			};
 		};
 	};
+
+	i2c@7000c000 {
+		jsa1127@39 {
+			solteam-opto,rint = <800>;
+			solteam-opto,integration-time = <1000>;
+			solteam-opto,noisy = <0>;
+		};
+	};
 };
