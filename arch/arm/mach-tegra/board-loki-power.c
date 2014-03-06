@@ -698,16 +698,28 @@ static struct tegra_cl_dvfs_platform_data loki_cl_dvfs_data = {
 
 static void loki_suspend_dfll_bypass(void)
 {
-	__gpio_set_value(TEGRA_GPIO_PU6, 1); /* tristate external PWM buffer */
+/* tristate external PWM buffer */
+	if (loki_cl_dvfs_data.u.pmu_pwm.out_gpio)
+		__gpio_set_value(loki_cl_dvfs_data.u.pmu_pwm.out_gpio, 1);
 }
 
 static void loki_resume_dfll_bypass(void)
 {
-	__gpio_set_value(TEGRA_GPIO_PU6, 0); /* enable PWM buffer operations */
+/* enable PWM buffer operations */
+	if (loki_cl_dvfs_data.u.pmu_pwm.out_gpio)
+		__gpio_set_value(loki_cl_dvfs_data.u.pmu_pwm.out_gpio, 0);
 }
 static int __init loki_cl_dvfs_init(void)
 {
 	struct tegra_cl_dvfs_platform_data *data = NULL;
+	struct board_info bi;
+
+	tegra_get_board_info(&bi);
+	if (bi.board_id == BOARD_P2530 && bi.fab >= 0xc0) {
+		loki_cl_dvfs_data.u.pmu_pwm.out_gpio = 0;
+		loki_cl_dvfs_data.u.pmu_pwm.pwm_bus =
+			TEGRA_CL_DVFS_PWM_1WIRE_DIRECT;
+	}
 
 	{
 		data = &loki_cl_dvfs_data;
@@ -811,7 +823,6 @@ static int __init loki_fixed_regulator_init(void)
 	if (pmu_board_info.board_id == BOARD_E2545)
 		return platform_add_devices(fixed_reg_devs_e2545,
 			ARRAY_SIZE(fixed_reg_devs_e2545));
-
 	return 0;
 }
 
