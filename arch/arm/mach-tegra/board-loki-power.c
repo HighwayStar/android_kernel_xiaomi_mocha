@@ -796,7 +796,9 @@ static int __init loki_fixed_regulator_init(void)
 	struct board_info bi;
 
 
-	if (!of_machine_is_compatible("nvidia,loki"))
+	if ((!of_machine_is_compatible("nvidia,loki")) &&
+		(!of_machine_is_compatible("nvidia,t132loki")) &&
+		(!of_machine_is_compatible("nvidia,foster")))
 		return 0;
 
 	tegra_get_board_info(&bi);
