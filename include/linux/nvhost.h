@@ -337,14 +337,6 @@ int nvhost_syncpt_wait_timeout_ext(struct platform_device *dev, u32 id, u32 thre
 int nvhost_syncpt_create_fence_single_ext(struct platform_device *dev,
 	u32 id, u32 thresh, const char *name, int *fence_fd);
 
-#ifdef CONFIG_TEGRA_GK20A
-int nvhost_vpr_info_fetch(void);
-#else
-static inline int nvhost_vpr_info_fetch(void)
-{
-	return 0;
-}
-#endif
 
 #ifdef CONFIG_TEGRA_GRHOST
 void nvhost_debug_dump_device(struct platform_device *pdev);
