@@ -2013,10 +2013,6 @@ int gk20a_init_pmu_setup_hw2(struct gk20a *g)
 
 	mutex_lock(&pmu->pg_init_mutex);
 	pmu->initialized = true;
-	pmu->zbc_ready = true;
-
-	/* Save zbc table after PMU is initialized. */
-	pmu_save_zbc(g, 0xf);
 
 	/*
 	 * We can't guarantee that gr code to enable ELPG will be
@@ -2024,6 +2020,10 @@ int gk20a_init_pmu_setup_hw2(struct gk20a *g)
 	 * to enable elpg.
 	 */
 	gk20a_pmu_disable_elpg(g);
+
+	pmu->zbc_ready = true;
+	/* Save zbc table after PMU is initialized. */
+	pmu_save_zbc(g, 0xf);
 
 	if (g->elpg_enabled)
 		gk20a_pmu_enable_elpg(g);
