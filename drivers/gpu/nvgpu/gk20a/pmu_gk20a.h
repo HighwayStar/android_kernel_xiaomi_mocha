@@ -1028,7 +1028,6 @@ struct pmu_gk20a {
 #define PMU_ELPG_ENABLE_ALLOW_DELAY_MSEC	1 /* msec */
 	struct work_struct pg_init;
 	struct mutex elpg_mutex; /* protect elpg enable/disable */
-	struct mutex pg_init_mutex; /* protect pmu pg_initialization routine */
 	int elpg_refcnt; /* disable -1, enable +1, <=0 elpg disabled, > 0 elpg enabled */
 
 	struct pmu_perfmon_counter perfmon_counter;
