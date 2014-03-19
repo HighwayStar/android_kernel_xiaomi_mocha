@@ -33,6 +33,10 @@ struct sim_gk20a;
 #include <linux/tegra-soc.h>
 #include <linux/spinlock.h>
 #include <linux/nvhost_gpu_ioctl.h>
+#include <linux/tegra-soc.h>
+
+#include "../../../arch/arm/mach-tegra/iomap.h"
+
 #include "as_gk20a.h"
 #include "clk_gk20a.h"
 #include "fifo_gk20a.h"
@@ -42,8 +46,6 @@ struct sim_gk20a;
 #include "priv_ring_gk20a.h"
 #include "therm_gk20a.h"
 #include "platform_gk20a.h"
-
-#include "../../../../../arch/arm/mach-tegra/iomap.h"
 
 extern struct platform_device tegra_gk20a_device;
 

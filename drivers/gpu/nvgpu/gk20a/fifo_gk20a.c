@@ -24,7 +24,7 @@
 #include <trace/events/gk20a.h>
 #include <linux/dma-mapping.h>
 
-#include "../dev.h"
+#include "dev.h"
 
 #include "debug_gk20a.h"
 #include "gk20a.h"

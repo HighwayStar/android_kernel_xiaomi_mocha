@@ -23,7 +23,6 @@
 #include "class_ids.h"
 #include <linux/debugfs.h>
 #include "t124/syncpt_t124.h"
-#include "../../../../../arch/arm/mach-tegra/iomap.h"
 #include <linux/tegra-powergate.h>
 #include <linux/platform_data/tegra_edp.h>
 #include <linux/nvhost_ioctl.h>
@@ -31,6 +30,8 @@
 #include <linux/nvmap.h>
 #include <mach/irqs.h>
 #include <mach/pm_domains.h>
+
+#include "../../../arch/arm/mach-tegra/iomap.h"
 
 #include "gk20a.h"
 #include "hal_gk20a.h"

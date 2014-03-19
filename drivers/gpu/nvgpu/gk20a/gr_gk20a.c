@@ -26,7 +26,7 @@
 #include <linux/dma-mapping.h>
 #include <linux/firmware.h>
 
-#include "../dev.h"
+#include "dev.h"
 #include "bus_client.h"
 
 #include "gk20a.h"

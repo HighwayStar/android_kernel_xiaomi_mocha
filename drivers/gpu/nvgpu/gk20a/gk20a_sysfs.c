@@ -22,7 +22,7 @@
 #include <linux/kernel.h>
 #include <linux/fb.h>
 
-#include "../dev.h"
+#include "dev.h"
 #include "gk20a.h"
 #include "gr_gk20a.h"
 #include "fifo_gk20a.h"

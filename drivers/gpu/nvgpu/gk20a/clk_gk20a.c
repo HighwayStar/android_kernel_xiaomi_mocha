@@ -25,7 +25,7 @@
 #include <linux/clk/tegra.h>
 #include <mach/thermal.h>
 
-#include "../dev.h"
+#include "dev.h"
 
 #include "gk20a.h"
 #include "hw_trim_gk20a.h"

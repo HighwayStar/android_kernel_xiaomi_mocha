@@ -19,9 +19,9 @@
  * 51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "../dev.h"
+#include "dev.h"
 
-#include "../t124/t124.h"
+#include "t124/t124.h"
 
 #include "gk20a.h"
 #include "hw_chiplet_pwr_gk20a.h"
