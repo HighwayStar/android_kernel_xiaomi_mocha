@@ -1,2 +1,2 @@
 #include "tegra124-loki.dts"
-#include "tegra124-platforms/tegra124-loki-powermon-e2530-a01.dtsi"
+#include "tegra124-platforms/tegra124-loki-powermon-p2530-a01.dtsi"
