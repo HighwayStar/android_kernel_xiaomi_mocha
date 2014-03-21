@@ -775,8 +775,12 @@ int __init loki_regulator_init(void)
 		pmic_platform.reg_data[i] = loki_reg_data[i];
 		pmic_platform.reg_init[i] = loki_reg_init[i];
 	}
-	/* Set vdd_gpu init uV to 1V */
-	reg_idata_smps123.constraints.init_uV = 1000000;
+
+	if (bi.board_id == BOARD_P2530 && bi.fab == 0xc0) {
+		pmic_platform.reg_data[PALMAS_REG_SMPS123] = NULL;
+		pmic_platform.reg_init[PALMAS_REG_SMPS123] = NULL;
+	} else /* Set vdd_gpu init uV to 1V */
+		reg_idata_smps123.constraints.init_uV = 1000000;
 	reg_idata_smps9.constraints.enable_time = 250;
 
 	i2c_register_board_info(4, palma_device,
