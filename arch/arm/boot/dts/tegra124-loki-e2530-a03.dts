@@ -20,5 +20,11 @@
 		lc709203f@0b {
 			onsemi,alert-low-rsoc = <2>;
 		};
+
+		bq2419x: bq2419x@6b {
+			charger {
+				ti,charge-status-gpio = <&gpio TEGRA_GPIO(H, 7) 0>;
+			};
+		};
 	};
 };
