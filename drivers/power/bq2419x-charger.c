@@ -55,6 +55,7 @@
 #define BQ2419X_PRE_CHG_IPRECHG_OFFSET	128
 #define BQ2419X_PRE_CHG_TERM_OFFSET	128
 #define BQ2419X_CHARGE_VOLTAGE_OFFSET	3504
+#define BQ2419X_CHARGE_LED_OFF		1
 
 /* input current limit */
 static const unsigned int iinlim[] = {
@@ -105,6 +106,7 @@ struct bq2419x_chip {
 	bool				disable_suspend_during_charging;
 	int				last_temp;
 	u32				auto_recharge_time_supend;
+	int				chg_status_gpio;
 	struct bq2419x_reg_info		input_src;
 	struct bq2419x_reg_info		chg_current_control;
 	struct bq2419x_reg_info		prechg_term_control;
@@ -736,6 +738,12 @@ static irqreturn_t bq2419x_irq(int irq, void *data)
 	dev_info(bq2419x->dev, "%s() Irq %d status 0x%02x\n",
 		__func__, irq, val);
 
+	if ((val & BQ2419x_CHARGING_FAULT_MASK) &&
+			gpio_is_valid(bq2419x->chg_status_gpio) &&
+			bq2419x->chg_status == BATTERY_CHARGING) {
+		gpio_set_value(bq2419x->chg_status_gpio, BQ2419X_CHARGE_LED_OFF);
+	}
+
 	if (val & BQ2419x_FAULT_BOOST_FAULT)
 		bq_chg_err(bq2419x, "VBUS Overloaded\n");
 
@@ -1352,6 +1360,10 @@ static struct bq2419x_platform_data *bq2419x_dt_parse(struct i2c_client *client)
 		if (!batt_init_data)
 			return ERR_PTR(-EINVAL);
 
+		bcharger_pdata->chg_status_gpio =
+				of_get_named_gpio(batt_reg_node,
+					"ti,charge-status-gpio", 0);
+
 		ret = of_property_read_u32(batt_reg_node,
 				"ti,input-voltage-limit-millivolt", &pval);
 		if (!ret)
@@ -1634,6 +1646,7 @@ static int bq2419x_probe(struct i2c_client *client,
 			pdata->bcharger_pdata->disable_suspend_during_charging;
 	bq2419x->auto_recharge_time_supend =
 			pdata->bcharger_pdata->auto_recharge_time_supend;
+	bq2419x->chg_status_gpio = pdata->bcharger_pdata->chg_status_gpio;
 
 	bq2419x_process_charger_plat_data(bq2419x, pdata->bcharger_pdata);
 
@@ -1684,6 +1697,22 @@ static int bq2419x_probe(struct i2c_client *client,
 		dev_info(bq2419x->dev,
 			"Supporting bq driver without interrupt\n");
 		ret = 0;
+	}
+
+	if (gpio_is_valid(bq2419x->chg_status_gpio)) {
+		ret = devm_gpio_request(bq2419x->dev, bq2419x->chg_status_gpio,
+						"charger_led");
+		if (ret < 0) {
+			dev_err(bq2419x->dev, "error: can't request GPIO%d\n",
+				bq2419x->chg_status_gpio);
+		} else {
+			ret = gpio_direction_output(bq2419x->chg_status_gpio, 0);
+			if (ret < 0) {
+				dev_err(bq2419x->dev,
+					"can't setup GPIO%d as Output\n",
+					bq2419x->chg_status_gpio);
+			}
+		}
 	}
 
 skip_bcharger_init:

@@ -52,6 +52,7 @@ Optional properties:
 		> 60 : Charging will be disabled by HW.
 -ti,auto-recharge-time-suspend: time setting in seconds to register
                       rtc alarm timer to wake the device from LP0.
+- ti,charge-status-gpio : charger gpio control to isolate green led
 
 Subnode properties:
 ==================
