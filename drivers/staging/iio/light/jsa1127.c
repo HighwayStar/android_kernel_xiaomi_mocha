@@ -71,6 +71,7 @@ struct jsa1127_chip {
 	u8				als_state;
 	u16				als_raw_value;
 	u16				tint_coeff;
+	atomic_t			shutting_down;
 };
 
 #define N_DATA_BYTES				2
@@ -268,7 +269,10 @@ static int jsa1127_read_raw(struct iio_dev *indio_dev,
 			ret = IIO_VAL_INT;
 		}
 
-		queue_delayed_work(chip->wq, &chip->dw, 0);
+		if (unlikely(atomic_read(&chip->shutting_down)))
+			ret = -ENODEV;
+		else
+			queue_delayed_work(chip->wq, &chip->dw, 0);
 		break;
 	default:
 		ret = -EINVAL;
@@ -518,6 +522,7 @@ static int jsa1127_probe(struct i2c_client *client,
 	chip->use_internal_integration_timing = use_internal_integration_timing;
 	chip->tint_coeff = tint;
 	chip->noisy = noisy;
+	atomic_set(&chip->shutting_down, 0);
 
 	i2c_set_clientdata(client, indio_dev);
 	chip->client = client;
@@ -578,6 +583,7 @@ static void jsa1127_shutdown(struct i2c_client *client)
 	struct jsa1127_chip *chip = iio_priv(indio_dev);
 	int ret;
 
+	atomic_inc(&chip->shutting_down);
 	destroy_workqueue(chip->wq);
 	if (chip->regulator && (chip->als_state != CHIP_POWER_OFF))
 		regulator_disable(chip->regulator);
