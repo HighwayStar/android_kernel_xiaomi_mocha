@@ -4712,7 +4712,7 @@ static int tegra_dsi_host_resume(struct tegra_dc *dc)
 	if (!dsi->enabled)
 		return -EINVAL;
 
-	cancel_delayed_work(&dsi->idle_work);
+	cancel_delayed_work_sync(&dsi->idle_work);
 
 	mutex_lock(&dsi->host_lock);
 	if (!dsi->host_suspended) {
