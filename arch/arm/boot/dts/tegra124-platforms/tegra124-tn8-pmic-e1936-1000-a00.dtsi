@@ -86,6 +86,11 @@
 				ti,enable-vbus-detection;
 			};
 
+			watchdog {
+				compatible = "ti,palmas-watchdog";
+				ti,system-watchdog-timer-period = <64>;
+			};
+
 			power_pm {
 				compatible = "ti,palmas-pm";
 				system-pmic-power-off;
