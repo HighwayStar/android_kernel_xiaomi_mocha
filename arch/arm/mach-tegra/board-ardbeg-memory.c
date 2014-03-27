@@ -14876,6 +14876,7 @@ int __init ardbeg_emc_init(void)
 			}
 			break;
 		case BOARD_E1791:
+		case BOARD_E1923:
 			pr_info("Loading Ardbeg EMC tables from DeviceTree.\n");
 			use_dt_emc_table = true;
 			break;
