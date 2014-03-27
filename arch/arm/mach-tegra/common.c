@@ -187,7 +187,9 @@ struct device tegra_generic_cma_dev;
 struct device tegra_vpr_cma_dev;
 
 struct device tegra_generic_dev;
+
 struct device tegra_vpr_dev;
+EXPORT_SYMBOL(tegra_vpr_dev);
 
 struct device tegra_iram_dev;
 EXPORT_SYMBOL(tegra_iram_dev);
