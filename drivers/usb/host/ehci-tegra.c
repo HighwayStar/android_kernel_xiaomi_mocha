@@ -693,8 +693,9 @@ fail_sysfs:
 
 
 #ifdef CONFIG_PM
-static int tegra_ehci_resume(struct platform_device *pdev)
+static int tegra_ehci_resume(struct device *dev)
 {
+	struct platform_device *pdev = to_platform_device(dev);
 	int err = 0;
 	struct tegra_ehci_hcd *tegra = platform_get_drvdata(pdev);
 	struct tegra_usb_platform_data *pdata = dev_get_platdata(&pdev->dev);
@@ -712,8 +713,9 @@ static int tegra_ehci_resume(struct platform_device *pdev)
 	return tegra_usb_phy_power_on(tegra->phy);
 }
 
-static int tegra_ehci_suspend(struct platform_device *pdev, pm_message_t state)
+static int tegra_ehci_suspend(struct device *dev)
 {
+	struct platform_device *pdev = to_platform_device(dev);
 	struct tegra_ehci_hcd *tegra = platform_get_drvdata(pdev);
 	struct tegra_usb_platform_data *pdata = dev_get_platdata(&pdev->dev);
 	int err;
@@ -807,16 +809,24 @@ static struct of_device_id tegra_ehci_of_match[] = {
 	{ },
 };
 
+#ifdef CONFIG_PM
+static const struct dev_pm_ops tegra_ehci_pm_ops = {
+	.suspend_noirq = tegra_ehci_suspend,
+	.resume_noirq = tegra_ehci_resume,
+};
+
+#define TEGRA_EHCI_PM_OPS (&tegra_ehci_pm_ops)
+#else
+#define TEGRA_EHCI_PM_OPS NULL
+#endif
+
 static struct platform_driver tegra_ehci_driver = {
 	.probe		= tegra_ehci_probe,
 	.remove		= tegra_ehci_remove,
 	.shutdown	= tegra_ehci_hcd_shutdown,
-#ifdef CONFIG_PM
-	.suspend = tegra_ehci_suspend,
-	.resume  = tegra_ehci_resume,
-#endif
 	.driver	= {
 		.name	= driver_name,
 		.of_match_table = tegra_ehci_of_match,
+		.pm = TEGRA_EHCI_PM_OPS,
 	}
 };
