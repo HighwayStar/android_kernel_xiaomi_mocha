@@ -290,19 +290,24 @@ static int ardbeg_wifi_reset(int on)
 
 static int _ardbeg_wifi_get_mac_addr_nct(unsigned char *buf)
 {
+	int ret = -ENODATA;
 #ifdef CONFIG_TEGRA_USE_NCT
 	union nct_item_type *entry = NULL;
 	entry = kmalloc(sizeof(union nct_item_type), GFP_KERNEL);
-	if (entry && !tegra_nct_read_item(NCT_ID_WIFI_MAC_ADDR, entry)) {
-		memcpy(buf, entry->wifi_mac_addr.addr,
-				sizeof(struct nct_mac_addr_type));
+	if (entry) {
+		if (!tegra_nct_read_item(NCT_ID_WIFI_MAC_ADDR, entry)) {
+			memcpy(buf, entry->wifi_mac_addr.addr,
+					sizeof(struct nct_mac_addr_type));
+			ret = 0;
+		}
 		kfree(entry);
-		return 0;
 	}
-	pr_warn("%s: Couldn't find MAC address from NCT\n", __func__);
+
+	if (ret)
+		pr_warn("%s: Couldn't find MAC address from NCT\n", __func__);
 #endif
 
-	return -ENODATA;
+	return ret;
 }
 
 #define ARDBEG_WIFI_MAC_ADDR_FILE	"/mnt/factory/wifi/wifi_mac.txt"
