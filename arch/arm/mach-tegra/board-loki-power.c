@@ -29,6 +29,7 @@
 #include <linux/regulator/tegra-dfll-bypass-regulator.h>
 #include <linux/power/power_supply_extcon.h>
 #include <linux/tegra-fuse.h>
+#include <linux/wakelock.h>
 
 #include <mach/irqs.h>
 #include <mach/edp.h>
@@ -54,6 +55,9 @@
 
 #define PMC_CTRL                0x0
 #define PMC_CTRL_INTR_LOW       (1 << 17)
+
+static struct wake_lock wakelock;
+
 void tegra13x_vdd_cpu_align(int step_uv, int offset_uv);
 
 static struct regulator_consumer_supply palmas_smps123_supply[] = {
@@ -480,6 +484,12 @@ int __init loki_suspend_init(void)
 		loki_suspend_data.cpu_timer = 500;
 
 	tegra_init_suspend(&loki_suspend_data);
+
+	/* disable system-suspend on foster, stay awake */
+	if (bi.board_id == BOARD_P2530 && bi.sku == BOARD_SKU_FOSTER) {
+		wake_lock_init(&wakelock, WAKE_LOCK_SUSPEND, "foster-staywake");
+		wake_lock(&wakelock);
+	}
 	return 0;
 }
 
