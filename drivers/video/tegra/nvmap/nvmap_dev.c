@@ -1428,6 +1428,8 @@ static int nvmap_probe(struct platform_device *pdev)
 					heap_root,
 					(void *)(uintptr_t)node->heap_bit,
 					&debug_maps_fops);
+				nvmap_heap_debugfs_init(heap_root,
+							node->carveout);
 			}
 		}
 	}
