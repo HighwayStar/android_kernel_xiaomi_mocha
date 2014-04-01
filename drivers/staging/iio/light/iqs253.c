@@ -354,9 +354,9 @@ static int iqs253_read_raw(struct iio_dev *indio_dev,
 
 	/* provide input to SAR */
 	if (chip->value/2)
-		gpio_direction_output(chip->sar_gpio, 0);
-	else
 		gpio_direction_output(chip->sar_gpio, 1);
+	else
+		gpio_direction_output(chip->sar_gpio, 0);
 
 	return IIO_VAL_INT;
 }
@@ -425,9 +425,9 @@ static void iqs253_sar_proximity_detect_work(struct work_struct *ws)
 		goto finish;
 	/* provide input to SAR */
 	if (chip->value/2)
-		gpio_direction_output(chip->sar_gpio, 0);
-	else
 		gpio_direction_output(chip->sar_gpio, 1);
+	else
+		gpio_direction_output(chip->sar_gpio, 0);
 
 	ret = regulator_disable(chip->vddhi);
 	if (ret)
