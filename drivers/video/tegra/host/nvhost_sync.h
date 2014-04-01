@@ -48,6 +48,7 @@ int nvhost_sync_num_pts(struct sync_fence *fence);
 struct nvhost_sync_pt *to_nvhost_sync_pt(struct sync_pt *pt);
 u32 nvhost_sync_pt_id(struct nvhost_sync_pt *pt);
 u32 nvhost_sync_pt_thresh(struct nvhost_sync_pt *pt);
+int nvhost_sync_fence_set_name(int fence_fd, const char *name);
 
 #else
 static inline struct nvhost_sync_timeline *nvhost_sync_timeline_create(
@@ -95,6 +96,11 @@ static inline u32 nvhost_sync_pt_id(struct nvhost_sync_pt *pt)
 static inline u32 nvhost_sync_pt_thresh(struct nvhost_sync_pt *pt)
 {
 	return 0;
+}
+
+static inline int nvhost_sync_fence_set_name(int fence_fd, const char *name)
+{
+	return -EINVAL;
 }
 
 #endif
