@@ -494,6 +494,8 @@ struct inv_mpu_slave {
 };
 
 /* register definition*/
+#define REG_6500_XG_ST_DATA     (0x00)
+#define REG_6500_XA_ST_DATA     (0x0D)
 #define REG_3050_AUX_VDDIO      (0x13)
 #define REG_3050_SLAVE_ADDR     (0x14)
 #define REG_3050_SLAVE_REG      (0x18)
@@ -502,6 +504,7 @@ struct inv_mpu_slave {
 #define REG_3500_OTP            (0x00)
 #define REG_AUX_VDDIO           (0x01)
 #define REG_ST_GCT_X            (0x0D)
+#define REG_6500_ACCEL_CONFIG2  (0x1D)
 #define REG_6500_LP_ACCEL_ODR   (0x1E)
 #define REG_MOT_THR             (0x1F)
 #define REG_MOT_DUR             (0x20)
