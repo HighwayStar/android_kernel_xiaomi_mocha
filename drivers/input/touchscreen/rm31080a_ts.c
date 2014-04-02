@@ -61,7 +61,7 @@
 #define ENABLE_SLOW_SCAN
 #define ENABLE_SMOOTH_LEVEL
 #define ENABLE_SPI_SETTING		0
-#define ENABLE_FREQ_HOPPING		0
+#define ENABLE_FREQ_HOPPING		1
 
 #define MAX_SPI_FREQ_HZ			50000000
 #define TS_PEN_UP_TIMEOUT		msecs_to_jiffies(50)
@@ -109,7 +109,7 @@ enum RM_SLOW_SCAN_LEVELS {
 
 #define TS_TIMER_PERIOD		HZ
 
-//#define INPUT_DEVICE_MULTIPLE_INSTANCES
+/*#define INPUT_DEVICE_MULTIPLE_INSTANCES*/
 #ifdef INPUT_DEVICE_MULTIPLE_INSTANCES
 #define INPUT_DEVICE_AMOUNT		2
 #define INPUT_DEVICE_FOR_FINGER	0
@@ -117,7 +117,7 @@ enum RM_SLOW_SCAN_LEVELS {
 #endif
 
 /*#define CS_SUPPORT*/
-/*#define TLK_SUPPORT*/
+/*#define CONFIG_TRUSTED_LITTLE_KERNEL*/
 
 /* do not use printk in kernel files */
 #define rm_printk(msg...)	dev_info(&g_spi->dev, msg)
@@ -175,7 +175,6 @@ struct rm31080a_ts_para {
 
 	struct workqueue_struct *rm_timer_workqueue;
 	struct work_struct rm_timer_work;
-
 };
 
 struct rm_tch_ts {
@@ -929,46 +928,62 @@ int KRL_CMD_CONFIG_3V3_Handler(u8 u8_cmd, u8 u8_on_off, struct rm_tch_ts *ts)
 
 void rm_show_kernel_tbl_name(u8 *p_cmd_tbl)
 {
-	char Target_table_name[32];
+	char target_table_name[32];
 
-	memset(Target_table_name, 0, sizeof(Target_table_name));
+	memset(target_table_name, 0,
+		sizeof(target_table_name));
 
 	if (p_cmd_tbl == g_st_cmd_set_idle)
-		snprintf(Target_table_name, sizeof(Target_table_name), "Set Idle");
+		snprintf(target_table_name,
+			sizeof(target_table_name), "Set Idle");
 	else if (p_cmd_tbl == g_st_cmd_pause_auto)
-		snprintf(Target_table_name, sizeof(Target_table_name), "Pause Auto");
+		snprintf(target_table_name,
+			sizeof(target_table_name), "Pause Auto");
 	else if (p_cmd_tbl == g_st_rm_resume_cmd)
-		snprintf(Target_table_name, sizeof(Target_table_name), "Resume");
+		snprintf(target_table_name,
+			sizeof(target_table_name), "Resume");
 	else if (p_cmd_tbl == g_st_rm_suspend_cmd)
-		snprintf(Target_table_name, sizeof(Target_table_name), "Suspend");
+		snprintf(target_table_name,
+			sizeof(target_table_name), "Suspend");
 	else if (p_cmd_tbl == g_st_rm_readimg_cmd)
-		snprintf(Target_table_name, sizeof(Target_table_name), "Read Image");
+		snprintf(target_table_name,
+			sizeof(target_table_name), "Read Image");
 	else if (p_cmd_tbl == g_st_rm_watchdog_cmd)
-		snprintf(Target_table_name, sizeof(Target_table_name), "WatchDog");
+		snprintf(target_table_name,
+			sizeof(target_table_name), "WatchDog");
 	else if (p_cmd_tbl == g_st_rm_testmode_cmd)
-		snprintf(Target_table_name, sizeof(Target_table_name), "Test Mode");
+		snprintf(target_table_name,
+			sizeof(target_table_name), "Test Mode");
 	else if (p_cmd_tbl == g_st_rm_slow_scan_cmd)
-		snprintf(Target_table_name, sizeof(Target_table_name), "Slowscan");
+		snprintf(target_table_name,
+			sizeof(target_table_name), "Slowscan");
 	else if (p_cmd_tbl == g_st_rm_clear_int_cmd)
-		snprintf(Target_table_name, sizeof(Target_table_name), "Clear Intterupt");
+		snprintf(target_table_name,
+			sizeof(target_table_name), "Clear Intterupt");
 	else if (p_cmd_tbl == g_st_rm_scan_start_cmd)
-		snprintf(Target_table_name, sizeof(Target_table_name), "Scan Start");
+		snprintf(target_table_name,
+			sizeof(target_table_name), "Scan Start");
 	else if (p_cmd_tbl == g_st_rm_wait_scan_ok_cmd)
-		snprintf(Target_table_name, sizeof(Target_table_name), "Wait Scan Okay");
+		snprintf(target_table_name,
+			sizeof(target_table_name), "Wait Scan Okay");
 	else if (p_cmd_tbl == g_st_rm_set_rep_time_cmd)
-		snprintf(Target_table_name, sizeof(Target_table_name), "Set Repeat Time");
+		snprintf(target_table_name,
+			sizeof(target_table_name), "Set Repeat Time");
 	else if (p_cmd_tbl == g_st_rm_ns_para_cmd)
-		snprintf(Target_table_name, sizeof(Target_table_name), "Ns Parameter");
+		snprintf(target_table_name,
+			sizeof(target_table_name), "Ns Parameter");
 	else if (p_cmd_tbl == g_st_rm_writeimg_cmd)
-		snprintf(Target_table_name, sizeof(Target_table_name), "Write Image");
+		snprintf(target_table_name,
+			sizeof(target_table_name), "Write Image");
 	else if (p_cmd_tbl == g_st_rm_tlk_cmd)
-		snprintf(Target_table_name, sizeof(Target_table_name), "TLK");
+		snprintf(target_table_name,
+			sizeof(target_table_name), "TLK");
 	else {
 		dev_err(&g_spi->dev, "Raydium - %s : no such kernel table - err:%d\n",
 			__func__, (u32)p_cmd_tbl);
 	}
 	dev_err(&g_spi->dev, "Raydium - Table %s cmd failed\n",
-		Target_table_name);
+		target_table_name);
 }
 static int rm_tch_cmd_process(u8 u8_sel_case,
 	u8 *p_cmd_tbl, struct rm_tch_ts *ts)
@@ -997,8 +1012,7 @@ static int rm_tch_cmd_process(u8 u8_sel_case,
 		u16TblLenth = p_cmd_tbl[KRL_TBL_FIELD_POS_LEN_H];
 		u16TblLenth <<= 8;
 		u16TblLenth |= p_cmd_tbl[KRL_TBL_FIELD_POS_LEN_L];
-	}
-	else
+	} else
 		u16TblLenth = p_cmd_tbl[KRL_TBL_FIELD_POS_LEN_L];
 
 	if (u16TblLenth < 3) {
@@ -1239,22 +1253,20 @@ static int rm_tch_cmd_process(u8 u8_sel_case,
 				g_st_ctrl.u16_data_length - 1);
 			break;
 		case KRL_CMD_CONFIG_IRQ:
-			if (ts) {
-				if (p_cmd_tbl[_SUB_CMD] == KRL_SUB_CMD_SET_IRQ) {
-					if (ts->irq) {
-						if (p_cmd_tbl[_DATA])
-							enable_irq(ts->irq);
-						else
-							disable_irq(ts->irq);
+			if (ts && (p_cmd_tbl[_SUB_CMD]
+					== KRL_SUB_CMD_SET_IRQ)) {
+				if (ts->irq) {
+					if (p_cmd_tbl[_DATA])
+						enable_irq(ts->irq);
+					else
+						disable_irq(ts->irq);
 					} else {
 						dev_err(&g_spi->dev,
 							"Raydium - %s : No irq handler!\n",
 							__func__);
 					}
-				}
 				ret = RETURN_OK;
-			}
-			else
+			} else
 				ret = RETURN_FAIL;
 			break;
 		default:
@@ -1662,9 +1674,8 @@ static void rm_work_handler(struct work_struct *work)
 
 	u32_flag = rm_tch_ctrl_configure();
 
-	if (u32_flag & RM_NEED_TO_SEND_SCAN) {
+	if (u32_flag & RM_NEED_TO_SEND_SCAN)
 		rm_tch_ctrl_scan_start();
-	}
 
 	if (u32_flag & RM_NEED_TO_READ_RAW_DATA) {
 		p_kernel_buffer = rm_tch_enqueue_start();
@@ -1870,9 +1881,8 @@ static void rm_tch_ctrl_slowscan(u32 level)
 
 	rm_printk("Raydium - rm_tch_ctrl_slowscan:%x\n", (level - 1));
 
-	if (g_st_ts.u8_scan_mode_state == RM_SCAN_IDLE_MODE) {
+	if (g_st_ts.u8_scan_mode_state == RM_SCAN_IDLE_MODE)
 		rm_tch_ctrl_enter_auto_mode();
-	}
 }
 
 static u32 rm_tch_slowscan_round(u32 val)
@@ -2686,7 +2696,7 @@ static int rm_tch_input_disable(struct input_dev *in_dev)
 	return error;
 }
 
-#ifdef TLK_SUPPORT
+#ifdef CONFIG_TRUSTED_LITTLE_KERNEL
 /*===========================================================================*/
 void raydium_tlk_ns_touch_suspend(void)
 {
@@ -2716,7 +2726,7 @@ void raydium_tlk_ns_touch_resume(void)
 
 	rm_printk("tlk_ns_touch_resume\n");
 
-    rm_tch_ts_send_signal(g_st_ts.ul_hal_pid, 0x03);
+	rm_tch_ts_send_signal(g_st_ts.ul_hal_pid, 0x03);
 	rm_tch_cmd_process(1, g_st_rm_tlk_cmd, ts);
 
 	mutex_unlock(&g_st_ts.mutex_scan_mode);
@@ -2724,7 +2734,7 @@ void raydium_tlk_ns_touch_resume(void)
 }
 EXPORT_SYMBOL(raydium_tlk_ns_touch_resume);
 /*===========================================================================*/
-#endif  //TLK_SUPPORT
+#endif  /*CONFIG_TRUSTED_LITTLE_KERNEL*/
 
 static void rm_tch_set_input_resolution(unsigned int x, unsigned int y)
 {
