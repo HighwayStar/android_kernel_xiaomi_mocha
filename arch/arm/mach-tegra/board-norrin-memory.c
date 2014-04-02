@@ -2771,21 +2771,25 @@ static struct tegra12_emc_pdata norrin_4GB_emc_pdata = {
 */
 int __init norrin_emc_init(void)
 {
-
 	struct board_info bi;
-	int use_dt_emc_table = 0;
 
 	/*
 	 * If the EMC table is successfully read from the NCT partition,
 	 * we do not need to check for board ids and blindly load the one
 	 * flashed on the NCT partition.
 	 */
+
 	#ifdef CONFIG_TEGRA_USE_NCT
 	if (!tegra12_nct_emc_table_init(&board_emc_pdata)) {
 		tegra_emc_device.dev.platform_data = &board_emc_pdata;
 		pr_info("Loading EMC table read from NCT partition.\n");
-	} else {
+		platform_device_register(&tegra_emc_device);
+	} else
 	#endif
+	if (of_find_compatible_node(NULL, NULL, "nvidia,tegra12-emc")) {
+		/* If Device Tree Partition contains emc-tables, load them */
+		pr_info("Loading EMC tables from DeviceTree.\n");
+	} else {
 		tegra_get_board_info(&bi);
 
 		switch (bi.board_id) {
@@ -2810,12 +2814,9 @@ int __init norrin_emc_init(void)
 			WARN(1, "Invalid board ID: %u\n", bi.board_id);
 			return -EINVAL;
 		}
-	#ifdef CONFIG_TEGRA_USE_NCT
-	}
-	#endif
 
-	if (!use_dt_emc_table)
 		platform_device_register(&tegra_emc_device);
+	}
 
 	tegra12_emc_init();
 	return 0;

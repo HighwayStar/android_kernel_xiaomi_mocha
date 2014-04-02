@@ -14828,44 +14828,40 @@ static struct tegra12_emc_pdata ardbeg_lpddr3_emc_pdata_E1781 = {
 int __init ardbeg_emc_init(void)
 {
 	struct board_info bi;
-	int use_dt_emc_table = 0;
 
 	/*
 	 * If the EMC table is successfully read from the NCT partition,
 	 * we do not need to check for board ids and blindly load the one
 	 * flashed on the NCT partition.
 	 */
+
 	#ifdef CONFIG_TEGRA_USE_NCT
 	if (!tegra12_nct_emc_table_init(&board_emc_pdata)) {
 		tegra_emc_device.dev.platform_data = &board_emc_pdata;
 		pr_info("Loading EMC table read from NCT partition.\n");
-	} else {
+		platform_device_register(&tegra_emc_device);
+	} else
 	#endif
+	if (of_find_compatible_node(NULL, NULL, "nvidia,tegra12-emc")) {
+		/* If Device Tree Partition contains emc-tables, load them */
+		pr_info("Loading EMC tables from DeviceTree.\n");
+	} else {
 		tegra_get_board_info(&bi);
 
 		switch (bi.board_id) {
 		case BOARD_PM358:
 			pr_info("Loading PM358 EMC tables.\n");
-			tegra_emc_device.dev.platform_data = &ardbeg_ddr3_emc_pdata_pm358;
+			tegra_emc_device.dev.platform_data =
+					&ardbeg_ddr3_emc_pdata_pm358;
 			break;
 		case BOARD_PM359:
 			pr_info("Loading PM359 EMC tables.\n");
 			tegra_emc_device.dev.platform_data =
-						&ardbeg_ddr3_emc_pdata_pm359;
-			break;
-		case BOARD_P1761:
-		case BOARD_E1784:
-		case BOARD_E1922:
-			pr_info("Loading TN8 (%d) EMC tables from DeviceTree.\n",
-				bi.board_id);
-			use_dt_emc_table = true;
+					&ardbeg_ddr3_emc_pdata_pm359;
 			break;
 		case BOARD_E1780:
 		case BOARD_E1782:
-			if (of_machine_is_compatible("nvidia,tn8")) {
-				pr_info("Loading TN8 EMC tables from DeviceTree.\n");
-				use_dt_emc_table = true;
-			} else if (tegra_get_memory_type()) {
+			if (tegra_get_memory_type()) {
 				pr_info("Loading Ardbeg 4GB EMC tables.\n");
 				tegra_emc_device.dev.platform_data =
 					&ardbeg_4GB_emc_pdata;
@@ -14875,29 +14871,23 @@ int __init ardbeg_emc_init(void)
 					&ardbeg_emc_pdata;
 			}
 			break;
-		case BOARD_E1791:
-		case BOARD_E1923:
-			pr_info("Loading Ardbeg EMC tables from DeviceTree.\n");
-			use_dt_emc_table = true;
-			break;
 		case BOARD_E1792:
 			pr_info("Loading Ardbeg EMC tables.\n");
-			tegra_emc_device.dev.platform_data = &ardbeg_lpddr3_emc_pdata;
+			tegra_emc_device.dev.platform_data =
+						&ardbeg_lpddr3_emc_pdata;
 			break;
 		case BOARD_E1781:
 			pr_info("Loading Ardbeg (1781) EMC tables\n");
-			tegra_emc_device.dev.platform_data = &ardbeg_lpddr3_emc_pdata_E1781;
+			tegra_emc_device.dev.platform_data =
+					&ardbeg_lpddr3_emc_pdata_E1781;
 			break;
 		default:
 			pr_info("emc dvfs table not present\n");
 			return -EINVAL;
 		}
-	#ifdef CONFIG_TEGRA_USE_NCT
-	}
-	#endif
 
-	if (!use_dt_emc_table)
 		platform_device_register(&tegra_emc_device);
+	}
 
 	tegra12_emc_init();
 	return 0;
