@@ -91,6 +91,9 @@ extern struct platform_device *nvmap_pdev;
 	dev_dbg(nvmap_client_to_device(_client),		\
 		"%s: "_fmt, __func__, ##__VA_ARGS__)
 
+/* If set force zeroed memory to userspace. */
+extern bool zero_memory;
+
 #ifdef CONFIG_ARM64
 #define PG_PROT_KERNEL PAGE_KERNEL
 #define FLUSH_TLB_PAGE(addr) flush_tlb_kernel_range(addr, PAGE_SIZE)
@@ -189,6 +192,27 @@ struct nvmap_handle_ref {
 #define NVMAP_WB_POOL NVMAP_HANDLE_CACHEABLE
 #define NVMAP_NUM_POOLS (NVMAP_HANDLE_CACHEABLE + 1)
 
+/*
+ * This is the default ratio defining pool size. It can be thought of as pool
+ * size in either MB per GB or KB per MB. That means the max this number can
+ * be is 1024 (all physical memory - not a very good idea) or 0 (no page pool
+ * at all).
+ */
+#define NVMAP_PP_POOL_SIZE (42)
+
+/*
+ * The wakeup threshold is how many empty page slots there need to be in order
+ * for the background allocater to be woken up.
+ */
+#define NVMAP_PP_DEF_FILL_THRESH (1024)
+
+/*
+ * For when memory does not require zeroing this is the minimum number of pages
+ * remaining in the page pools before the background allocer is woken up. This
+ * essentially disables the page pools (unless its extremely small).
+ */
+#define NVMAP_PP_ZERO_MEM_FILL_MIN (256)
+
 struct nvmap_page_pool {
 	struct mutex lock;
 	u32 alloc;  /* Alloc index. */
@@ -224,6 +248,7 @@ static inline void nvmap_pp_inc_index(struct nvmap_page_pool *pp, u32 *ind)
 }
 
 int nvmap_page_pool_init(struct nvmap_device *dev);
+int nvmap_page_pool_fini(struct nvmap_device *dev);
 struct page *nvmap_page_pool_alloc(struct nvmap_page_pool *pool);
 bool nvmap_page_pool_fill(struct nvmap_page_pool *pool, struct page *page);
 #endif

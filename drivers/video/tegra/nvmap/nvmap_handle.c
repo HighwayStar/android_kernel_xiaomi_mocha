@@ -39,7 +39,7 @@
 #include "nvmap_priv.h"
 #include "nvmap_ioctl.h"
 
-static bool zero_memory;
+bool zero_memory;
 module_param(zero_memory, bool, 0644);
 u32 nvmap_max_handle_count;
 

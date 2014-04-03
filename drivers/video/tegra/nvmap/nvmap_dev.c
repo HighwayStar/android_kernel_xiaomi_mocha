@@ -1306,6 +1306,8 @@ static int nvmap_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
+	nvmap_dev = dev;
+
 	dev->dev_user.minor = MISC_DYNAMIC_MINOR;
 	dev->dev_user.name = "nvmap";
 	dev->dev_user.fops = &nvmap_user_fops;
@@ -1509,6 +1511,9 @@ fail_heaps:
 		nvmap_heap_destroy(node->carveout);
 	}
 fail:
+#ifdef CONFIG_NVMAP_PAGE_POOLS
+	nvmap_page_pool_fini(nvmap_dev);
+#endif
 	kfree(dev->heaps);
 	if (dev->dev_user.minor != MISC_DYNAMIC_MINOR)
 		misc_deregister(&dev->dev_user);
