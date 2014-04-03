@@ -1449,6 +1449,7 @@ static struct soctherm_platform_data ardbeg_soctherm_data = {
 				[THROTTLE_DEV_CPU] = {
 					.enable = true,
 					.depth = 80,
+					.throttling_depth = "heavy_throttling",
 				},
 				[THROTTLE_DEV_GPU] = {
 					.enable = true,
@@ -1467,6 +1468,7 @@ static struct soctherm_throttle battery_oc_throttle = {
 		[THROTTLE_DEV_CPU] = {
 			.enable = true,
 			.depth = 50,
+			.throttling_depth = "medium_throttling",
 		},
 		[THROTTLE_DEV_GPU] = {
 			.enable = true,
@@ -1490,6 +1492,7 @@ static struct soctherm_throttle voltmon_throttle = {
 			.divisor = 255,
 			.duration = 0,
 			.step = 0,
+			.throttling_depth = "medium_throttling",
 		},
 		[THROTTLE_DEV_GPU] = {
 			.enable = true,
@@ -1506,6 +1509,7 @@ struct soctherm_throttle baseband_throttle = {
 		[THROTTLE_DEV_CPU] = {
 			.enable = true,
 			.depth = 50,
+			.throttling_depth = "medium_throttling",
 		},
 		[THROTTLE_DEV_GPU] = {
 			.enable = true,
