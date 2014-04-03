@@ -64,6 +64,8 @@
 
 #define NVMAP_NUM_PTES		64
 
+extern bool zero_memory;
+
 #ifdef CONFIG_64BIT
 #define NVMAP_LAZY_VFREE
 #endif
@@ -251,6 +253,7 @@ int nvmap_page_pool_init(struct nvmap_device *dev);
 int nvmap_page_pool_fini(struct nvmap_device *dev);
 struct page *nvmap_page_pool_alloc(struct nvmap_page_pool *pool);
 bool nvmap_page_pool_fill(struct nvmap_page_pool *pool, struct page *page);
+int nvmap_page_pool_clear(void);
 #endif
 
 struct nvmap_client {
