@@ -97,6 +97,7 @@ extern struct platform_device *nvmap_pdev;
 #define outer_inv_range(s, e)
 #define outer_clean_range(s, e)
 #define outer_flush_all()
+#define outer_clean_all()
 extern void __flush_dcache_page(struct page *);
 #else
 #define PG_PROT_KERNEL pgprot_kernel
@@ -433,7 +434,7 @@ void inner_flush_cache_all(void);
 void inner_clean_cache_all(void);
 void nvmap_flush_cache(struct page **pages, int numpages);
 
-int nvmap_flush_cache_list(struct nvmap_handle **handles, int nr);
+int nvmap_do_cache_maint_list(struct nvmap_handle **handles, int op, int nr);
 
 /* Internal API to support dmabuf */
 struct dma_buf *__nvmap_dmabuf_export(struct nvmap_client *client,
