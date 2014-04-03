@@ -6,6 +6,8 @@ Required properties:
 
 Optional properties:
 	- linux,rc-map-name: Linux specific remote control map name.
+	- allowed-protos: 64 bit integer, platform specific allowed
+			  IR protocols.
 
 Example node:
 
@@ -13,4 +15,5 @@ Example node:
 		compatible = "gpio-ir-receiver";
 		gpios = <&gpio0 19 1>;
 		linux,rc-map-name = "rc-rc6-mce";
+		allowed-protos = <0x00000000 0x00000080>;
 	};
