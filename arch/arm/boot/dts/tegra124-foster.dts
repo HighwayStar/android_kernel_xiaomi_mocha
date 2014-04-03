@@ -115,4 +115,11 @@
 			debounce-interval = <10>;
 		};
 	};
+
+	gpio-ir-receiver {
+		compatible = "gpio-ir-receiver";
+		gpios = <&gpio TEGRA_GPIO(K, 6) GPIO_ACTIVE_LOW>;
+		linux,rc-map-name = "rc-nvidia";
+		allowed-protos = <0x0 0x80>;
+	};
 };
