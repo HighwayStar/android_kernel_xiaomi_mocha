@@ -1131,7 +1131,7 @@ out:
 
 static int palmas_gpadc_remove(struct platform_device *pdev)
 {
-	struct iio_dev *iodev = dev_to_iio_dev(&pdev->dev);
+	struct iio_dev *iodev = dev_get_drvdata(&pdev->dev);
 	struct palmas_gpadc *adc = iio_priv(iodev);
 	struct palmas_platform_data *pdata = dev_get_platdata(pdev->dev.parent);
 
@@ -1160,7 +1160,7 @@ static void palmas_gpadc_shutdown(struct platform_device *pdev)
 #ifdef CONFIG_PM_SLEEP
 static int palmas_gpadc_suspend(struct device *dev)
 {
-	struct iio_dev *iodev = dev_to_iio_dev(dev);
+	struct iio_dev *iodev = dev_get_drvdata(dev);
 	struct palmas_gpadc *adc = iio_priv(iodev);
 	int wakeup = adc->auto_conv0_enable || adc->auto_conv1_enable;
 
@@ -1178,7 +1178,7 @@ static int palmas_gpadc_suspend(struct device *dev)
 
 static int palmas_gpadc_resume(struct device *dev)
 {
-	struct iio_dev *iodev = dev_to_iio_dev(dev);
+	struct iio_dev *iodev = dev_get_drvdata(dev);
 	struct palmas_gpadc *adc = iio_priv(iodev);
 	int wakeup = adc->auto_conv0_enable || adc->auto_conv1_enable;
 
