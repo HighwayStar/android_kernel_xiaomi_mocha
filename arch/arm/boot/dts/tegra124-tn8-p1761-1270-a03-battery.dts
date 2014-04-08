@@ -5,11 +5,13 @@
 		lc709203f@0b {
 			status = "okay";
 			onsemi,kernel-threshold-soc = < 2 >;
+			onsemi,kernel-maximum-soc = <100>;
 		};
 
 		hpa2163@6b {
 			charger {
 				status = "okay";
+				ti,charge-voltage-limit-millivolt = <4350>;
 			};
 		};
 	};
