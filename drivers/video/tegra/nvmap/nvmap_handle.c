@@ -54,7 +54,7 @@ u32 nvmap_max_handle_count;
  * the array is allocated using vmalloc. */
 #define PAGELIST_VMALLOC_MIN	(PAGE_SIZE)
 
-static inline void *altalloc(size_t len)
+void *nvmap_altalloc(size_t len)
 {
 	if (len > PAGELIST_VMALLOC_MIN)
 		return vmalloc(len);
@@ -62,7 +62,7 @@ static inline void *altalloc(size_t len)
 		return kmalloc(len, GFP_KERNEL);
 }
 
-static inline void altfree(void *ptr, size_t len)
+void nvmap_altfree(void *ptr, size_t len)
 {
 	if (!ptr)
 		return;
@@ -122,7 +122,7 @@ void _nvmap_handle_free(struct nvmap_handle *h)
 	for (i = page_index; i < nr_page; i++)
 		__free_page(h->pgalloc.pages[i]);
 
-	altfree(h->pgalloc.pages, nr_page * sizeof(struct page *));
+	nvmap_altfree(h->pgalloc.pages, nr_page * sizeof(struct page *));
 
 out:
 	kfree(h);
@@ -173,7 +173,7 @@ static int handle_page_alloc(struct nvmap_client *client,
 			return -ENOMEM;
 	}
 
-	pages = altalloc(nr_page * sizeof(*pages));
+	pages = nvmap_altalloc(nr_page * sizeof(*pages));
 	if (!pages)
 		return -ENOMEM;
 
@@ -250,7 +250,7 @@ fail:
 		nvmap_free_pte(nvmap_dev, pte);
 	while (i--)
 		__free_page(pages[i]);
-	altfree(pages, nr_page * sizeof(*pages));
+	nvmap_altfree(pages, nr_page * sizeof(*pages));
 	wmb();
 	return -ENOMEM;
 }
