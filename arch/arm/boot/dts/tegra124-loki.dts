@@ -70,6 +70,7 @@
 				ti,watchdog-timeout = <40>;
 				ti,rtc-alarm-time = <3600>;
 				ti,auto-recharge-time = <1800>;
+				ti,auto-recharge-time-power-off = <3600>;
 				ti,temp-polling-time-sec = <5>;
 				ti,disbale-suspend-during-charging;
 				ti,pre-charge-current-limit-milliamp = <768>;
