@@ -117,7 +117,7 @@ enum RM_SLOW_SCAN_LEVELS {
 #endif
 
 /*#define CS_SUPPORT*/
-/*#define CONFIG_TRUSTED_LITTLE_KERNEL*/
+#define MASK_USER_SPACE_POINTER 0x00000000FFFFFFFF	/* 64-bit support */
 
 /* do not use printk in kernel files */
 #define rm_printk(msg...)	dev_info(&g_spi->dev, msg)
@@ -127,7 +127,7 @@ enum RM_SLOW_SCAN_LEVELS {
 =============================================================================*/
 /*TouchScreen Parameters*/
 struct rm31080a_ts_para {
-	unsigned long ul_hal_pid;
+	u32 u32_hal_pid;
 	bool b_init_finish;
 	bool b_calc_finish;
 	bool b_enable_scriber;
@@ -979,8 +979,8 @@ void rm_show_kernel_tbl_name(u8 *p_cmd_tbl)
 		snprintf(target_table_name,
 			sizeof(target_table_name), "TLK");
 	else {
-		dev_err(&g_spi->dev, "Raydium - %s : no such kernel table - err:%d\n",
-			__func__, (u32)p_cmd_tbl);
+		dev_err(&g_spi->dev, "Raydium - %s : no such kernel table - err:%p\n",
+			__func__, p_cmd_tbl);
 	}
 	dev_err(&g_spi->dev, "Raydium - Table %s cmd failed\n",
 		target_table_name);
@@ -1097,7 +1097,7 @@ static int rm_tch_cmd_process(u8 u8_sel_case,
 			u16Tmp = p_cmd_tbl[_DATA];
 			/*rm_printk("Raydium - KRL_CMD_SEND_SIGNAL "
 			"- %d\n", u16Tmp);*/
-			ret = rm_tch_ts_send_signal(g_st_ts.ul_hal_pid,
+			ret = rm_tch_ts_send_signal(g_st_ts.u32_hal_pid,
 				(int)u16Tmp);
 			if (u16Tmp == RM_SIGNAL_RESUME)
 				g_st_ts.u8_resume_cnt++;
@@ -1403,7 +1403,7 @@ static void rm_tch_enter_manual_mode(void)
 	mutex_unlock(&g_st_ts.mutex_scan_mode);
 }
 
-static u32 rm_tch_get_platform_id(u32 *p)
+static u32 rm_tch_get_platform_id(u8 *p)
 {
 	u32 u32Ret;
 	struct rm_spi_ts_platform_data *pdata;
@@ -1690,7 +1690,7 @@ static void rm_work_handler(struct work_struct *work)
 	if (u32_flag & RM_NEED_TO_SEND_SIGNAL) {
 		if (g_st_ts.b_calc_finish) {
 			g_st_ts.b_calc_finish = 0;
-			rm_tch_ts_send_signal(g_st_ts.ul_hal_pid,
+			rm_tch_ts_send_signal(g_st_ts.u32_hal_pid,
 				RM_SIGNAL_INTR);
 		}
 	}
@@ -1814,7 +1814,7 @@ static void rm_timer_work_handler(struct work_struct *work)
 	mutex_unlock(&g_st_ts.mutex_scan_mode);
 
 	if (g_st_ts.b_watch_dog_check == 1) {
-		rm_tch_ts_send_signal(g_st_ts.ul_hal_pid,
+		rm_tch_ts_send_signal(g_st_ts.u32_hal_pid,
 			RM_SIGNAL_WATCH_DOG_CHECK);
 		g_st_ts.b_watch_dog_check = 0;
 	}
@@ -1977,7 +1977,7 @@ static void rm_tch_smooth_level_change(unsigned long val)
 			(val << 16) |
 			RM_SIGNAL_CHANGE_PARA;
 
-	rm_tch_ts_send_signal(g_st_ts.ul_hal_pid, i_info);
+	rm_tch_ts_send_signal(g_st_ts.u32_hal_pid, i_info);
 }
 
 static ssize_t rm_tch_smooth_level_handler(const char *buf, size_t count)
@@ -2046,7 +2046,7 @@ static ssize_t rm_tch_self_test_handler(struct rm_tch_ts *ts,
 		i_info = (RM_SIGNAL_PARA_SELF_TEST << 24) |
 				(val << 16) |
 				RM_SIGNAL_CHANGE_PARA;
-		rm_tch_ts_send_signal(g_st_ts.ul_hal_pid, i_info);
+		rm_tch_ts_send_signal(g_st_ts.u32_hal_pid, i_info);
 	}
 
 	return ret;
@@ -2152,7 +2152,7 @@ static void rm_tch_report_mode_change(unsigned long val)
 			(g_st_ctrl.u8_event_report_mode << 16) |
 			RM_SIGNAL_REPORT_MODE_CHANGE;
 
-	rm_tch_ts_send_signal(g_st_ts.ul_hal_pid, i_info);
+	rm_tch_ts_send_signal(g_st_ts.u32_hal_pid, i_info);
 }
 
 static ssize_t rm_tch_report_mode_handler(const char *buf, size_t count)
@@ -2493,12 +2493,12 @@ void rm_tch_set_variable(unsigned int index, unsigned int arg)
 	}
 
 }
-static u32 rm_tch_get_variable(unsigned int index, unsigned int arg)
+static u32 rm_tch_get_variable(unsigned int index, u8 *arg)
 {
 	u32 ret = RETURN_OK;
 	switch (index) {
 	case RM_VARIABLE_PLATFORM_ID:
-		ret = rm_tch_get_platform_id((u32 *) arg);
+		ret = rm_tch_get_platform_id((u8 *) arg);
 		break;
 	case RM_VARIABLE_GPIO_SELECT:
 		ret = rm_tch_get_gpio_sensor_select((u8 *) arg);
@@ -2515,7 +2515,7 @@ static u32 rm_tch_get_variable(unsigned int index, unsigned int arg)
 
 static void rm_tch_init_ts_structure(void)
 {
-	g_st_ts.ul_hal_pid = 0;
+	g_st_ts.u32_hal_pid = 0;
 	memset(&g_st_ts, 0, sizeof(struct rm31080a_ts_para));
 
 #ifdef ENABLE_SLOW_SCAN
@@ -2696,7 +2696,7 @@ static int rm_tch_input_disable(struct input_dev *in_dev)
 	return error;
 }
 
-#ifdef CONFIG_TRUSTED_LITTLE_KERNEL
+#if defined(CONFIG_TRUSTED_LITTLE_KERNEL)
 /*===========================================================================*/
 void raydium_tlk_ns_touch_suspend(void)
 {
@@ -2726,7 +2726,7 @@ void raydium_tlk_ns_touch_resume(void)
 
 	rm_printk("tlk_ns_touch_resume\n");
 
-	rm_tch_ts_send_signal(g_st_ts.ul_hal_pid, 0x03);
+	rm_tch_ts_send_signal(g_st_ts.u32_hal_pid, 0x03);
 	rm_tch_cmd_process(1, g_st_rm_tlk_cmd, ts);
 
 	mutex_unlock(&g_st_ts.mutex_scan_mode);
@@ -3200,26 +3200,30 @@ static long dev_ioctl(struct file *file,
 
 	switch (u8_cmd & 0xFFFF) {
 	case RM_IOCTL_REPORT_POINT:
-		raydium_report_pointer((void *)arg);
+		raydium_report_pointer((void *)(arg & MASK_USER_SPACE_POINTER));
 		break;
 	case RM_IOCTL_FINISH_CALC:
 		g_st_ts.b_calc_finish = 1;
 		break;
 	case RM_IOCTL_READ_RAW_DATA:
-		ret = rm_tch_queue_read_raw_data((u8 *) arg, index);
+		ret = rm_tch_queue_read_raw_data(
+			(u8 *)(arg & MASK_USER_SPACE_POINTER),
+			index);
 		break;
 	case RM_IOCTL_GET_SACN_MODE:
-		ret = rm_tch_ctrl_get_idle_mode((u8 *) arg);
+		ret = rm_tch_ctrl_get_idle_mode(
+			(u8 *)(arg & MASK_USER_SPACE_POINTER));
 		break;
 	case RM_IOCTL_SET_HAL_PID:
-		g_st_ts.ul_hal_pid = arg;
+		g_st_ts.u32_hal_pid = (u32)arg;
 		break;
 	case RM_IOCTL_WATCH_DOG:
 		g_st_ts.u8_watch_dog_flg = 1;
 		g_st_ts.b_watch_dog_check = 0;
 		break;
 	case RM_IOCTL_GET_VARIABLE:
-		ret = rm_tch_get_variable(index, arg);
+		ret = rm_tch_get_variable(index,
+			((u8 *)(arg & MASK_USER_SPACE_POINTER)));
 		break;
 	case RM_IOCTL_INIT_START:
 		g_st_ts.b_init_finish = 0;
@@ -3239,19 +3243,22 @@ static long dev_ioctl(struct file *file,
 		g_st_ts.b_enable_scriber = (bool) arg;
 		break;
 	case RM_IOCTL_SET_PARAMETER:
-		rm_tch_ctrl_set_parameter((void *)arg);
+		rm_tch_ctrl_set_parameter(
+			(void *)(arg & MASK_USER_SPACE_POINTER));
 		rm_tch_set_input_resolution(g_st_ctrl.u16_resolution_x,
 			g_st_ctrl.u16_resolution_y);
 		break;
 	case RM_IOCTL_SET_BASELINE:
-		rm_tch_ctrl_set_baseline((u8 *)arg,
-				g_st_ctrl.u16_data_length);
+		rm_tch_ctrl_set_baseline(
+			(u8 *)(arg & MASK_USER_SPACE_POINTER),
+			g_st_ctrl.u16_data_length);
 		break;
 	case RM_IOCTL_SET_VARIABLE:
 		rm_tch_set_variable(index, arg);
 		break;
 	case RM_IOCTL_SET_KRL_TBL:
-		ret = rm_set_kernel_tbl(index, (u8 *)arg);
+		ret = rm_set_kernel_tbl(index,
+			((u8 *)(arg & MASK_USER_SPACE_POINTER)));
 		break;
 	default:
 		return -EINVAL;
