@@ -114,19 +114,9 @@ static int lc709203f_write_word(struct i2c_client *client, u8 reg, u16 value)
 	return ret;
 }
 
-static void lc709203f_work(struct work_struct *work)
+static int lc709203f_update_soc_voltage(struct lc709203f_chip *chip)
 {
-	struct lc709203f_chip *chip;
 	int val;
-	int temperature;
-
-	chip = container_of(work, struct lc709203f_chip, work.work);
-
-	mutex_lock(&chip->mutex);
-	if (chip->shutdown_complete) {
-		mutex_unlock(&chip->mutex);
-		return;
-	}
 
 	val = lc709203f_read_word(chip->client, LC709203F_VOLTAGE);
 	if (val < 0)
@@ -143,7 +133,7 @@ static void lc709203f_work(struct work_struct *work)
 				chip->pdata->maximum_soc, val * 100);
 
 	if (chip->soc >= LC709203F_BATTERY_FULL && chip->charge_complete != 1)
-		chip->soc = LC709203F_BATTERY_FULL-1;
+		chip->soc = LC709203F_BATTERY_FULL - 1;
 
 	if (chip->status == POWER_SUPPLY_STATUS_FULL && chip->charge_complete) {
 		chip->soc = LC709203F_BATTERY_FULL;
@@ -158,6 +148,24 @@ static void lc709203f_work(struct work_struct *work)
 		chip->health = POWER_SUPPLY_HEALTH_GOOD;
 		chip->capacity_level = POWER_SUPPLY_CAPACITY_LEVEL_NORMAL;
 	}
+	return 0;
+}
+
+static void lc709203f_work(struct work_struct *work)
+{
+	struct lc709203f_chip *chip;
+	int val;
+	int temperature;
+
+	chip = container_of(work, struct lc709203f_chip, work.work);
+
+	mutex_lock(&chip->mutex);
+	if (chip->shutdown_complete) {
+		mutex_unlock(&chip->mutex);
+		return;
+	}
+
+	lc709203f_update_soc_voltage(chip);
 
 	if (chip->soc != chip->lasttime_soc ||
 		chip->status != chip->lasttime_status) {
@@ -550,6 +558,8 @@ static int lc709203f_probe(struct i2c_client *client,
 	}
 
 skip_thermistor_config:
+	lc709203f_update_soc_voltage(chip);
+
 	chip->battery.name		= "battery";
 	chip->battery.type		= POWER_SUPPLY_TYPE_BATTERY;
 	chip->battery.get_property	= lc709203f_get_property;
