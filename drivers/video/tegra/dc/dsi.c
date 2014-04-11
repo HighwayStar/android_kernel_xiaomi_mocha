@@ -3800,47 +3800,6 @@ static void tegra_dsi_send_dc_frames(struct tegra_dc *dc,
 	}
 }
 
-static void tegra_dsi_setup_initialized_panel(struct tegra_dc_dsi_data *dsi)
-{
-	int err = 0;
-
-	if (dsi->avdd_dsi_csi)
-		err = regulator_enable(dsi->avdd_dsi_csi);
-	WARN(err, "unable to enable regulator");
-
-	dsi->status.init = DSI_MODULE_INIT;
-	dsi->status.lphs = DSI_LPHS_IN_HS_MODE;
-	dsi->status.driven = DSI_DRIVEN_MODE_DC;
-	dsi->driven_mode = TEGRA_DSI_DRIVEN_BY_DC;
-	dsi->status.clk_out = DSI_PHYCLK_OUT_EN;
-	dsi->status.lp_op = DSI_LP_OP_NOT_INIT;
-	dsi->status.dc_stream = DSI_DC_STREAM_ENABLE;
-
-	if (dsi->info.video_clock_mode == TEGRA_DSI_VIDEO_CLOCK_CONTINUOUS)
-		dsi->status.clk_mode = DSI_PHYCLK_CONTINUOUS;
-	else
-		dsi->status.clk_mode = DSI_PHYCLK_TX_ONLY;
-
-	if (!(dsi->info.ganged_type)) {
-		if (dsi->info.video_burst_mode ==
-			TEGRA_DSI_VIDEO_NONE_BURST_MODE ||
-			dsi->info.video_burst_mode ==
-			TEGRA_DSI_VIDEO_NONE_BURST_MODE_WITH_SYNC_END)
-			dsi->status.clk_burst = DSI_CLK_BURST_NONE_BURST;
-		else
-			dsi->status.clk_burst = DSI_CLK_BURST_BURST_MODE;
-	}
-
-	if (dsi->info.video_data_type == TEGRA_DSI_VIDEO_TYPE_COMMAND_MODE)
-		dsi->status.vtype = DSI_VIDEO_TYPE_CMD_MODE;
-	else
-		dsi->status.vtype = DSI_VIDEO_TYPE_VIDEO_MODE;
-
-	tegra_dsi_clk_enable(dsi);
-
-	dsi->enabled = true;
-}
-
 static void tegra_dc_dsi_enable(struct tegra_dc *dc)
 {
 	struct tegra_dc_dsi_data *dsi = tegra_dc_get_outdata(dc);
@@ -3848,15 +3807,6 @@ static void tegra_dc_dsi_enable(struct tegra_dc *dc)
 
 	mutex_lock(&dsi->lock);
 	tegra_dc_io_start(dc);
-
-	/*
-	 * Do not program this panel as the bootloader as has already
-	 * initialized it. This avoids periods of blanking during boot.
-	 */
-	if (dc->out->flags & TEGRA_DC_OUT_INITIALIZED_MODE) {
-		tegra_dsi_setup_initialized_panel(dsi);
-		goto fail;
-	}
 
 	/* Stop DC stream before configuring DSI registers
 	 * to avoid visible glitches on panel during transition
@@ -3954,13 +3904,6 @@ static void tegra_dc_dsi_postpoweron(struct tegra_dc *dc)
 {
 	struct tegra_dc_dsi_data *dsi = tegra_dc_get_outdata(dc);
 	int err = 0;
-
-	/*
-	 * Do not configure. Use bootloader configuration.
-	 * This avoids periods of blanking during boot.
-	 */
-	if (dc->out->flags & TEGRA_DC_OUT_INITIALIZED_MODE)
-		return;
 
 	mutex_lock(&dsi->lock);
 	tegra_dc_io_start(dc);
