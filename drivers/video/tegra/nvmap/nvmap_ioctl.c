@@ -684,7 +684,8 @@ static int __nvmap_cache_maint(struct nvmap_client *client,
 		(vma->vm_pgoff << PAGE_SHIFT);
 	end = start + op->len;
 
-	err = __nvmap_do_cache_maint(client, vpriv->handle, start, end, op->op);
+	err = __nvmap_do_cache_maint(client, vpriv->handle, start, end, op->op,
+				     false);
 out:
 	up_read(&current->mm->mmap_sem);
 	return err;
@@ -748,7 +749,7 @@ static void outer_cache_maint(unsigned int op, phys_addr_t paddr, size_t size)
 static void heap_page_cache_maint(
 	struct nvmap_handle *h, unsigned long start, unsigned long end,
 	unsigned int op, bool inner, bool outer, pte_t **pte,
-	unsigned long kaddr, pgprot_t prot)
+	unsigned long kaddr, pgprot_t prot, bool clean_only_dirty)
 {
 #ifdef NVMAP_LAZY_VFREE
 	if (inner) {
@@ -855,7 +856,8 @@ static inline bool can_fast_cache_maint(struct nvmap_handle *h,
 
 static bool fast_cache_maint(struct nvmap_handle *h,
 	unsigned long start,
-	unsigned long end, unsigned int op)
+	unsigned long end, unsigned int op,
+	bool clean_only_dirty)
 {
 	if (!can_fast_cache_maint(h, start, end, op))
 		return false;
@@ -871,7 +873,8 @@ static bool fast_cache_maint(struct nvmap_handle *h,
 		{
 			if (h->heap_pgalloc) {
 				heap_page_cache_maint(h, start,
-					end, op, false, true, NULL, 0, 0);
+					end, op, false, true, NULL, 0, 0,
+					clean_only_dirty);
 			} else  {
 				phys_addr_t pstart;
 
@@ -890,6 +893,7 @@ struct cache_maint_op {
 	struct nvmap_handle *h;
 	bool inner;
 	bool outer;
+	bool clean_only_dirty;
 };
 
 static int do_cache_maint(struct cache_maint_op *cache_work)
@@ -924,7 +928,7 @@ static int do_cache_maint(struct cache_maint_op *cache_work)
 	    h->flags == NVMAP_HANDLE_WRITE_COMBINE || pstart == pend)
 		goto out;
 
-	if (fast_cache_maint(h, pstart, pend, op))
+	if (fast_cache_maint(h, pstart, pend, op, cache_work->clean_only_dirty))
 		goto out;
 
 	prot = nvmap_pgprot(h, PG_PROT_KERNEL);
@@ -939,7 +943,8 @@ static int do_cache_maint(struct cache_maint_op *cache_work)
 		heap_page_cache_maint(h, pstart, pend, op, true,
 			(h->flags == NVMAP_HANDLE_INNER_CACHEABLE) ?
 					false : true,
-			pte, kaddr, prot);
+			pte, kaddr, prot,
+			cache_work->clean_only_dirty);
 		goto out;
 	}
 
@@ -978,7 +983,7 @@ out:
 int __nvmap_do_cache_maint(struct nvmap_client *client,
 			struct nvmap_handle *h,
 			unsigned long start, unsigned long end,
-			unsigned int op)
+			unsigned int op, bool clean_only_dirty)
 {
 	int err;
 	struct cache_maint_op cache_op;
@@ -990,6 +995,10 @@ int __nvmap_do_cache_maint(struct nvmap_client *client,
 	if (op == NVMAP_CACHE_OP_INV)
 		op = NVMAP_CACHE_OP_WB_INV;
 
+	/* clean only dirty is applicable only for Write Back operation */
+	if (op != NVMAP_CACHE_OP_WB)
+		clean_only_dirty = false;
+
 	cache_op.h = h;
 	cache_op.start = start;
 	cache_op.end = end;
@@ -997,6 +1006,7 @@ int __nvmap_do_cache_maint(struct nvmap_client *client,
 	cache_op.inner = h->flags == NVMAP_HANDLE_CACHEABLE ||
 			 h->flags == NVMAP_HANDLE_INNER_CACHEABLE;
 	cache_op.outer = h->flags == NVMAP_HANDLE_CACHEABLE;
+	cache_op.clean_only_dirty = clean_only_dirty;
 
 	nvmap_stats_inc(NS_CFLUSH_RQ, end - start);
 	err = do_cache_maint(&cache_op);
@@ -1090,7 +1100,7 @@ static ssize_t rw_handle(struct nvmap_client *client, struct nvmap_handle *h,
 		}
 		if (is_read)
 			__nvmap_do_cache_maint(client, h, h_offs,
-				h_offs + elem_size, NVMAP_CACHE_OP_INV);
+				h_offs + elem_size, NVMAP_CACHE_OP_INV, false);
 
 		ret = rw_handle_page(h, is_read, h_offs, sys_addr,
 				     elem_size, (unsigned long)addr, *pte);
@@ -1100,7 +1110,8 @@ static ssize_t rw_handle(struct nvmap_client *client, struct nvmap_handle *h,
 
 		if (!is_read)
 			__nvmap_do_cache_maint(client, h, h_offs,
-				h_offs + elem_size, NVMAP_CACHE_OP_WB_INV);
+				h_offs + elem_size, NVMAP_CACHE_OP_WB_INV,
+				false);
 
 		copied += elem_size;
 		sys_addr += sys_stride;
