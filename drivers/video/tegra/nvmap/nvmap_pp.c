@@ -440,7 +440,7 @@ int nvmap_page_pool_init(struct nvmap_device *dev)
 	else
 		pool->length = CONFIG_NVMAP_PAGE_POOL_SIZE;
 
-	if (pool->length <= 0 || pool->length >= info.totalram)
+	if (pool->length >= info.totalram)
 		goto fail;
 
 	pr_info("nvmap page pool size: %d pages\n", pool->length);
