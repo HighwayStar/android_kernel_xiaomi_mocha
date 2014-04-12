@@ -120,6 +120,7 @@ struct nvmap_pgalloc {
 	bool contig;			/* contiguous system memory */
 	u32 iovm_addr;	/* is non-zero, if client need specific iova mapping */
 	struct list_head vmas;
+	atomic_t ndirty;	/* count number of dirty pages */
 };
 
 struct nvmap_handle {
