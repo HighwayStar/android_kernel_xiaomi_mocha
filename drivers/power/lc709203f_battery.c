@@ -63,6 +63,7 @@ struct lc709203f_platform_data {
 	u32 maximum_soc;
 	u32 alert_low_rsoc;
 	u32 alert_low_voltage;
+	bool support_battery_current;
 };
 
 struct lc709203f_chip {
@@ -205,6 +206,7 @@ static enum power_supply_property lc709203f_battery_props[] = {
 	POWER_SUPPLY_PROP_PRESENT,
 	POWER_SUPPLY_PROP_CAPACITY_LEVEL,
 	POWER_SUPPLY_PROP_TEMP,
+	POWER_SUPPLY_PROP_CURRENT_NOW,
 };
 
 static int lc709203f_get_property(struct power_supply *psy,
@@ -214,6 +216,7 @@ static int lc709203f_get_property(struct power_supply *psy,
 	struct lc709203f_chip *chip = container_of(psy,
 				struct lc709203f_chip, battery);
 	int temperature;
+	int curr_ma;
 	int ret = 0;
 
 	mutex_lock(&chip->mutex);
@@ -257,6 +260,12 @@ static int lc709203f_get_property(struct power_supply *psy,
 		   Report temp in dec-celcius.
 		*/
 		val->intval = temperature - 2732;
+		break;
+	case POWER_SUPPLY_PROP_CURRENT_NOW:
+		val->intval = 0;
+		ret = battery_gauge_get_battery_current(chip->bg_dev, &curr_ma);
+		if (!ret)
+			val->intval = curr_ma;
 		break;
 	default:
 		ret = -EINVAL;
@@ -305,6 +314,7 @@ static struct battery_gauge_ops lc709203f_bg_ops = {
 static struct battery_gauge_info lc709203f_bgi = {
 	.cell_id = 0,
 	.bg_ops = &lc709203f_bg_ops,
+	.current_channel_name = "battery-current",
 };
 
 static irqreturn_t lc709203f_irq(int id, void *dev)
@@ -375,6 +385,9 @@ static void of_lc709203f_parse_platform_data(struct i2c_client *client,
 	ret = of_property_read_u32(np, "onsemi,alert-low-voltage", &pval);
 	if (!ret)
 		pdata->alert_low_voltage = pval;
+
+	pdata->support_battery_current = of_property_read_bool(np,
+						"io-channel-names");
 }
 
 #ifdef CONFIG_DEBUG_FS
@@ -545,6 +558,10 @@ skip_thermistor_config:
 	chip->status			= POWER_SUPPLY_STATUS_DISCHARGING;
 	chip->lasttime_status		= POWER_SUPPLY_STATUS_DISCHARGING;
 	chip->charge_complete		= 0;
+
+	/* Remove current property if it is not supported */
+	if (!chip->pdata->support_battery_current)
+		chip->battery.num_properties--;
 
 	ret = power_supply_register(&client->dev, &chip->battery);
 	if (ret) {
