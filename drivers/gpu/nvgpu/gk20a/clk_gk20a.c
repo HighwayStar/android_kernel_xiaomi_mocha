@@ -266,6 +266,28 @@ static int clk_slide_gpc_pll(struct gk20a *g, u32 n)
 	return 0;
 }
 
+#define DUMP_REG(addr_func) \
+do {									\
+	addr = trim_sys_##addr_func##_r();				\
+	data = gk20a_readl(g, addr);					\
+	pr_info(#addr_func "[0x%x] = 0x%x\n", addr, data);		\
+} while (0)
+
+static void dump_gpc_pll(struct gk20a *g, struct clk_gk20a *clk, u32 last_cfg)
+{
+	u32 addr, data;
+
+	pr_info("**** GPCPLL DUMP ****");
+	pr_info("gpcpll s/w M=%u N=%u P=%u freq=%u\n",
+		clk->gpc_pll.M, clk->gpc_pll.N, clk->gpc_pll.PL, clk->gpc_pll.freq);
+	pr_info("gpcpll_cfg_last = 0x%x\n", last_cfg);
+	DUMP_REG(gpcpll_cfg);
+	DUMP_REG(gpcpll_coeff);
+	DUMP_REG(sel_vco);
+	DUMP_REG(gpc2clk_out);
+	pr_info("\n");
+}
+
 static int clk_program_gpc_pll(struct gk20a *g, struct clk_gk20a *clk,
 			int allow_slide)
 {
@@ -362,6 +384,7 @@ static int clk_program_gpc_pll(struct gk20a *g, struct clk_gk20a *clk,
 	} while (--timeout > 0);
 
 	/* PLL is messed up. What can we do here? */
+	dump_gpc_pll(g, clk, cfg);
 	BUG();
 	return -EBUSY;
 
