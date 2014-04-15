@@ -159,6 +159,7 @@ struct nvmap_handle {
 	bool heap_pgalloc;	/* handle is page allocated (sysmem / iovmm) */
 	bool alloc;		/* handle has memory allocated */
 	unsigned int userflags;	/* flags passed from userspace */
+	bool auto_cache_sync;	/* perform auto cache sync */
 	void *vaddr;		/* mapping used inside kernel */
 	struct mutex lock;
 	void *nvhost_priv;	/* nvhost private data */
