@@ -793,6 +793,8 @@ int __init loki_regulator_init(void)
 	int i;
 	struct board_info bi;
 
+	tegra_get_board_info(&bi);
+
 	/* TPS65913: Normal state of INT request line is LOW.
 	 * configure the power management controller to trigger PMU
 	 * interrupts when HIGH.
@@ -811,7 +813,6 @@ int __init loki_regulator_init(void)
 		reg_idata_smps123.constraints.init_uV = 1000000;
 	reg_idata_smps9.constraints.enable_time = 250;
 
-	tegra_get_board_info(&bi);
 
 	if (bi.board_id == BOARD_P2530 && bi.fab >= 0xa1) {
 
