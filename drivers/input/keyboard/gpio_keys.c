@@ -621,6 +621,14 @@ gpio_keys_get_devtree_pdata(struct device *dev)
 		int gpio;
 		enum of_gpio_flags flags;
 
+		/* Ignore the button if it is disabled. */
+		error = of_device_is_available(pp);
+		if (!error) {
+			dev_info(dev, "Button %s is ignored\n", pp->name);
+			pdata->nbuttons--;
+			continue;
+		}
+
 		if (!of_find_property(pp, "gpios", NULL)) {
 			pdata->nbuttons--;
 			dev_warn(dev, "Found button without gpios\n");
