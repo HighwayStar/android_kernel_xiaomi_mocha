@@ -110,8 +110,8 @@
 		ak8975@0c {
 			compatible = "ak,ak8975";
 			reg = <0x0c>;
-			orientation = [01 00 00 00 ff 00 00 00 ff];
-			config = "mpu";
+			orientation = [00 01 00 01 00 00 00 00 ff];
+			config = "host";
 		};
 
 		bq27441@55 {
