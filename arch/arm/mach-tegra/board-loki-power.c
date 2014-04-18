@@ -393,8 +393,8 @@ static struct iio_map palmas_adc_iio_maps_p2530_foster[] = {
 
 struct palmas_adc_auto_conv_property palmas_adc_auto_conv1_data = {
 	.adc_channel_number = PALMAS_ADC_CH_IN4, /* Tbat */
-	/* Shutdown if ADC auto conversion is below 748(>70C). */
-	.adc_low_threshold = 748, /* 70C */
+	/* Shutdown if ADC auto conversion is below 952(>60C). */
+	.adc_low_threshold = 952, /* 60C */
 	.adc_shutdown = true,
 };
 
