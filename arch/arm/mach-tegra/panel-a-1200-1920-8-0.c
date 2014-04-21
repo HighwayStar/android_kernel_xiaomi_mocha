@@ -49,7 +49,7 @@ static struct regulator *vdd_lcd_bl_en;
 static struct regulator *dvdd_lcd_1v8;
 
 static struct tegra_dc_sd_settings dsi_a_1200_1920_8_0_sd_settings = {
-	.enable = 1, /* enabled by default. */
+	.enable = 0, /* disabled by default. */
 	.use_auto_pwm = false,
 	.hw_update_delay = 0,
 	.bin_width = -1,
