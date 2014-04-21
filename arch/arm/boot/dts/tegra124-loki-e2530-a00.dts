@@ -1,0 +1,18 @@
+#include "tegra124-loki.dts"
+#include "tegra124-platforms/tegra124-loki-powermon-p2530-a01.dtsi"
+#include <dt-bindings/iio/meter/ina3221x.h>
+
+/ {
+	i2c@7000c000 {
+		lc709203f@0b {
+			io-channels = <&ina3221x INA3221_CHAN_INDEX(0, CURRENT, NORMAL)>;
+			io-channel-names = "battery-current";
+		};
+	};
+
+	gpio-keys {
+		gamepad {
+			status = "disabled";
+		};
+	};
+};
