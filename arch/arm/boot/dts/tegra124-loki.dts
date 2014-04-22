@@ -138,6 +138,8 @@
 		lc709203f@0b {
 			compatible = "onsemi,lc709203f";
 			reg = <0x0b>;
+			interrupt-parent = <&gpio>;
+			interrupts = <TEGRA_GPIO(R, 4) 0x0>;
 			onsemi,tz-name = "battery-temp";
 		};
 	};
