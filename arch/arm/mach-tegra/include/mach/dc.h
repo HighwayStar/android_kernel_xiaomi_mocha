@@ -794,7 +794,7 @@ bool tegra_dc_hpd(struct tegra_dc *dc);
 
 void tegra_dc_get_fbvblank(struct tegra_dc *dc, struct fb_vblank *vblank);
 int tegra_dc_wait_for_vsync(struct tegra_dc *dc);
-void tegra_dc_blank(struct tegra_dc *dc);
+void tegra_dc_blank(struct tegra_dc *dc, unsigned windows);
 
 void tegra_dc_enable(struct tegra_dc *dc);
 void tegra_dc_disable(struct tegra_dc *dc);
