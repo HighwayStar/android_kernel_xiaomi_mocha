@@ -543,6 +543,13 @@ static struct platform_device __maybe_unused
 static int  __init dsi_a_1200_1920_8_0_register_bl_dev(void)
 {
 	int err = 0;
+
+	if (tegra_get_touch_vendor_id() == MAXIM_TOUCH) {
+		struct platform_pwm_backlight_data *pfm_dat;
+		pfm_dat = dsi_a_1200_1920_8_0_bl_devices[0]->dev.platform_data;
+		/* override backlight pwm frequency to 1KHz */
+		pfm_dat->pwm_period_ns = 1000000;
+	}
 	err = platform_add_devices(dsi_a_1200_1920_8_0_bl_devices,
 				ARRAY_SIZE(dsi_a_1200_1920_8_0_bl_devices));
 	if (err) {
