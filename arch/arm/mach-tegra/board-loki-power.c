@@ -398,6 +398,13 @@ struct palmas_adc_auto_conv_property palmas_adc_auto_conv1_data = {
 	.adc_shutdown = true,
 };
 
+struct palmas_adc_auto_conv_property palmas_adc_auto_conv0_data = {
+	.adc_channel_number = PALMAS_ADC_CH_IN1, /* Tboard */
+	/* Shutdown if ADC auto conversion is below (>105C). */
+	.adc_low_threshold = 765, /* 105C */
+	.adc_shutdown = true,
+};
+
 static struct palmas_gpadc_platform_data palmas_adc_pdata = {
 	/* If ch3_dual_current is true, it will measure ch3 input signal with
 	 * ch3_current and the next current of ch3_current.
@@ -872,6 +879,8 @@ int __init loki_regulator_init(void)
 	if (bi.board_id == BOARD_P2530 && bi.fab >= 0xa1) {
 
 		palmas_adc_pdata.auto_conversion_period_ms = 1000;
+		palmas_adc_pdata.adc_auto_conv0_data =
+					&palmas_adc_auto_conv0_data;
 
 		if (bi.sku == BOARD_SKU_FOSTER) {
 			pr_info("thermal: registering for foster\n");
