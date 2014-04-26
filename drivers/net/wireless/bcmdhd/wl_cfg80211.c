@@ -9630,6 +9630,7 @@ static s32 wl_event_handler(void *data)
 	struct wl_event_q *e;
 	tsk_ctl_t *tsk = (tsk_ctl_t *)data;
 	bcm_struct_cfgdev *cfgdev = NULL;
+	struct net_device *netdev;
 
 	wl = (struct wl_priv *)tsk->parent;
 
@@ -9649,8 +9650,9 @@ static s32 wl_event_handler(void *data)
 			if ((wl_is_p2p_event(e) == TRUE) && (wl->p2p_wdev)) {
 				cfgdev = wl_to_p2p_wdev(wl);
 			} else {
-				cfgdev = ndev_to_wdev(dhd_idx2net((struct dhd_pub *)(wl->pub),
-					e->emsg.ifidx));
+				netdev = dhd_idx2net((struct dhd_pub *)(wl->pub), e->emsg.ifidx);
+				if (netdev)
+					cfgdev = ndev_to_wdev(netdev);
 			}
 #elif defined(WL_ENABLE_P2P_IF)
 			if ((wl_is_p2p_event(e) == TRUE) && (wl->p2p_net)) {
