@@ -39,14 +39,22 @@
 #include "nvmap_priv.h"
 #include "nvmap_ioctl.h"
 
+#ifdef CONFIG_NVMAP_FORCE_ZEROED_USER_PAGES
+bool zero_memory = 1;
+#else
 bool zero_memory;
+#endif
 u32 nvmap_max_handle_count;
 
 static int zero_memory_set(const char *arg, const struct kernel_param *kp)
 {
+#ifdef CONFIG_NVMAP_FORCE_ZEROED_USER_PAGES
+	return -EPERM;
+#else
 	param_set_bool(arg, kp);
 	nvmap_page_pool_clear();
 	return 0;
+#endif
 }
 
 static struct kernel_param_ops zero_memory_ops = {
@@ -88,7 +96,7 @@ void nvmap_altfree(void *ptr, size_t len)
 void _nvmap_handle_free(struct nvmap_handle *h)
 {
 	unsigned int i, nr_page, page_index = 0;
-#ifdef CONFIG_NVMAP_PAGE_POOLS
+#if defined(CONFIG_NVMAP_PAGE_POOLS)
 	struct nvmap_page_pool *pool = NULL;
 #endif
 
@@ -123,7 +131,7 @@ void _nvmap_handle_free(struct nvmap_handle *h)
 	for (i = 0; i < nr_page; i++)
 		h->pgalloc.pages[i] = nvmap_to_page(h->pgalloc.pages[i]);
 
-#ifdef CONFIG_NVMAP_PAGE_POOLS
+#if defined(CONFIG_NVMAP_PAGE_POOLS)
 	if (!zero_memory) {
 		pool = &nvmap_dev->pool;
 
