@@ -298,8 +298,8 @@ PALMAS_REGS_PDATA(ldousb, 2300,  3300, NULL, 0, 0, 1, 0,
 		0, 0, 0, 0, 0);
 PALMAS_REGS_PDATA(regen1, 3300,  3300, NULL, 0, 0, 0, 0,
 		0, 0, 0, 0, 0);
-PALMAS_REGS_PDATA(regen2, 5000,  5000, NULL, 1, 1, 0, 0,
-		0, 0, 0, 0, 0);
+PALMAS_REGS_PDATA(regen2, 5000,  5000, NULL, 0, 1, 0, 0,
+		0, PALMAS_EXT_CONTROL_NSLEEP, 0, 0, 0);
 
 
 #define PALMAS_REG_PDATA(_sname) &reg_idata_##_sname
