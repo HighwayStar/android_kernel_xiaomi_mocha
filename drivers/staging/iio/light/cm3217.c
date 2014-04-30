@@ -435,6 +435,7 @@ static int cm3217_remove(struct i2c_client *client)
 	struct iio_dev *indio_dev;
 
 	indio_dev = i2c_get_clientdata(client);
+	iio_device_unregister(indio_dev);
 	inf = iio_priv(indio_dev);
 	cm3217_vreg_exit(inf);
 	destroy_workqueue(inf->wq);
