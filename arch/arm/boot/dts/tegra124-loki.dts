@@ -78,7 +78,7 @@
 				ti,ir-comp-resister-ohm = <70>;
 				ti,ir-comp-voltage-millivolt = <112>;
 				ti,thermal-regulation-threshold-degc = <100>;
-				ti,auto-recharge-time-suspend = <1800>;
+				ti,auto-recharge-time-suspend = <3600>;
 				consumers {
 					c1 {
 						regulator-consumer-supply = "usb_bat_chg";
