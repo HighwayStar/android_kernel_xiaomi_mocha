@@ -298,6 +298,7 @@ config MACH_ARDBEG
        select MACH_HAS_SND_SOC_TEGRA_RT5645 if SND_SOC
        select MACH_HAS_SND_SOC_TEGRA_MAX98090 if SND_SOC
        select SYSEDP_FRAMEWORK
+       select TEGRA_SLOW_CSITE
        help
          Support for NVIDIA ARDBEG Development platform
 
