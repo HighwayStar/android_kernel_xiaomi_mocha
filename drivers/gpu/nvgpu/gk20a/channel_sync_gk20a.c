@@ -215,7 +215,7 @@ static int __gk20a_channel_syncpt_incr(struct gk20a_channel_sync *s,
 
 	if (register_irq) {
 		/* nvhost action_gpfifo_submit_complete releases this ref. */
-		err = gk20a_channel_busy(c->g->dev);
+		err = gk20a_busy(c->g->dev);
 
 		if (!err) {
 			err = nvhost_intr_add_action(
@@ -226,7 +226,7 @@ static int __gk20a_channel_syncpt_incr(struct gk20a_channel_sync *s,
 				completed_waiter,
 				NULL);
 			if (err)
-				gk20a_channel_idle(c->g->dev);
+				gk20a_idle(c->g->dev);
 		}
 
 		/* Adding interrupt action should never fail. A proper error
