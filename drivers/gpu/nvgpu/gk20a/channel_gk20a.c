@@ -135,8 +135,6 @@ int channel_gk20a_commit_va(struct channel_gk20a *c)
 	gk20a_mem_wr32(inst_ptr, ram_in_adr_limit_hi_w(),
 		ram_in_adr_limit_hi_f(u64_hi32(c->vm->va_limit)));
 
-	gk20a_mm_l2_invalidate(c->g);
-
 	return 0;
 }
 
@@ -166,8 +164,6 @@ static int channel_gk20a_commit_userd(struct channel_gk20a *c)
 		 pbdma_userd_target_vid_mem_f() |
 		 pbdma_userd_hi_addr_f(addr_hi));
 
-	gk20a_mm_l2_invalidate(c->g);
-
 	return 0;
 }
 
@@ -189,9 +185,6 @@ static int channel_gk20a_set_schedule_params(struct channel_gk20a *c,
 
 	/* preempt the channel */
 	WARN_ON(gk20a_fifo_preempt_channel(c->g, c->hw_chid));
-
-	/* flush GPU cache */
-	gk20a_mm_l2_flush(c->g, true);
 
 	/* value field is 8 bits long */
 	while (value >= 1 << 8) {
@@ -215,8 +208,6 @@ static int channel_gk20a_set_schedule_params(struct channel_gk20a *c,
 	gk20a_writel(c->g, ccsr_channel_r(c->hw_chid),
 		gk20a_readl(c->g, ccsr_channel_r(c->hw_chid)) |
 		ccsr_channel_enable_set_true_f());
-
-	gk20a_mm_l2_invalidate(c->g);
 
 	return 0;
 }
@@ -284,8 +275,6 @@ static int channel_gk20a_setup_ramfc(struct channel_gk20a *c,
 
 	gk20a_mem_wr32(inst_ptr, ram_fc_chid_w(), ram_fc_chid_id_f(c->hw_chid));
 
-	gk20a_mm_l2_invalidate(c->g);
-
 	return 0;
 }
 
@@ -305,8 +294,6 @@ static int channel_gk20a_setup_userd(struct channel_gk20a *c)
 	gk20a_mem_wr32(c->userd_cpu_va, ram_userd_get_hi_w(), 0);
 	gk20a_mem_wr32(c->userd_cpu_va, ram_userd_gp_get_w(), 0);
 	gk20a_mem_wr32(c->userd_cpu_va, ram_userd_gp_put_w(), 0);
-
-	gk20a_mm_l2_invalidate(c->g);
 
 	return 0;
 }
@@ -645,8 +632,6 @@ void gk20a_free_channel(struct channel_gk20a *ch, bool finish)
 			ch->gpfifo.cpu_va, ch->gpfifo.iova);
 	ch->gpfifo.cpu_va = NULL;
 	ch->gpfifo.iova = 0;
-
-	gk20a_mm_l2_invalidate(ch->g);
 
 	memset(&ch->gpfifo, 0, sizeof(struct gpfifo_desc));
 
@@ -1151,8 +1136,6 @@ static int gk20a_alloc_channel_gpfifo(struct channel_gk20a *c,
 
 	channel_gk20a_setup_userd(c);
 	channel_gk20a_commit_userd(c);
-
-	gk20a_mm_l2_invalidate(c->g);
 
 	/* TBD: setup engine contexts */
 
