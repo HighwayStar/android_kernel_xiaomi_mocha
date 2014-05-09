@@ -522,8 +522,8 @@ void raydium_report_pointer(void *p)
 		u8_last_touch_count = sp_tp->uc_touch_count;
 	}
 
-	if (g_st_ctrl.u8_power_mode)
-		raydium_change_scan_mode(sp_tp->uc_touch_count);
+	/*if (g_st_ctrl.u8_power_mode)
+		raydium_change_scan_mode(sp_tp->uc_touch_count); */
 
 	kfree(sp_tp);
 }
@@ -562,8 +562,8 @@ void raydium_report_pointer(void *p)
 	i_count = max(u8_last_touch_count, sp_tp->uc_touch_count);
 
 	if (!i_count) {
-		if (g_st_ctrl.u8_power_mode)
-			raydium_change_scan_mode(sp_tp->uc_touch_count);
+		/*if (g_st_ctrl.u8_power_mode)
+			raydium_change_scan_mode(sp_tp->uc_touch_count);*/
 		kfree(sp_tp);
 		return;
 	}
@@ -683,8 +683,8 @@ void raydium_report_pointer(void *p)
 	u8_last_touch_count = sp_tp->uc_touch_count;
 	input_sync(g_input_dev);
 
-	if (g_st_ctrl.u8_power_mode)
-		raydium_change_scan_mode(sp_tp->uc_touch_count);
+	/*if (g_st_ctrl.u8_power_mode)
+		raydium_change_scan_mode(sp_tp->uc_touch_count);*/
 
 	kfree(sp_tp);
 }
@@ -1753,8 +1753,10 @@ static void rm_tch_init_ts_structure_part(void)
 	g_st_ts.u16_read_para = 0;
 
 	rm_ctrl_watchdog_func(0);
-	if (g_st_ts.b_is_suspended == false)
-		rm_tch_ctrl_init();
+
+	/*if (g_st_ts.b_is_suspended == false)
+		rm_tch_ctrl_init();*/
+
 	g_st_ts.b_is_suspended = 0;
 
 	b_bl_updated = false;
@@ -2432,7 +2434,7 @@ static irqreturn_t rm_tch_irq(int irq, void *handle)
 
 	trace_touchscreen_raydium_irq("Raydium_interrupt");
 
-	if (g_st_ctrl.u8_power_mode &&
+	if (/*g_st_ctrl.u8_power_mode &&*/
 		(g_st_ts.u8_scan_mode_state == RM_SCAN_IDLE_MODE)) {
 		input_event(g_input_dev, EV_MSC, MSC_ACTIVITY, 1);
 #if (INPUT_PROTOCOL_CURRENT_SUPPORT == INPUT_PROTOCOL_TYPE_B)
@@ -2481,7 +2483,11 @@ void rm_tch_set_variable(unsigned int index, unsigned int arg)
 		g_st_ts.b_enable_scriber = (bool) arg;
 		break;
 	case RM_VARIABLE_AUTOSCAN_FLAG:
-		g_st_ctrl.u8_power_mode = (bool) arg;
+		/*g_st_ctrl.u8_power_mode = (bool) arg;*/
+		mutex_lock(&g_st_ts.mutex_scan_mode);
+		if (g_st_ts.u8_scan_mode_state == RM_SCAN_ACTIVE_MODE)
+			g_st_ts.u8_scan_mode_state = RM_SCAN_PRE_IDLE_MODE;
+		mutex_unlock(&g_st_ts.mutex_scan_mode);
 		break;
 	case RM_VARIABLE_TEST_VERSION:
 		g_st_ts.u8_test_version = (u8) arg;
@@ -2623,6 +2629,7 @@ static void rm_tch_init_ts_structure(void)
 	g_st_ts.u8_resume_cnt = 0;
 	g_st_ts.u8_touchfile_check = 0xFF;
 	g_st_ts.u8_stylus_status = 0xFF;
+	rm_tch_ctrl_init();
 }
 
 static int rm31080_voltage_notifier_1v8(struct notifier_block *nb,
@@ -2874,10 +2881,12 @@ static struct rm_spi_ts_platform_data *rm_ts_parse_dt(struct device *dev,
 	if (ret < 0)
 		goto exit_release_all_gpio;
 	pdata->config = (unsigned char *)val;
+
 	ret = of_property_read_u32(np, "platform-id", &val);
 	if (ret < 0)
 		goto exit_release_all_gpio;
 	pdata->platform_id = val;
+
 	ret = of_property_read_string(np, "name-of-clock", &str);
 	if (ret < 0)
 		goto exit_release_all_gpio;
