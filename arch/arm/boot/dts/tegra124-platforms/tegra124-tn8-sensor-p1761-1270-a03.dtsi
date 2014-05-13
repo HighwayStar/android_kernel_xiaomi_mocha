@@ -36,7 +36,7 @@
 		ltr659@23 {
 			compatible = "lite-on,ltr659";
 			reg = <0x23>;
-			threshold = <125>;
+			threshold = <80>;
 			vdd-supply = <&palmas_smps9>;
 			vled-supply = <&palmas_smps8>;
 		};
