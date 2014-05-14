@@ -516,12 +516,16 @@ static int nvidia_probe(struct hid_device *hdev, const struct hid_device_id *id)
 	loc->mode = MOUSE_MODE;
 	hid_set_drvdata(hdev, loc);
 
-	ret = hid_open_report(hdev);
-	if (!ret)
-		ret = hid_hw_start(hdev, HID_CONNECT_DEFAULT);
+	/* Parse the HID report now */
+	ret = hid_parse(hdev);
+	if (ret) {
+		hid_err(hdev, "parse failed\n");
+		goto err_parse;
+	}
 
+	ret = hid_hw_start(hdev, HID_CONNECT_DEFAULT);
 	if (ret)
-		goto end;
+		goto err_parse;
 
 	ret = device_create_file(&hdev->dev, &dev_attr_speed);
 	if (ret)
@@ -529,13 +533,29 @@ static int nvidia_probe(struct hid_device *hdev, const struct hid_device_id *id)
 	ret = device_create_file(&hdev->dev, &dev_attr_mode);
 	if (ret)
 		hid_warn(hdev, "cannot create sysfs for mode\n");
+	return 0;
 
 
 	nvidia_init_ff(hdev, loc);
 	nvidia_find_tp_len(hdev, loc);
 
-end:
+err_parse:
+	kfree(loc);
 	return ret;
+}
+
+static void nvidia_remove(struct hid_device *hdev)
+{
+	struct nvidia_tp_loc *loc = hid_get_drvdata(hdev);
+
+	if (!loc)
+		return;
+
+	device_remove_file(&hdev->dev, &dev_attr_speed);
+	device_remove_file(&hdev->dev, &dev_attr_mode);
+
+	hid_hw_stop(hdev);
+	kfree(loc);
 }
 
 static int nvidia_input_mapped(struct hid_device *hdev, struct hid_input *hi,
@@ -588,6 +608,7 @@ static struct hid_driver nvidia_driver = {
 	.report_fixup = nv_report_fixup,
 	.event = nvidia_event,
 	.probe = nvidia_probe,
+	.remove = nvidia_remove,
 };
 module_hid_driver(nvidia_driver);
 
