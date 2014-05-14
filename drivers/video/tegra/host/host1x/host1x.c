@@ -773,6 +773,8 @@ static int nvhost_probe(struct platform_device *dev)
 
 #endif
 
+	mutex_init(&host->timeout_mutex);
+
 	nvhost_module_busy(dev);
 
 	nvhost_syncpt_reset(&host->syncpt);

@@ -443,9 +443,12 @@ static void cdma_timeout_handler(struct work_struct *work)
 	sp = &dev->syncpt;
 	ch = cdma_to_channel(cdma);
 
+	mutex_lock(&dev->timeout_mutex);
+
 	ret = mutex_trylock(&cdma->lock);
 	if (!ret) {
 		schedule_delayed_work(&cdma->timeout.wq, msecs_to_jiffies(10));
+		mutex_unlock(&dev->timeout_mutex);
 		return;
 	}
 
@@ -461,6 +464,7 @@ static void cdma_timeout_handler(struct work_struct *work)
 		schedule_delayed_work(&cdma->timeout.wq,
 				      msecs_to_jiffies(cdma->timeout.timeout));
 		mutex_unlock(&cdma->lock);
+		mutex_unlock(&dev->timeout_mutex);
 		return;
 	}
 
@@ -468,6 +472,7 @@ static void cdma_timeout_handler(struct work_struct *work)
 		dev_dbg(&dev->dev->dev,
 			 "cdma_timeout: expired, but has no clientid\n");
 		mutex_unlock(&cdma->lock);
+		mutex_unlock(&dev->timeout_mutex);
 		return;
 	}
 
@@ -498,6 +503,7 @@ static void cdma_timeout_handler(struct work_struct *work)
 		writel(cmdproc_stop,
 			dev->sync_aperture + host1x_sync_cmdproc_stop_r());
 		mutex_unlock(&cdma->lock);
+		mutex_unlock(&dev->timeout_mutex);
 		return;
 	}
 
@@ -517,6 +523,7 @@ static void cdma_timeout_handler(struct work_struct *work)
 
 	nvhost_cdma_update_sync_queue(cdma, sp, ch->dev);
 	mutex_unlock(&cdma->lock);
+	mutex_unlock(&dev->timeout_mutex);
 }
 
 static const struct nvhost_cdma_ops host1x_cdma_ops = {

@@ -55,6 +55,7 @@ struct nvhost_master {
 	struct host1x_device_info info;
 	struct kobject *caps_kobj;
 	struct nvhost_capability_node *caps_nodes;
+	struct mutex timeout_mutex;
 };
 
 extern struct nvhost_master *nvhost;
