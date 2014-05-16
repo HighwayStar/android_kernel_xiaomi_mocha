@@ -71,6 +71,11 @@ static struct camera_platform_info cam_desc = {
 	.chip_list = &chip_list,
 };
 
+static inline void camera_ref_init(void)
+{
+	atomic_set(&cam_ref, 0);
+}
+
 static int camera_ref_raise(void)
 {
 	mutex_lock(&cam_mutex);
@@ -90,7 +95,7 @@ static inline void camera_ref_down(void)
 	atomic_dec(&cam_ref);
 }
 
-static void camera_ref_trylock(void)
+static void camera_ref_lock(void)
 {
 	int ref;
 
@@ -103,7 +108,7 @@ static void camera_ref_trylock(void)
 			break;
 		}
 		mutex_unlock(&cam_mutex);
-		usleep_range(200, 220);
+		usleep_range(10000, 10200);
 	} while (true);
 }
 
@@ -835,23 +840,19 @@ static int camera_open(struct inode *inode, struct file *file)
 
 static int camera_release(struct inode *inode, struct file *file)
 {
-	struct camera_info *capp, *cam = file->private_data;
+	struct camera_info *cam;
 
 	dev_dbg(cam_desc.dev, "%s\n", __func__);
 
 	if (camera_ref_raise())
 		return -ENOTTY;
 
+	cam = file->private_data;
 	mutex_lock(cam_desc.u_mutex);
-	/* make sure it's still in the list, not released concurrently. */
-	list_for_each_entry(capp, cam_desc.app_list, list) {
-		if (cam == capp) {
-			list_del(&cam->list);
-			camera_app_remove(cam);
-			break;
-		}
-	}
+	list_del(&cam->list);
 	mutex_unlock(cam_desc.u_mutex);
+
+	camera_app_remove(cam);
 
 	camera_ref_down();
 	file->private_data = NULL;
@@ -896,7 +897,7 @@ static int camera_remove(struct platform_device *dev)
 {
 	dev_dbg(cam_desc.dev, "%s\n", __func__);
 
-	camera_ref_trylock();
+	camera_ref_lock();
 
 	atomic_xchg(&cam_desc.in_use, 0);
 	misc_deregister(&cam_desc.miscdev);
@@ -919,6 +920,7 @@ static int camera_probe(struct platform_device *dev)
 		return -EBUSY;
 	}
 
+	camera_ref_lock();
 	cam_desc.dev = &dev->dev;
 	if (dev->dev.platform_data) {
 		cam_desc.pdata = dev->dev.platform_data;
@@ -946,27 +948,17 @@ static int camera_probe(struct platform_device *dev)
 	tegra_isp_register_mfi_cb(camera_dev_sync_cb, NULL);
 #endif
 	camera_debugfs_init(&cam_desc);
+	camera_ref_init();
 	return 0;
 }
 
 static void camera_shutdown(struct platform_device *dev)
 {
-	dev_info(&dev->dev, "%s ...\n", __func__);
+	dev_dbg(&dev->dev, "%s ...\n", __func__);
 
-	camera_ref_trylock();
+	camera_ref_lock();
 	atomic_xchg(&cam_desc.in_use, 0);
-}
-
-static int camera_suspend(struct platform_device *dev, pm_message_t state)
-{
-	dev_dbg(&dev->dev, "%s ...\n", __func__);
-	return 0;
-}
-
-static int camera_resume(struct platform_device *dev)
-{
-	dev_dbg(&dev->dev, "%s ...\n", __func__);
-	return 0;
+	dev_info(&dev->dev, "%s locked.\n", __func__);
 }
 
 static const struct platform_device_id camera_id[] = {
@@ -985,8 +977,6 @@ static struct platform_driver camera_driver = {
 	.probe = camera_probe,
 	.remove = camera_remove,
 	.shutdown = camera_shutdown,
-	.suspend  = camera_suspend,
-	.resume   = camera_resume,
 };
 
 module_platform_driver(camera_driver);
