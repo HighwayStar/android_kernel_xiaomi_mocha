@@ -783,8 +783,6 @@ struct tegra_dc_bw_data {
 };
 
 #define TEGRA_DC_FLAG_ENABLED		(1 << 0)
-#define TEGRA_DC_FLAG_CMU_DISABLE	(0 << 1)
-#define TEGRA_DC_FLAG_CMU_ENABLE	(1 << 1)
 
 int tegra_dc_get_stride(struct tegra_dc *dc, unsigned win);
 struct tegra_dc *tegra_dc_get_dc(unsigned idx);
