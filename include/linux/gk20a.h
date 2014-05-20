@@ -26,6 +26,8 @@ struct platform_device;
 void gk20a_channel_update(struct channel_gk20a *c, int nr_completed);
 int nvhost_vpr_info_fetch(void);
 void gk20a_debug_dump_device(struct platform_device *pdev);
+int gk20a_do_idle(void);
+int gk20a_do_unidle(void);
 #else
 static inline void gk20a_channel_update(struct channel_gk20a *c,
 					int nr_completed) {}
@@ -34,5 +36,7 @@ static inline int nvhost_vpr_info_fetch(void)
 {
 	return -ENOSYS;
 }
+int gk20a_do_idle(void) { return -ENOSYS; }
+int gk20a_do_unidle(void) { return -ENOSYS; }
 #endif
 #endif
