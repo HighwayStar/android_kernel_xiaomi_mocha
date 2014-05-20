@@ -166,4 +166,6 @@ long gk20a_channel_ioctl(struct file *filp,
 int gk20a_channel_release(struct inode *inode, struct file *filp);
 struct channel_gk20a *gk20a_get_channel_from_file(int fd);
 
+int gk20a_wait_channel_idle(struct channel_gk20a *ch);
+
 #endif /*__CHANNEL_GK20A_H__*/
