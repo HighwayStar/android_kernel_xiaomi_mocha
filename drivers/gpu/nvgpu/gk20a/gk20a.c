@@ -1360,6 +1360,8 @@ static int gk20a_probe(struct platform_device *dev)
 
 	gk20a_init_support(dev);
 
+	init_rwsem(&gk20a->busy_lock);
+
 	spin_lock_init(&gk20a->mc_enable_lock);
 
 	/* Initialize the platform interface. */
@@ -1519,6 +1521,9 @@ void gk20a_busy_noresume(struct platform_device *pdev)
 int gk20a_busy(struct platform_device *pdev)
 {
 	int ret = 0;
+	struct gk20a *g = get_gk20a(pdev);
+
+	down_read(&g->busy_lock);
 
 #ifdef CONFIG_PM_RUNTIME
 	ret = pm_runtime_get_sync(&pdev->dev);
@@ -1526,6 +1531,8 @@ int gk20a_busy(struct platform_device *pdev)
 		pm_runtime_put_noidle(&pdev->dev);
 #endif
 	gk20a_scale_notify_busy(pdev);
+
+	up_read(&g->busy_lock);
 
 	return ret < 0 ? ret : 0;
 }
