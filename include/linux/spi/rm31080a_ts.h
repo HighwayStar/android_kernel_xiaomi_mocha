@@ -241,6 +241,8 @@
  *	NOTE: Need to sync with HAL
  ***************************************************************************/
 
+#define ENABLE_FB_CALLBACK	0
+
 struct rm_touch_event {
 	unsigned char uc_touch_count;
 	unsigned char uc_id[RM_TS_MAX_POINTS];

@@ -58,6 +58,10 @@
 #include <linux/input/mt.h>
 #endif
 
+#if ENABLE_FB_CALLBACK && defined(CONFIG_FB)
+#include <linux/fb.h>
+#endif
+
 /*=============================================================================
 	DEFINITIONS
 =============================================================================*/
@@ -196,6 +200,9 @@ struct rm_tch_ts {
 	struct notifier_block nb_1v8;
 	struct clk *clk;
 	unsigned char u8_repeat_counter;
+#if ENABLE_FB_CALLBACK && defined(CONFIG_FB)
+	struct notifier_block  fb_notifier;
+#endif
 };
 
 struct rm_tch_bus_ops {
@@ -397,7 +404,6 @@ void raydium_change_scan_mode(u8 u8_touch_count)
 	u16_nt_count_thd = (u16)g_st_ctrl.u8_time2idle * 100;
 
 	if (u8_touch_count) {
-
 		u32_no_touch_count = 0;
 		return;
 	}
@@ -1740,6 +1746,7 @@ static void rm_tch_init_ts_structure_part(void)
 	g_st_ts.b_init_finish = 0;
 	g_st_ts.b_calc_finish = 0;
 	g_st_ts.b_enable_scriber = 0;
+
 #ifdef ENABLE_SLOW_SCAN
 	g_st_ts.b_enable_slow_scan = false;
 #endif
@@ -1754,11 +1761,7 @@ static void rm_tch_init_ts_structure_part(void)
 
 	rm_ctrl_watchdog_func(0);
 
-	/*if (g_st_ts.b_is_suspended == false)
-		rm_tch_ctrl_init();*/
-
 	g_st_ts.b_is_suspended = 0;
-
 	b_bl_updated = false;
 }
 
@@ -2458,6 +2461,7 @@ static void rm_tch_enter_test_mode(u8 flag)
 		flush_workqueue(g_st_ts.rm_timer_workqueue);
 	} else { /*leave test mode*/
 		g_st_ts.b_selftest_enable = 0;
+
 		rm_tch_init_ts_structure_part();
 		g_st_ts.b_is_suspended = false;
 	}
@@ -2655,6 +2659,10 @@ static int rm31080_voltage_notifier_3v3(struct notifier_block *nb,
 /*===========================================================================*/
 static void rm_ctrl_resume(struct rm_tch_ts *ts)
 {
+	g_st_ts.u8_spi_locked = 1;
+	if (g_st_ctrl.u8_kernel_msg & DEBUG_DRIVER)
+		rm_printk("Raydium - SPI_LOCKED by resume!!\n");
+
 	if (g_st_ts.b_init_finish)
 		return;
 
@@ -2700,6 +2708,10 @@ static void rm_ctrl_suspend(struct rm_tch_ts *ts)
 	rm_tch_ctrl_wait_for_scan_finish(0);
 	rm_tch_cmd_process(1, g_st_rm_suspend_cmd, ts);
 	mutex_unlock(&g_st_ts.mutex_scan_mode);
+	g_st_ts.u8_spi_locked = 1;
+	if (g_st_ctrl.u8_kernel_msg & DEBUG_DRIVER)
+		rm_printk("Raydium - SPI_LOCKED by suspend!!\n");
+
 }
 
 #ifdef CONFIG_PM
@@ -2707,11 +2719,9 @@ static int rm_tch_suspend(struct device *dev)
 {
 	struct rm_tch_ts *ts = dev_get_drvdata(dev);
 
+	dev_info(ts->dev, "Raydium - Disable input device\n");
 	rm_ctrl_suspend(ts);
-
-	g_st_ts.u8_spi_locked = 1;
-	if (g_st_ctrl.u8_kernel_msg & DEBUG_DRIVER)
-		rm_printk("Raydium - SPI_LOCKED by suspend!!\n");
+	dev_info(ts->dev, "Raydium - Disable input device done\n");
 
 	return RETURN_OK;
 }
@@ -2720,12 +2730,10 @@ static int rm_tch_resume(struct device *dev)
 {
 	struct rm_tch_ts *ts = dev_get_drvdata(dev);
 
+	dev_info(ts->dev, "Raydium - Enable input device\n");
+
 	if (wake_lock_active(&g_st_ts.wakelock_initialization))
 		wake_unlock(&g_st_ts.wakelock_initialization);
-
-	g_st_ts.u8_spi_locked = 1;
-	if (g_st_ctrl.u8_kernel_msg & DEBUG_DRIVER)
-		rm_printk("Raydium - SPI_LOCKED by resume!!\n");
 
 	wake_lock_timeout(&g_st_ts.wakelock_initialization,
 		TCH_WAKE_LOCK_TIMEOUT);
@@ -2741,25 +2749,26 @@ static void rm_tch_early_suspend(struct early_suspend *es)
 	struct rm_tch_ts *ts;
 	struct device *dev;
 
+#if !(ENABLE_FB_CALLBACK && defined(CONFIG_FB))
 	ts = container_of(es, struct rm_tch_ts, early_suspend);
 	dev = ts->dev;
 
-	dev_info(ts->dev, "Raydium - Suspend input device\n");
 	if (rm_tch_suspend(dev))
 		dev_err(dev, "Raydium - %s : failed\n", __func__);
+#endif
 }
 
 static void rm_tch_early_resume(struct early_suspend *es)
 {
 	struct rm_tch_ts *ts;
 	struct device *dev;
-
+#if !(ENABLE_FB_CALLBACK && defined(CONFIG_FB))
 	ts = container_of(es, struct rm_tch_ts, early_suspend);
 	dev = ts->dev;
 
-	dev_info(ts->dev, "Raydium - Resume input device\n");
 	if (rm_tch_resume(dev))
 		dev_err(dev, "Raydium - %s : failed\n", __func__);
+#endif
 }
 #endif			/*CONFIG_HAS_EARLYSUSPEND*/
 #endif			/*CONFIG_PM*/
@@ -2770,15 +2779,15 @@ static int rm_tch_input_enable(struct input_dev *in_dev)
 {
 	int error = RETURN_OK;
 
+#if !(ENABLE_FB_CALLBACK && defined(CONFIG_FB))
 #ifdef CONFIG_PM
 	struct rm_tch_ts *ts = input_get_drvdata(in_dev);
 
-	dev_info(ts->dev, "Raydium - Enable input device\n");
 	error = rm_tch_resume(ts->dev);
 	if (error)
 		dev_err(ts->dev, "Raydium - %s : failed\n", __func__);
 #endif
-
+#endif
 	return error;
 }
 
@@ -2786,19 +2795,38 @@ static int rm_tch_input_disable(struct input_dev *in_dev)
 {
 	int error = RETURN_OK;
 
+#if !(ENABLE_FB_CALLBACK && defined(CONFIG_FB))
 #ifdef CONFIG_PM
 	struct rm_tch_ts *ts = input_get_drvdata(in_dev);
 
-	dev_info(ts->dev, "Raydium - Disable input device\n");
 	error = rm_tch_suspend(ts->dev);
 	if (error)
 		dev_err(ts->dev, "Raydium - %s : failed\n", __func__);
-	else
-		dev_info(ts->dev, "Raydium - Disable input device done\n");
+#endif
 #endif
 
 	return error;
 }
+
+#if ENABLE_FB_CALLBACK && defined(CONFIG_FB)
+static int rm_fb_notifier_callback(struct notifier_block *self,
+	unsigned long event, void *data)
+{
+	struct fb_event *evdata = data;
+	int *blank;
+	struct rm_tch_ts *ts = container_of(self,
+					struct rm_tch_ts, fb_notifier);
+
+	if (evdata && evdata->data && event == FB_EVENT_BLANK) {
+		blank = evdata->data;
+		if (*blank == FB_BLANK_UNBLANK)
+			rm_tch_resume(ts->dev);
+		else if (*blank == FB_BLANK_POWERDOWN)
+			rm_tch_suspend(ts->dev);
+	}
+	return RETURN_OK;
+}
+#endif
 
 #if defined(CONFIG_TRUSTED_LITTLE_KERNEL)
 /*===========================================================================*/
@@ -3025,6 +3053,11 @@ struct rm_tch_ts *rm_tch_input_init(struct device *dev, unsigned int irq,
 #endif
 
 	rm_tch_disable_irq(ts);
+
+#if ENABLE_FB_CALLBACK && defined(CONFIG_FB)
+	ts->fb_notifier.notifier_call = rm_fb_notifier_callback;
+	fb_register_client(&ts->fb_notifier);
+#endif
 
 	err = sysfs_create_group(&dev->kobj, &rm_ts_attr_group);
 	if (err)
@@ -3288,6 +3321,10 @@ static int rm_tch_spi_remove(struct spi_device *spi)
 	sysfs_remove_group(&ts->dev->kobj, &rm_ts_attr_group);
 	free_irq(ts->irq, ts);
 	input_unregister_device(ts->input);
+
+#if ENABLE_FB_CALLBACK && defined(CONFIG_FB)
+	fb_unregister_client(&ts->fb_notifier);
+#endif
 
 	if (ts->regulator_3v3 && ts->regulator_1v8) {
 		regulator_unregister_notifier(ts->regulator_3v3, &ts->nb_3v3);
