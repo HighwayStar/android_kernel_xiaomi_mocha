@@ -53,11 +53,11 @@ static struct tegra_dc_sd_settings dsi_a_1200_1920_8_0_sd_settings = {
 	.use_auto_pwm = false,
 	.hw_update_delay = 0,
 	.bin_width = -1,
-	.aggressiveness = 5,
+	.aggressiveness = 3,
 	.use_vid_luma = false,
 	.phase_in_adjustments = 0,
 	.k_limit_enable = true,
-	.k_limit = 200,
+	.k_limit = 220,
 	.sd_window_enable = false,
 	.soft_clipping_enable = true,
 	/* Low soft clipping threshold to compensate for aggressive k_limit */
