@@ -644,6 +644,16 @@ static void ardbeg_usb_init(void)
 	} else {
 		/* Ardbeg and TN8 */
 
+		/* Need these settings for HS USB EMI on T124 */
+		tegra_udc_pdata.u_cfg.utmi.xcvr_hsslew_lsb = 0x3;
+		tegra_udc_pdata.u_cfg.utmi.xcvr_hsslew_msb = 0xf;
+		tegra_ehci1_utmi_pdata.u_cfg.utmi.xcvr_hsslew_lsb = 0x3;
+		tegra_ehci1_utmi_pdata.u_cfg.utmi.xcvr_hsslew_msb = 0xf;
+		tegra_ehci2_utmi_pdata.u_cfg.utmi.xcvr_hsslew_lsb = 0x3;
+		tegra_ehci2_utmi_pdata.u_cfg.utmi.xcvr_hsslew_msb = 0xf;
+		tegra_ehci3_utmi_pdata.u_cfg.utmi.xcvr_hsslew_lsb = 0x3;
+		tegra_ehci3_utmi_pdata.u_cfg.utmi.xcvr_hsslew_msb = 0xf;
+
 		/*
 		 * TN8 supports vbus changing and it can handle
 		 * vbus voltages larger then 5V.  Enable this.

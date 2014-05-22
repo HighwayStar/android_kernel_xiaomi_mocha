@@ -1093,8 +1093,12 @@ static int utmi_phy_power_on(struct tegra_usb_phy *phy)
 	val |= UTMIP_XCVR_SETUP_MSB(XCVR_SETUP_MSB_CALIB(phy->utmi_xcvr_setup));
 	val |= UTMIP_XCVR_LSFSLEW(config->xcvr_lsfslew);
 	val |= UTMIP_XCVR_LSRSLEW(config->xcvr_lsrslew);
-	if (!config->xcvr_use_lsb)
-		val |= UTMIP_XCVR_HSSLEW_MSB(0x3);
+	if (!config->xcvr_use_lsb) {
+		if (!config->xcvr_hsslew_msb)
+			val |= UTMIP_XCVR_HSSLEW_MSB(3);
+		else
+			val |= UTMIP_XCVR_HSSLEW_MSB(config->xcvr_hsslew_msb);
+	}
 	if (config->xcvr_hsslew_lsb)
 		val |= UTMIP_XCVR_HSSLEW_LSB(config->xcvr_hsslew_lsb);
 	writel(val, base + UTMIP_XCVR_CFG0);
@@ -1113,7 +1117,10 @@ static int utmi_phy_power_on(struct tegra_usb_phy *phy)
 	}
 
 	val = readl(base + UTMIP_SPARE_CFG0);
+	val |= FUSE_SETUP_SEL;
+#ifdef CONFIG_ARCH_TEGRA_13x_SOC
 	val &= ~FUSE_SETUP_SEL;
+#endif
 	val |= FUSE_ATERM_SEL;
 	writel(val, base + UTMIP_SPARE_CFG0);
 
