@@ -162,15 +162,17 @@ static int __gk20a_channel_syncpt_incr(struct gk20a_channel_sync *s,
 	int incr_cmd_size;
 	int j = 0;
 	int err;
-	void *completed_waiter;
+	void *completed_waiter = NULL;
 	struct priv_cmd_entry *incr_cmd = NULL;
 	struct gk20a_channel_syncpt *sp =
 		container_of(s, struct gk20a_channel_syncpt, ops);
 	struct channel_gk20a *c = sp->c;
 
-	completed_waiter = nvhost_intr_alloc_waiter();
-	if (!completed_waiter)
-		return -ENOMEM;
+	if (register_irq) {
+		completed_waiter = nvhost_intr_alloc_waiter();
+		if (!completed_waiter)
+			return -ENOMEM;
+	}
 
 	incr_cmd_size = 4;
 	if (wfi_cmd)
