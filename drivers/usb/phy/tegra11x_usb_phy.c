@@ -1979,23 +1979,6 @@ static bool uhsic_phy_remotewake_detected(struct tegra_usb_phy *phy)
 	return true;
 }
 
-static int uhsic_phy_pre_resume(struct tegra_usb_phy *phy, bool remote_wakeup)
-{
-	unsigned long val;
-	void __iomem *base = phy->regs;
-
-	if (remote_wakeup) {
-		/* Set RUN bit */
-		val = readl(base + USB_USBCMD);
-		val |= USB_USBCMD_RS;
-		writel(val, base + USB_USBCMD);
-	}
-
-	DBG("%s(%d) inst:[%d]\n", __func__, __LINE__, phy->inst);
-
-	return 0;
-}
-
 static void uhsic_phy_restore_start(struct tegra_usb_phy *phy)
 {
 	unsigned long val;
@@ -2555,7 +2538,6 @@ static struct tegra_usb_phy_ops uhsic_phy_ops = {
 	.irq		= uhsic_phy_irq,
 	.power_on	= uhsic_phy_power_on,
 	.power_off	= uhsic_phy_power_off,
-	.pre_resume	= uhsic_phy_pre_resume,
 	.port_power = uhsic_phy_bus_port_power,
 };
 
