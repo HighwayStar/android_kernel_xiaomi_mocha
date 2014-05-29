@@ -229,6 +229,9 @@ int __init tn8_regulator_init(void)
 		platform_device_register(&gadc_thermal_battery);
 	}
 
+	if (board_info.board_id == BOARD_P1761)
+		extcon_pdata.y_cable_extcon_name  = "tegra-otg";
+
 	platform_device_register(&power_supply_extcon_device);
 	return 0;
 }
