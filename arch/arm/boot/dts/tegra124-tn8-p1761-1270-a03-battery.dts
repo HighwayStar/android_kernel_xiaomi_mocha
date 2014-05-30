@@ -20,6 +20,9 @@
 				ti,temp-range = <10 15 25 45 60>;
 				ti,charge-thermal-voltage-limit = <4352 4352 4352 4352 4200>;
 				ti,charge-current-limit = <1040 1040 2600 5200 2600>;
+				ti,soc-range = <94 100>;
+				ti,input-voltage-soc-limit = <4680 4760>;
+				ti,charge-term-current-limit-milliamp = <1>;
 			};
 		};
 	};
