@@ -149,6 +149,8 @@ static int lc709203f_update_soc_voltage(struct lc709203f_chip *chip)
 		chip->health = POWER_SUPPLY_HEALTH_GOOD;
 		chip->capacity_level = POWER_SUPPLY_CAPACITY_LEVEL_NORMAL;
 	}
+
+	battery_gauge_report_battery_soc(chip->bg_dev, chip->soc);
 	return 0;
 }
 
