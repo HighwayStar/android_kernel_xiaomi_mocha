@@ -349,6 +349,33 @@ int battery_gauge_record_snapshot_values(struct battery_gauge_dev *bg_dev,
 }
 EXPORT_SYMBOL_GPL(battery_gauge_record_snapshot_values);
 
+int battery_gauge_report_battery_soc(struct battery_gauge_dev *bg_dev,
+					int battery_soc)
+{
+	struct battery_charger_dev *node;
+	int ret = 0;
+
+	if (!bg_dev)
+		return -EINVAL;
+
+	if (battery_soc < 90 || battery_soc > 100)
+		return -EINVAL;
+
+	mutex_lock(&charger_gauge_list_mutex);
+
+	list_for_each_entry(node, &charger_list, list) {
+		if (node->cell_id != bg_dev->cell_id)
+			continue;
+		if (node->ops && node->ops->input_voltage_configure)
+			ret = node->ops->input_voltage_configure(node,
+				battery_soc);
+	}
+
+	mutex_unlock(&charger_gauge_list_mutex);
+	return ret;
+}
+EXPORT_SYMBOL_GPL(battery_gauge_report_battery_soc);
+
 int battery_gauge_get_scaled_soc(struct battery_gauge_dev *bg_dev,
 	int actual_soc_semi, int thresod_soc)
 {
