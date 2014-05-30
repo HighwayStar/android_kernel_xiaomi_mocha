@@ -23,7 +23,8 @@
 #define TRUE					1
 #define FALSE					0
 #define DEBUG_DRIVER			0x01
-#define DEBUG_DRIVER_REGISTER	0x02
+#define DEBUG_REGISTER			0x02
+#define DEBUG_KTHREAD			0x04
 
 #define RM_IOCTL_REPORT_POINT				0x1001
 #define RM_IOCTL_SET_HAL_PID				0x1002
@@ -59,6 +60,7 @@
 #define RM_IOCTL_SET_KRL_TBL				0x1013
 #define RM_IOCTL_WATCH_DOG					0x1014
 #define RM_IOCTL_SET_BASELINE				0x1015
+#define RM_IOCTL_INIT_SERVICE				0x1016
 
 #define RM_INPUT_RESOLUTION_X				4096
 #define RM_INPUT_RESOLUTION_Y				4096
@@ -128,6 +130,7 @@
 #define KRL_INDEX_RM_NSPARA				12
 #define KRL_INDEX_RM_WRITE_IMG			13
 #define KRL_INDEX_RM_TLK				14
+#define KRL_INDEX_RM_KL_TESTMODE		15
 
 #define KRL_SIZE_SET_IDLE				128
 #define KRL_SIZE_PAUSE_AUTO				64
@@ -143,7 +146,8 @@
 #define KRL_SIZE_RM_SETREPTIME			32
 #define KRL_SIZE_RM_NS_PARA				64
 #define KRL_SIZE_RM_WRITE_IMAGE			64
-#define KRL_SIZE_RM_TLK                128
+#define KRL_SIZE_RM_TLK					128
+#define KRL_SIZE_RM_KL_TESTMODE			128
 
 #define KRL_TBL_FIELD_POS_LEN_H				0
 #define KRL_TBL_FIELD_POS_LEN_L				1
@@ -161,7 +165,7 @@
 #define KRL_CMD_WRITE_W_COUNT				0x1C
 #define KRL_CMD_RETURN_RESULT				0x1D
 #define KRL_CMD_RETURN_VALUE				0x1E
-#define KRL_CMD_DRAM_INIT                   0x1F
+#define KRL_CMD_DRAM_INIT					0x1F
 
 
 #define KRL_CMD_SEND_SIGNAL					0x20
@@ -241,7 +245,13 @@
  *	NOTE: Need to sync with HAL
  ***************************************************************************/
 
-#define ENABLE_FB_CALLBACK	0
+/*#define ENABLE_CALC_QUEUE_COUNT*/
+#define ENABLE_SLOW_SCAN
+#define ENABLE_SMOOTH_LEVEL
+#define ENABLE_SPI_SETTING		0
+#define ENABLE_FREQ_HOPPING		1
+#define ENABLE_FB_CALLBACK		0
+
 
 struct rm_touch_event {
 	unsigned char uc_touch_count;

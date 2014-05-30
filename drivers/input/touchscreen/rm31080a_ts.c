@@ -29,6 +29,7 @@
 #include <linux/of_device.h>
 #include <linux/of_gpio.h>
 #include <linux/sched.h>	/* wake_up_process() */
+#include <linux/sched/rt.h>
 #include <linux/kthread.h>	/* kthread_create(),kthread_run() */
 #include <linux/uaccess.h>	/* copy_to_user() */
 #include <linux/miscdevice.h>
@@ -65,12 +66,6 @@
 /*=============================================================================
 	DEFINITIONS
 =============================================================================*/
-/*#define ENABLE_CALC_QUEUE_COUNT*/
-#define ENABLE_SLOW_SCAN
-#define ENABLE_SMOOTH_LEVEL
-#define ENABLE_SPI_SETTING		0
-#define ENABLE_FREQ_HOPPING		1
-
 #define MAX_SPI_FREQ_HZ			50000000
 #define TS_PEN_UP_TIMEOUT		msecs_to_jiffies(50)
 
@@ -109,7 +104,13 @@ enum RM_SLOW_SCAN_LEVELS {
 	RM_SLOW_SCAN_LEVEL_COUNT
 };
 #endif
-
+enum RM_TEST_MODE {
+	RM_TEST_MODE_NULL,
+	RM_TEST_MODE_IDLE_SHOW,
+	RM_TEST_MODE_IDLE_LEVEL,
+	RM_TEST_MODE_CALC_TIME_SHOW,
+	RM_TEST_MODE_MAX
+};
 #ifdef ENABLE_SMOOTH_LEVEL
 #define RM_SMOOTH_LEVEL_NORMAL		0
 #define RM_SMOOTH_LEVEL_MAX			4
@@ -124,19 +125,24 @@ enum RM_SLOW_SCAN_LEVELS {
 /*#define CS_SUPPORT*/
 #define MASK_USER_SPACE_POINTER 0x00000000FFFFFFFF	/* 64-bit support */
 
+#define ISR_POST_HANDLER WORK_QUEUE                 /*or KTHREAD*/
+#define WORK_QUEUE	0
+#define KTHREAD		1
+
 /* do not use printk in kernel files */
 #define rm_printk(msg...)	dev_info(&g_spi->dev, msg)
 
 /*=============================================================================
 	STRUCTURE DECLARATION
 =============================================================================*/
-/*TouchScreen Parameters*/
+/* TouchScreen Parameters */
 struct rm31080a_ts_para {
 	u32 u32_hal_pid;
 	bool b_init_finish;
 	bool b_calc_finish;
 	bool b_enable_scriber;
 	bool b_is_suspended;
+	bool b_init_service;
 
 	u32 u32_watch_dog_cnt;
 	u8 u8_watch_dog_flg;
@@ -149,6 +155,7 @@ struct rm31080a_ts_para {
 
 #ifdef ENABLE_SLOW_SCAN
 	bool b_enable_slow_scan;
+	bool b_slow_scan_flg;
 	u32 u32_slow_scan_level;
 #endif
 
@@ -166,6 +173,8 @@ struct rm31080a_ts_para {
 	u8 u8_repeat;
 	u16 u16_read_para;
 	u8 u8_spi_locked;
+	u8 u8_test_mode;
+	u8 u8_test_mode_type;
 #if ENABLE_FREQ_HOPPING
 	u8 u8_ns_para[9];
 	u8 u8_ns_mode;
@@ -177,8 +186,18 @@ struct rm31080a_ts_para {
 	struct mutex mutex_scan_mode;
 	struct mutex mutex_ns_mode;
 
+#if (ISR_POST_HANDLER == WORK_QUEUE)
 	struct workqueue_struct *rm_workqueue;
 	struct work_struct rm_work;
+#elif (ISR_POST_HANDLER == KTHREAD)
+	struct mutex mutex_irq_wait;
+	bool b_irq_is_waited;
+	struct task_struct *rm_irq_post_thread;
+	struct sched_param	thread_sched;
+	bool b_thread_alive;
+	bool b_thread_active;
+	wait_queue_head_t rm_thread_wait_q;
+#endif
 
 	struct workqueue_struct *rm_timer_workqueue;
 	struct work_struct rm_timer_work;
@@ -226,7 +245,9 @@ struct rm31080a_ts_para g_st_ts;
 struct rm_tch_queue_info g_st_q;
 
 bool g_timer_queue_is_flush;
+#if (ISR_POST_HANDLER == WORK_QUEUE)
 bool g_worker_queue_is_flush;
+#endif
 
 unsigned char *g_pu8_burstread_buf;
 
@@ -245,6 +266,7 @@ unsigned char g_st_rm_set_rep_time_cmd[KRL_SIZE_RM_SETREPTIME];
 unsigned char g_st_rm_ns_para_cmd[KRL_SIZE_RM_NS_PARA];
 unsigned char g_st_rm_writeimg_cmd[KRL_SIZE_RM_WRITE_IMAGE];
 unsigned char g_st_rm_tlk_cmd[KRL_SIZE_RM_TLK];
+unsigned char g_st_rm_kl_testmode_cmd[KRL_SIZE_RM_KL_TESTMODE];
 
 int g_service_busy_report_count;
 struct timer_list ts_timer_triggle;
@@ -260,6 +282,9 @@ u8 g_u8_update_baseline[RM_RAW_DATA_LENGTH];
 =============================================================================*/
 static int rm_tch_cmd_process(u8 u8_sel_case, u8 *p_cmd_tbl,
 		struct rm_tch_ts *ts);
+#if (ISR_POST_HANDLER == KTHREAD)
+static int rm_work_thread_function(void *data);
+#endif
 static int rm_tch_read_image_data(unsigned char *p);
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void rm_tch_early_suspend(struct early_suspend *es);
@@ -290,7 +315,7 @@ static int rm_tch_spi_read(u8 u8addr, u8 *rxbuf, size_t len)
 
 	if (g_st_ts.u8_spi_locked) {
 		memset(rxbuf, 0, len);
-		if (g_st_ctrl.u8_kernel_msg & DEBUG_DRIVER_REGISTER)
+		if (g_st_ctrl.u8_kernel_msg & DEBUG_REGISTER)
 			rm_printk("Raydium - SPI Read Locked!! 0x%x:%d\n",
 				u8addr, len);
 		/*return RETURN_FAIL;*/
@@ -312,7 +337,7 @@ static int rm_tch_spi_read(u8 u8addr, u8 *rxbuf, size_t len)
 	/*It returns zero on succcess,else a negative error code.*/
 	status = spi_sync(g_spi, &message);
 
-	if (g_st_ctrl.u8_kernel_msg & DEBUG_DRIVER_REGISTER)
+	if (g_st_ctrl.u8_kernel_msg & DEBUG_REGISTER)
 		if (g_st_ts.b_init_finish == 0)
 			rm_printk("Raydium - READ: addr=0x%2x, value=0x%2x",
 				(u8addr&0x7F), rxbuf[0]);
@@ -341,7 +366,7 @@ static int rm_tch_spi_write(u8 *txbuf, size_t len)
 	/*It returns zero on succcess,else a negative error code.*/
 
 	if (g_st_ts.u8_spi_locked) {
-		if (g_st_ctrl.u8_kernel_msg & DEBUG_DRIVER_REGISTER)
+		if (g_st_ctrl.u8_kernel_msg & DEBUG_REGISTER)
 			rm_printk("Raydium - SPI write Locked!! 0x%x:0x%x\n",
 				txbuf[0], txbuf[1]);
 		/*return RETURN_FAIL;*/
@@ -350,7 +375,7 @@ static int rm_tch_spi_write(u8 *txbuf, size_t len)
 
 	status = spi_write(g_spi, txbuf, len);
 
-	if (g_st_ctrl.u8_kernel_msg & DEBUG_DRIVER_REGISTER)
+	if (g_st_ctrl.u8_kernel_msg & DEBUG_REGISTER)
 		if (g_st_ts.b_init_finish == 0)
 			rm_printk("Raydium - WRITE: addr=0x%2x, value=0x%2x",
 				txbuf[0], txbuf[1]);
@@ -361,6 +386,31 @@ static int rm_tch_spi_write(u8 *txbuf, size_t len)
 		return RETURN_FAIL;
 	}
 
+	return RETURN_OK;
+}
+
+/*=============================================================================
+	 Description:
+			RM31080 spi interface.
+	 Input:
+
+	 Output:
+			1:succeed
+			0:failed
+=============================================================================*/
+static int rm_tch_spi_burst_write(u8 reg, u8 *txbuf, size_t len)
+{
+	int i;
+	u8 *p_u8_Tmp;
+	/*to do: check result*/
+	p_u8_Tmp = kmalloc(len + 1, GFP_KERNEL);
+	p_u8_Tmp[0] = reg;
+	if (p_u8_Tmp == NULL)
+		return -ENOMEM;
+	for (i = 0; i < len; i++)
+		p_u8_Tmp[i + 1] = txbuf[i];
+	rm_tch_spi_write(p_u8_Tmp, len + 1);
+	kfree(p_u8_Tmp);
 	return RETURN_OK;
 }
 
@@ -715,7 +765,7 @@ static int rm_tch_read_image_data(unsigned char *p)
 	g_pu8_burstread_buf[1] = (u8)(g_st_ctrl.u16_data_length >> 8);
 	g_pu8_burstread_buf[2] = (u8)(g_st_ctrl.u16_data_length);
 	g_pu8_burstread_buf[3] = g_st_ts.u8_ns_sel;
-	g_pu8_burstread_buf[4] = 0x00;
+	g_pu8_burstread_buf[4] = g_st_ts.u8_test_mode_type;
 	g_pu8_burstread_buf[5] = 0x00;
 	g_pu8_burstread_buf[6] = 0x00;
 	g_pu8_burstread_buf[7] = 0x00;
@@ -1035,6 +1085,9 @@ void rm_show_kernel_tbl_name(u8 *p_cmd_tbl)
 	else if (p_cmd_tbl == g_st_rm_tlk_cmd)
 		snprintf(target_table_name,
 			sizeof(target_table_name), "TLK");
+	else if (p_cmd_tbl == g_st_rm_kl_testmode_cmd)
+		snprintf(target_table_name,
+			sizeof(target_table_name), "Kernel_Test");
 	else {
 		dev_err(&g_spi->dev, "Raydium - %s : no such kernel table - err:%p\n",
 			__func__, p_cmd_tbl);
@@ -1268,8 +1321,10 @@ static int rm_tch_cmd_process(u8 u8_sel_case,
 			"- %d\n", p_cmd_tbl[_SUB_CMD]);*/
 			ret = RETURN_OK;
 			if (p_cmd_tbl[_SUB_CMD] == KRL_SUB_CMD_SENSOR_QU) {
+#if (ISR_POST_HANDLER == WORK_QUEUE)
 				flush_workqueue(g_st_ts.rm_workqueue);
 				g_worker_queue_is_flush = true;
+#endif
 			} else if (p_cmd_tbl[_SUB_CMD] ==
 						KRL_SUB_CMD_TIMER_QU) {
 				flush_workqueue(g_st_ts.rm_timer_workqueue);
@@ -1302,10 +1357,9 @@ static int rm_tch_cmd_process(u8 u8_sel_case,
 			/*rm_printk("Raydium - KRL_CMD_WRITE_IMG -
 			0x%x:0x%x:%d\n", p_cmd_tbl[_ADDR], g_pu8_burstread_buf,
 			g_st_ctrl.u16_data_length);*/
-			ret = rm_tch_spi_byte_write(p_cmd_tbl[_ADDR],
-				g_u8_update_baseline[0]);
-			ret = rm_tch_spi_write(&g_u8_update_baseline[1],
-				g_st_ctrl.u16_data_length - 1);
+			ret = rm_tch_spi_burst_write(p_cmd_tbl[_ADDR],
+				&g_u8_update_baseline[0],
+				g_st_ctrl.u16_data_length);
 			break;
 		case KRL_CMD_CONFIG_IRQ:
 			if (ts && (p_cmd_tbl[_SUB_CMD]
@@ -1397,6 +1451,9 @@ int rm_set_kernel_tbl(int i_func_idx, u8 *p_u8_src)
 	case KRL_INDEX_RM_TLK:
 		p_u8_dst = g_st_rm_tlk_cmd;
 		break;
+	case KRL_INDEX_RM_KL_TESTMODE:
+		p_u8_dst = g_st_rm_kl_testmode_cmd;
+		break;
 	default:
 		dev_err(&g_spi->dev, "Raydium - %s : no such kernel table - err:%d\n",
 			__func__, i_func_idx);
@@ -1436,8 +1493,9 @@ int rm_set_kernel_tbl(int i_func_idx, u8 *p_u8_src)
 =============================================================================*/
 static void rm_tch_enter_manual_mode(void)
 {
+#if (ISR_POST_HANDLER == WORK_QUEUE)
 	flush_workqueue(g_st_ts.rm_workqueue);
-
+#endif
 	mutex_lock(&g_st_ts.mutex_scan_mode);
 	if (g_st_ts.u8_scan_mode_state == RM_SCAN_ACTIVE_MODE) {
 		mutex_unlock(&g_st_ts.mutex_scan_mode);
@@ -1705,6 +1763,7 @@ static long rm_tch_queue_read_raw_data(u8 *p, u32 u32Len)
 }
 
 /*===========================================================================*/
+#if (ISR_POST_HANDLER == WORK_QUEUE)
 static void rm_work_handler(struct work_struct *work)
 {
 	void *p_kernel_buffer;
@@ -1717,6 +1776,12 @@ static void rm_work_handler(struct work_struct *work)
 		return;
 
 	i_ret = rm_tch_ctrl_clear_int();
+
+	if (g_st_ts.b_slow_scan_flg == true) {
+		rm_tch_cmd_process((u8)(g_st_ts.u32_slow_scan_level - 1),
+		g_st_rm_slow_scan_cmd, NULL);
+		g_st_ts.b_slow_scan_flg = false;
+	}
 
 	u32_flag = rm_tch_ctrl_configure();
 
@@ -1740,6 +1805,58 @@ static void rm_work_handler(struct work_struct *work)
 		}
 	}
 }
+#elif (ISR_POST_HANDLER == KTHREAD)
+static int rm_work_thread_function(void *data)
+{
+	void *p_kernel_buffer;
+	u32 u32_flag;
+	int i_ret;
+
+	sched_setscheduler(current_thread_info()->task,
+		SCHED_FIFO, &g_st_ts.thread_sched);
+
+	do {
+		wait_event_interruptible(g_st_ts.rm_thread_wait_q,
+			g_st_ts.b_thread_active);
+
+		if (!g_st_ts.b_init_finish || g_st_ts.b_is_suspended)
+			continue;
+
+		i_ret = rm_tch_ctrl_clear_int();
+
+		u32_flag = rm_tch_ctrl_configure();
+
+		if (u32_flag & RM_NEED_TO_SEND_SCAN)
+			rm_tch_ctrl_scan_start();
+
+		if (u32_flag & RM_NEED_TO_READ_RAW_DATA) {
+			p_kernel_buffer = rm_tch_enqueue_start();
+			if (p_kernel_buffer) {
+				i_ret = rm_tch_read_image_data(
+					(u8 *) p_kernel_buffer);
+				if (!i_ret)
+					rm_tch_enqueue_finish();
+			}
+		}
+
+		if (u32_flag & RM_NEED_TO_SEND_SIGNAL) {
+			if (g_st_ts.b_calc_finish) {
+				g_st_ts.b_calc_finish = 0;
+				rm_tch_ts_send_signal(g_st_ts.u32_hal_pid,
+					RM_SIGNAL_INTR);
+			}
+		}
+		mutex_lock(&g_st_ts.mutex_irq_wait);
+		if (!g_st_ts.b_irq_is_waited)
+			g_st_ts.b_thread_active = false;
+		else
+			g_st_ts.b_irq_is_waited = false;
+		mutex_unlock(&g_st_ts.mutex_irq_wait);
+	} while (!kthread_should_stop());
+
+	return 0;
+}
+#endif
 
 static void rm_tch_init_ts_structure_part(void)
 {
@@ -1749,19 +1866,27 @@ static void rm_tch_init_ts_structure_part(void)
 
 #ifdef ENABLE_SLOW_SCAN
 	g_st_ts.b_enable_slow_scan = false;
+	g_st_ts.b_slow_scan_flg = false;
 #endif
 	g_st_ts.u8_scan_mode_state = RM_SCAN_ACTIVE_MODE;
 
 	g_st_ctrl.u8_event_report_mode = EVENT_REPORT_MODE_STYLUS_ERASER_FINGER;
 
 	g_pu8_burstread_buf = NULL;
+#if (ISR_POST_HANDLER == WORK_QUEUE)
 	g_worker_queue_is_flush = false;
+#elif (ISR_POST_HANDLER == KTHREAD)
+	g_st_ts.b_irq_is_waited = false;
+#endif
 	g_timer_queue_is_flush = false;
 	g_st_ts.u16_read_para = 0;
 
 	rm_ctrl_watchdog_func(0);
 
 	g_st_ts.b_is_suspended = 0;
+	g_st_ts.u8_test_mode = false;
+	g_st_ts.u8_test_mode_type = RM_TEST_MODE_NULL;
+
 	b_bl_updated = false;
 }
 
@@ -1912,23 +2037,18 @@ static void rm_tch_disable_irq(struct rm_tch_ts *ts)
  *===========================================================================*/
 static void rm_tch_ctrl_slowscan(u32 level)
 {
-	if (g_st_ts.u8_scan_mode_state == RM_SCAN_IDLE_MODE)
-		rm_tch_ctrl_leave_auto_mode();
-
-	rm_tch_ctrl_wait_for_scan_finish(0);
-
 	if (level == RM_SLOW_SCAN_LEVEL_NORMAL)
 		level = RM_SLOW_SCAN_LEVEL_20;
 	if (level > RM_SLOW_SCAN_LEVEL_100)
 		level = RM_SLOW_SCAN_LEVEL_MAX;
 
-	rm_tch_cmd_process((u8)(level - 1),
-		g_st_rm_slow_scan_cmd, NULL);
+	g_st_ts.u32_slow_scan_level = level;
+	g_st_ts.b_slow_scan_flg = true;
 
-	rm_printk("Raydium - rm_tch_ctrl_slowscan:%x\n", (level - 1));
-
-	if (g_st_ts.u8_scan_mode_state == RM_SCAN_IDLE_MODE)
-		rm_tch_ctrl_enter_auto_mode();
+	if (g_st_ts.u8_scan_mode_state == RM_SCAN_IDLE_MODE) {
+		g_st_ts.u8_scan_mode_state = RM_SCAN_PRE_IDLE_MODE;
+		rm_tch_ctrl_leave_auto_mode();
+	}
 }
 
 static u32 rm_tch_slowscan_round(u32 val)
@@ -1967,7 +2087,6 @@ static ssize_t rm_tch_slowscan_handler(const char *buf, size_t count)
 			mutex_lock(&g_st_ts.mutex_scan_mode);
 			g_st_ts.b_enable_slow_scan = true;
 			rm_tch_ctrl_slowscan(RM_SLOW_SCAN_LEVEL_60);
-			g_st_ts.u32_slow_scan_level = RM_SLOW_SCAN_LEVEL_60;
 			mutex_unlock(&g_st_ts.mutex_scan_mode);
 		}
 	} else if ((buf[0] == '2') && (buf[1] == ' ')) {
@@ -1978,9 +2097,7 @@ static ssize_t rm_tch_slowscan_handler(const char *buf, size_t count)
 		} else {
 			mutex_lock(&g_st_ts.mutex_scan_mode);
 			g_st_ts.b_enable_slow_scan = true;
-			g_st_ts.u32_slow_scan_level =
-				rm_tch_slowscan_round((u32)val);
-			rm_tch_ctrl_slowscan(g_st_ts.u32_slow_scan_level);
+			rm_tch_ctrl_slowscan(rm_tch_slowscan_round((u32)val));
 			mutex_unlock(&g_st_ts.mutex_scan_mode);
 		}
 	}
@@ -2091,6 +2208,119 @@ static ssize_t rm_tch_smooth_level_store(struct device *dev,
 {
 	rm_tch_smooth_level_handler(buf, count);
 	return count;
+}
+
+void rm_set_kernel_test_para(u8 u8Idx, u8 u8Para)
+{
+	struct rm_tch_ts *ts = input_get_drvdata(g_input_dev);
+
+	ts->u8_repeat_counter = u8Para;
+	rm_tch_cmd_process(u8Idx, g_st_rm_kl_testmode_cmd, ts);
+}
+
+static ssize_t rm_tch_testmode_handler(const char *buf, size_t count)
+{
+	unsigned long val = 0;
+	ssize_t error;
+	ssize_t ret;
+
+	if (count < 2)
+		return -EINVAL;
+
+	ret = (ssize_t) count;
+
+	if (count == 2) {
+		if (buf[0] == '0') {
+			g_st_ts.u8_test_mode = false;
+			g_st_ts.u8_test_mode_type = RM_TEST_MODE_NULL;
+			rm_set_kernel_test_para(0, g_st_ctrl.u8_idle_mode_thd);
+		} else if (buf[0] == '1') {
+			g_st_ts.u8_test_mode = true;
+			g_st_ts.u8_test_mode_type = RM_TEST_MODE_IDLE_SHOW;
+		}
+	} else if ((buf[0] == '2') && (buf[1] == ' ')) {
+		error = kstrtoul(&buf[2], 10, &val);
+
+		if (error) {
+			if ((buf[2] == '2') && (buf[3] == ' ')) {
+				g_st_ts.u8_test_mode = true;
+				g_st_ts.u8_test_mode_type =
+				RM_TEST_MODE_IDLE_LEVEL;
+				error = kstrtoul(&buf[4], 10, &val);
+				if (error) {
+					g_st_ts.u8_test_mode = false;
+					ret = error;
+				} else {
+					rm_set_kernel_test_para(0, val);
+				}
+			} else {
+				g_st_ts.u8_test_mode = false;
+				ret = error;
+			}
+		} else {
+		g_st_ts.u8_test_mode = true;
+		g_st_ts.u8_test_mode_type = 1 << ((u8)val - 1);
+		switch (val) {
+		case RM_TEST_MODE_IDLE_SHOW:
+		if (g_st_ts.u8_scan_mode_state == RM_SCAN_IDLE_MODE)
+#if (ISR_POST_HANDLER == WORK_QUEUE)
+			queue_work(g_st_ts.rm_workqueue,
+				&g_st_ts.rm_work);
+#elif (ISR_POST_HANDLER == KTHREAD)
+		{
+		if (waitqueue_active(&g_st_ts.rm_thread_wait_q)) {
+			g_st_ts.b_thread_active = true;
+			wake_up_interruptible(&g_st_ts.rm_thread_wait_q);
+		} else {
+		mutex_lock(&g_st_ts.mutex_irq_wait);
+		g_st_ts.b_irq_is_waited = true;
+		mutex_unlock(&g_st_ts.mutex_irq_wait);
+		}
+		}
+#endif
+		break;
+		case RM_TEST_MODE_IDLE_LEVEL:
+			if ((buf[2] == '2') && (buf[3] == ' ')) {
+				error = kstrtoul(&buf[4], 0, &val);
+				if (error) {
+					g_st_ts.u8_test_mode = false;
+					ret = error;
+				} else {
+					rm_set_kernel_test_para(0, val);
+				}
+			}
+			break;
+		case RM_TEST_MODE_CALC_TIME_SHOW:
+			break;
+		default:
+			g_st_ts.u8_test_mode = false;
+			g_st_ts.u8_test_mode_type = 0;
+		break;
+		}
+		}
+	}
+	rm_printk("Raydium - rm_kernel_test_mode:%s,Type:%d,Para:%d",
+		g_st_ts.u8_test_mode ?
+		"Enabled" : "Disabled",
+		g_st_ts.u8_test_mode_type, (u8)val);
+			return ret;
+}
+
+static ssize_t rm_tch_test_mode_show(struct device *dev,
+	struct device_attribute *attr,
+	char *buf)
+{
+		return sprintf(buf, "Test Mode:%s\nType:%d\n",
+			g_st_ts.u8_test_mode ?
+			"Enabled" : "Disabled",
+			g_st_ts.u8_test_mode_type);
+}
+
+static ssize_t rm_tch_test_mode_store(struct device *dev,
+	struct device_attribute *attr,
+	const char *buf, size_t count)
+{
+	return rm_tch_testmode_handler(buf, count);
 }
 
 static ssize_t rm_tch_self_test_handler(struct rm_tch_ts *ts,
@@ -2392,6 +2622,9 @@ static DEVICE_ATTR(module_detect, 0640,
 static DEVICE_ATTR(report_mode, 0640,
 					rm_tch_report_mode_show,
 					rm_tch_report_mode_store);
+static DEVICE_ATTR(test_mode, 0640,
+					rm_tch_test_mode_show,
+					rm_tch_test_mode_store);
 
 static struct attribute *rm_ts_attributes[] = {
 	&dev_attr_get_platform_id_gpio.attr,
@@ -2408,6 +2641,7 @@ static struct attribute *rm_ts_attributes[] = {
 	&dev_attr_version.attr,
 	&dev_attr_module_detect.attr,
 	&dev_attr_report_mode.attr,
+	&dev_attr_test_mode.attr,
 	NULL
 };
 
@@ -2445,8 +2679,21 @@ static irqreturn_t rm_tch_irq(int irq, void *handle)
 #endif
 	}
 
-	if (g_st_ts.b_init_finish && g_st_ts.b_is_suspended == false)
+	if (g_st_ts.b_init_service && g_st_ts.b_init_finish
+		&& g_st_ts.b_is_suspended == false) {
+#if (ISR_POST_HANDLER == WORK_QUEUE)
 		queue_work(g_st_ts.rm_workqueue, &g_st_ts.rm_work);
+#elif (ISR_POST_HANDLER == KTHREAD)
+		if (waitqueue_active(&g_st_ts.rm_thread_wait_q)) {
+			g_st_ts.b_thread_active = true;
+			wake_up_interruptible(&g_st_ts.rm_thread_wait_q);
+		} else {
+			mutex_lock(&g_st_ts.mutex_irq_wait);
+			g_st_ts.b_irq_is_waited = true;
+			mutex_unlock(&g_st_ts.mutex_irq_wait);
+		}
+#endif
+	}
 
 	return IRQ_HANDLED;
 }
@@ -2457,7 +2704,9 @@ static void rm_tch_enter_test_mode(u8 flag)
 		g_st_ts.b_selftest_enable = 1;
 		g_st_ts.u8_selftest_status = RM_SELF_TEST_STATUS_TESTING;
 		g_st_ts.b_is_suspended = true;
+#if (ISR_POST_HANDLER == WORK_QUEUE)
 		flush_workqueue(g_st_ts.rm_workqueue);
+#endif
 		flush_workqueue(g_st_ts.rm_timer_workqueue);
 	} else { /*leave test mode*/
 		g_st_ts.b_selftest_enable = 0;
@@ -2617,8 +2866,15 @@ static void rm_tch_init_ts_structure(void)
 	g_st_ts.u32_slow_scan_level = RM_SLOW_SCAN_LEVEL_MAX;
 #endif
 
+#if (ISR_POST_HANDLER == WORK_QUEUE)
 	g_st_ts.rm_workqueue = create_singlethread_workqueue("rm_work");
 	INIT_WORK(&g_st_ts.rm_work, rm_work_handler);
+#elif (ISR_POST_HANDLER == KTHREAD)
+	init_waitqueue_head(&g_st_ts.rm_thread_wait_q);
+	g_st_ts.b_thread_active = false;
+	g_st_ts.b_thread_alive = false;
+	mutex_init(&g_st_ts.mutex_irq_wait);
+#endif
 
 	g_st_ts.rm_timer_workqueue =
 		create_singlethread_workqueue("rm_idle_work");
@@ -2633,6 +2889,7 @@ static void rm_tch_init_ts_structure(void)
 	g_st_ts.u8_resume_cnt = 0;
 	g_st_ts.u8_touchfile_check = 0xFF;
 	g_st_ts.u8_stylus_status = 0xFF;
+	g_st_ts.b_init_service = false;
 	rm_tch_ctrl_init();
 }
 
@@ -2663,12 +2920,8 @@ static void rm_ctrl_resume(struct rm_tch_ts *ts)
 	if (g_st_ctrl.u8_kernel_msg & DEBUG_DRIVER)
 		rm_printk("Raydium - SPI_LOCKED by resume!!\n");
 
-	if (g_st_ts.b_init_finish)
-		return;
-
 	mutex_lock(&g_st_ts.mutex_scan_mode);
 	rm_tch_init_ts_structure_part();
-
 	rm_tch_cmd_process(0, g_st_rm_resume_cmd, ts);
 	mutex_unlock(&g_st_ts.mutex_scan_mode);
 }
@@ -2689,7 +2942,6 @@ static void rm_ctrl_suspend(struct rm_tch_ts *ts)
 
 	rm_tch_ctrl_wait_for_scan_finish(0);
 
-	mutex_lock(&g_st_ts.mutex_scan_mode);
 #if (INPUT_PROTOCOL_CURRENT_SUPPORT == INPUT_PROTOCOL_TYPE_B)
 	for (i = 0; i < MAX_SUPPORT_SLOT_AMOUNT; i++) {
 		input_mt_slot(g_input_dev, i);
@@ -2704,6 +2956,25 @@ static void rm_ctrl_suspend(struct rm_tch_ts *ts)
 	}
 	input_sync(g_input_dev);
 #endif
+
+#if (ISR_POST_HANDLER == KTHREAD)
+	if (!IS_ERR(g_st_ts.rm_irq_post_thread)) {
+		g_st_ts.b_thread_active = true;
+		wake_up_interruptible(&g_st_ts.rm_thread_wait_q);
+		if (kthread_stop(g_st_ts.rm_irq_post_thread)) {
+			if (g_st_ctrl.u8_kernel_msg & DEBUG_KTHREAD)
+				rm_printk("Raydium - Kill IRQ poster failed!\n");
+		} else {
+			g_st_ts.b_thread_alive = false;
+			if (g_st_ctrl.u8_kernel_msg & DEBUG_KTHREAD)
+				rm_printk("Raydium - Kill IRQ poster successfully!\n");
+		}
+	} else {
+		if (g_st_ctrl.u8_kernel_msg & DEBUG_KTHREAD)
+			rm_printk("Raydium - No IRQ poster exist!\n");
+	}
+#endif
+	mutex_lock(&g_st_ts.mutex_scan_mode);
 	rm_tch_cmd_process(0, g_st_rm_suspend_cmd, ts);
 	rm_tch_ctrl_wait_for_scan_finish(0);
 	rm_tch_cmd_process(1, g_st_rm_suspend_cmd, ts);
@@ -2718,11 +2989,11 @@ static void rm_ctrl_suspend(struct rm_tch_ts *ts)
 static int rm_tch_suspend(struct device *dev)
 {
 	struct rm_tch_ts *ts = dev_get_drvdata(dev);
-
-	dev_info(ts->dev, "Raydium - Disable input device\n");
-	rm_ctrl_suspend(ts);
-	dev_info(ts->dev, "Raydium - Disable input device done\n");
-
+	if (g_st_ts.b_init_service) {
+		dev_info(ts->dev, "Raydium - Disable input device\n");
+		rm_ctrl_suspend(ts);
+		dev_info(ts->dev, "Raydium - Disable input device done\n");
+	}
 	return RETURN_OK;
 }
 
@@ -2730,16 +3001,14 @@ static int rm_tch_resume(struct device *dev)
 {
 	struct rm_tch_ts *ts = dev_get_drvdata(dev);
 
-	dev_info(ts->dev, "Raydium - Enable input device\n");
-
-	if (wake_lock_active(&g_st_ts.wakelock_initialization))
-		wake_unlock(&g_st_ts.wakelock_initialization);
-
-	wake_lock_timeout(&g_st_ts.wakelock_initialization,
-		TCH_WAKE_LOCK_TIMEOUT);
-
-	rm_ctrl_resume(ts);
-
+	if (g_st_ts.b_init_service) {
+		dev_info(ts->dev, "Raydium - Enable input device\n");
+		if (wake_lock_active(&g_st_ts.wakelock_initialization))
+			wake_unlock(&g_st_ts.wakelock_initialization);
+		wake_lock_timeout(&g_st_ts.wakelock_initialization,
+			TCH_WAKE_LOCK_TIMEOUT);
+		rm_ctrl_resume(ts);
+	}
 	return RETURN_OK;
 }
 
@@ -2816,8 +3085,8 @@ static int rm_fb_notifier_callback(struct notifier_block *self,
 	int *blank;
 	struct rm_tch_ts *ts = container_of(self,
 					struct rm_tch_ts, fb_notifier);
-
-	if (evdata && evdata->data && event == FB_EVENT_BLANK) {
+	if (g_st_ts.b_init_service && evdata && evdata->data
+		&& event == FB_EVENT_BLANK) {
 		blank = evdata->data;
 		if (*blank == FB_BLANK_UNBLANK)
 			rm_tch_resume(ts->dev);
@@ -3056,12 +3325,22 @@ struct rm_tch_ts *rm_tch_input_init(struct device *dev, unsigned int irq,
 
 #if ENABLE_FB_CALLBACK && defined(CONFIG_FB)
 	ts->fb_notifier.notifier_call = rm_fb_notifier_callback;
-	fb_register_client(&ts->fb_notifier);
+	err = fb_register_client(&ts->fb_notifier);
+	if (err) {
+		dev_err(dev, "Raydium - Unable to register fb_notifier: %d\n"
+			, err);
+		goto err_free_irq;
+	}
 #endif
 
 	err = sysfs_create_group(&dev->kobj, &rm_ts_attr_group);
+#if ENABLE_FB_CALLBACK && defined(CONFIG_FB)
+	if (err)
+		goto err_unregister_fb;
+#else
 	if (err)
 		goto err_free_irq;
+#endif
 
 	err = input_register_device(input_dev);
 	if (err)
@@ -3071,6 +3350,10 @@ struct rm_tch_ts *rm_tch_input_init(struct device *dev, unsigned int irq,
 
 err_remove_attr:
 	sysfs_remove_group(&dev->kobj, &rm_ts_attr_group);
+#if ENABLE_FB_CALLBACK && defined(CONFIG_FB)
+err_unregister_fb:
+	fb_unregister_client(&ts->fb_notifier);
+#endif
 err_free_irq:
 	free_irq(ts->irq, ts);
 err_free_mem:
@@ -3213,6 +3496,30 @@ static long dev_ioctl(struct file *file,
 			g_st_ts.u8_resume_cnt--;
 		if (wake_lock_active(&g_st_ts.wakelock_initialization))
 			wake_unlock(&g_st_ts.wakelock_initialization);
+#if (ISR_POST_HANDLER == KTHREAD)
+		if (!g_st_ts.b_thread_alive) {
+			g_st_ts.thread_sched.sched_priority =
+				MAX_USER_RT_PRIO / 2;
+			g_st_ts.rm_irq_post_thread =
+				kthread_run(rm_work_thread_function,
+					NULL, "RaydiumIrq_Poster");
+			if (IS_ERR(g_st_ts.rm_irq_post_thread)) {
+				if (g_st_ctrl.u8_kernel_msg & DEBUG_KTHREAD)
+					rm_printk("Raydium - Create IRQ poster failed!\n");
+			} else {
+				g_st_ts.b_thread_active = false;
+				g_st_ts.b_thread_alive = true;
+				mutex_lock(&g_st_ts.mutex_irq_wait);
+				g_st_ts.b_irq_is_waited = false;
+				mutex_unlock(&g_st_ts.mutex_irq_wait);
+				if (g_st_ctrl.u8_kernel_msg & DEBUG_KTHREAD)
+					rm_printk("Raydium - Create IRQ poster successfully!\n");
+			}
+		} else {
+			if (g_st_ctrl.u8_kernel_msg & DEBUG_KTHREAD)
+				rm_printk("Raydium - IRQ poster is alive!\n");
+		}
+#endif
 		rm_printk("Raydium - Enable input device done\n");
 		break;
 	case RM_IOCTL_SCRIBER_CTRL:
@@ -3235,6 +3542,9 @@ static long dev_ioctl(struct file *file,
 	case RM_IOCTL_SET_KRL_TBL:
 		ret = rm_set_kernel_tbl(index,
 			((u8 *)(arg & MASK_USER_SPACE_POINTER)));
+		break;
+	case RM_IOCTL_INIT_SERVICE:
+		g_st_ts.b_init_service = true;
 		break;
 	default:
 		return -EINVAL;
@@ -3306,8 +3616,10 @@ static int rm_tch_spi_remove(struct spi_device *spi)
 
 	rm_tch_queue_free();
 
+#if (ISR_POST_HANDLER == WORK_QUEUE)
 	if (g_st_ts.rm_workqueue)
 		destroy_workqueue(g_st_ts.rm_workqueue);
+#endif
 
 	if (&g_st_ts.wakelock_initialization)
 		wake_lock_destroy(&g_st_ts.wakelock_initialization);
@@ -3514,8 +3826,10 @@ err_regulator_init:
 err_spi_speed:
 	if (g_st_ts.rm_timer_workqueue)
 		destroy_workqueue(g_st_ts.rm_timer_workqueue);
+#if (ISR_POST_HANDLER == WORK_QUEUE)
 	if (g_st_ts.rm_workqueue)
 		destroy_workqueue(g_st_ts.rm_workqueue);
+#endif
 	mutex_destroy(&g_st_ts.mutex_scan_mode);
 	mutex_destroy(&g_st_ts.mutex_ns_mode);
 	return ret;
