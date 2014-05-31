@@ -1251,8 +1251,9 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 #ifdef WL_CFG80211
 	/* CUSTOMER_SET_COUNTRY feature is define for only GGSM model */
 	else if (strnicmp(command, CMD_COUNTRY, strlen(CMD_COUNTRY)) == 0) {
-		char *country_code = command + strlen(CMD_COUNTRY) + 1;
-		bytes_written = wldev_set_country(net, country_code, true, true);
+		/* We are using the global country code ccode=Q2 and
+		 * reg revision regrev=87. So don't set country code here */
+		bytes_written = 0;
 	}
 #endif /* WL_CFG80211 */
 
