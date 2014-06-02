@@ -198,6 +198,7 @@ void *__nvmap_kmap(struct nvmap_handle *h, unsigned int pagenum)
 	if (!h)
 		return NULL;
 
+	nvmap_kmaps_inc(h);
 	if (pagenum >= h->size >> PAGE_SHIFT)
 		goto out;
 	prot = nvmap_pgprot(h, PG_PROT_KERNEL);
@@ -215,6 +216,7 @@ void *__nvmap_kmap(struct nvmap_handle *h, unsigned int pagenum)
 	nvmap_flush_tlb_kernel_page(kaddr);
 	return (void *)kaddr;
 out:
+	nvmap_kmaps_dec(h);
 	nvmap_handle_put(h);
 	return NULL;
 }
@@ -246,6 +248,7 @@ void __nvmap_kunmap(struct nvmap_handle *h, unsigned int pagenum,
 
 	pte = nvmap_vaddr_to_pte(nvmap_dev, (unsigned long)addr);
 	nvmap_free_pte(nvmap_dev, pte);
+	nvmap_kmaps_dec(h);
 	nvmap_handle_put(h);
 }
 
@@ -264,6 +267,7 @@ void *__nvmap_mmap(struct nvmap_handle *h)
 	if (!h)
 		return NULL;
 
+	nvmap_kmaps_inc(h);
 	prot = nvmap_pgprot(h, PG_PROT_KERNEL);
 
 #ifdef NVMAP_LAZY_VFREE
@@ -273,14 +277,21 @@ void *__nvmap_mmap(struct nvmap_handle *h)
 			pages = nvmap_pages(h->pgalloc.pages,
 					    h->size >> PAGE_SHIFT);
 			if (!pages)
-				return NULL;
+				goto out;
 			vaddr = vm_map_ram(pages,
 				h->size >> PAGE_SHIFT, -1, prot);
 			nvmap_altfree(pages,
 				(h->size >> PAGE_SHIFT) * sizeof(*pages));
+			if (!vaddr && !h->vaddr)
+				goto out;
+		} else {
+			nvmap_kmaps_dec(h);
 		}
-		if (vaddr && atomic_long_cmpxchg(&h->vaddr, 0, (long)vaddr))
+
+		if (vaddr && atomic_long_cmpxchg(&h->vaddr, 0, (long)vaddr)) {
+			nvmap_kmaps_dec(h);
 			vm_unmap_ram(vaddr, h->size >> PAGE_SHIFT);
+		}
 		return h->vaddr;
 	}
 #else
@@ -298,7 +309,7 @@ void *__nvmap_mmap(struct nvmap_handle *h)
 	v = alloc_vm_area(adj_size, 0);
 	if (!v) {
 		nvmap_handle_put(h);
-		return NULL;
+		goto out;
 	}
 
 	p = v->addr + (h->carveout->base & ~PAGE_MASK);
@@ -336,6 +347,9 @@ void *__nvmap_mmap(struct nvmap_handle *h)
 	 * the handle will not be freed while the kernel mapping exists.
 	 * nvmap_handle_put will be called by unmapping this address */
 	return p;
+out:
+	nvmap_kmaps_dec(h);
+	return NULL;
 }
 
 void __nvmap_munmap(struct nvmap_handle *h, void *addr)
@@ -352,6 +366,7 @@ void __nvmap_munmap(struct nvmap_handle *h, void *addr)
 		BUG_ON(!h->vaddr);
 #else
 		vm_unmap_ram(addr, h->size >> PAGE_SHIFT);
+		nvmap_kmaps_dec(h);
 #endif
 	} else {
 		struct vm_struct *vm;
@@ -359,6 +374,7 @@ void __nvmap_munmap(struct nvmap_handle *h, void *addr)
 		vm = remove_vm_area(addr);
 		BUG_ON(!vm);
 		kfree(vm);
+		nvmap_kmaps_dec(h);
 	}
 	nvmap_handle_put(h);
 }
