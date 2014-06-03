@@ -363,6 +363,9 @@ struct palmas_reg_init {
 	 * device supports.
 	 */
 	int tracking_regulator;
+
+	/* Disable pull down fro LDO */
+	bool disable_pull_down;
 };
 
 enum palmas_regulators {
