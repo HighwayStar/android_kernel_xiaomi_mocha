@@ -119,7 +119,6 @@ struct nvmap_pgalloc {
 	struct page **pages;
 	bool contig;			/* contiguous system memory */
 	u32 iovm_addr;	/* is non-zero, if client need specific iova mapping */
-	struct list_head vmas;
 	atomic_t ndirty;	/* count number of dirty pages */
 };
 
@@ -160,6 +159,7 @@ struct nvmap_handle {
 	bool alloc;		/* handle has memory allocated */
 	unsigned int userflags;	/* flags passed from userspace */
 	void *vaddr;		/* mapping used inside kernel */
+	struct list_head vmas;	/* list of all user vma's */
 	struct mutex lock;
 	void *nvhost_priv;	/* nvhost private data */
 	void (*nvhost_priv_delete)(void *priv);
