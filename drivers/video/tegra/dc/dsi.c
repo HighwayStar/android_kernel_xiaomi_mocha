@@ -1972,15 +1972,24 @@ static void tegra_dsi_set_control_reg_lp(struct tegra_dc_dsi_data *dsi)
 static void tegra_dsi_set_control_reg_hs(struct tegra_dc_dsi_data *dsi,
 						u8 driven_mode)
 {
-	u32 dsi_control;
-	u32 host_dsi_control;
-	u32 max_threshold;
-	u32 dcs_cmd;
+	u32 dsi_control = dsi->dsi_control_val;
+	u32 host_dsi_control = HOST_DSI_CTRL_COMMON;
+	u32 max_threshold = 0;
+	u32 dcs_cmd = 0;
 
-	dsi_control = dsi->dsi_control_val;
-	host_dsi_control = HOST_DSI_CTRL_COMMON;
-	max_threshold = 0;
-	dcs_cmd = 0;
+	if (dsi->dc->out->flags & TEGRA_DC_OUT_INITIALIZED_MODE) {
+		if (dsi->info.video_clock_mode ==
+				TEGRA_DSI_VIDEO_CLOCK_CONTINUOUS) {
+			dsi_control |= DSI_CONTROL_HS_CLK_CTRL(CONTINUOUS);
+			dsi->status.clk_mode = DSI_PHYCLK_CONTINUOUS;
+		} else {
+			dsi_control |= DSI_CONTROL_HS_CLK_CTRL(TX_ONLY);
+			dsi->status.clk_mode = DSI_PHYCLK_TX_ONLY;
+		}
+		host_dsi_control |=
+			DSI_HOST_DSI_CONTROL_HIGH_SPEED_TRANS(TEGRA_DSI_HIGH);
+		dsi->status.clk_out = DSI_PHYCLK_OUT_EN;
+	}
 
 	if (driven_mode == TEGRA_DSI_DRIVEN_BY_HOST) {
 		dsi_control |= DSI_CTRL_HOST_DRIVEN;
@@ -3803,6 +3812,24 @@ static void tegra_dsi_send_dc_frames(struct tegra_dc *dc,
 	}
 }
 
+static void tegra_dsi_setup_initialized_panel(struct tegra_dc_dsi_data *dsi)
+{
+	int err = 0;
+
+	if (dsi->avdd_dsi_csi)
+		err = regulator_enable(dsi->avdd_dsi_csi);
+	dev_warn(&dsi->dc->ndev->dev,
+		"unable to enable regulator err = %d", err);
+
+	dsi->status.init = DSI_MODULE_INIT;
+
+	tegra_dsi_clk_enable(dsi);
+	tegra_dsi_set_to_hs_mode(dsi->dc, dsi, TEGRA_DSI_DRIVEN_BY_DC);
+
+	dsi->host_suspended = false;
+	dsi->enabled = true;
+}
+
 static void tegra_dc_dsi_enable(struct tegra_dc *dc)
 {
 	struct tegra_dc_dsi_data *dsi = tegra_dc_get_outdata(dc);
@@ -3810,6 +3837,11 @@ static void tegra_dc_dsi_enable(struct tegra_dc *dc)
 
 	mutex_lock(&dsi->lock);
 	tegra_dc_io_start(dc);
+
+	if (dc->out->flags & TEGRA_DC_OUT_INITIALIZED_MODE) {
+		tegra_dsi_setup_initialized_panel(dsi);
+		goto fail;
+	}
 
 	/* Stop DC stream before configuring DSI registers
 	 * to avoid visible glitches on panel during transition
@@ -3907,6 +3939,9 @@ static void tegra_dc_dsi_postpoweron(struct tegra_dc *dc)
 {
 	struct tegra_dc_dsi_data *dsi = tegra_dc_get_outdata(dc);
 	int err = 0;
+
+	if (dc->out->flags & TEGRA_DC_OUT_INITIALIZED_MODE)
+		return;
 
 	mutex_lock(&dsi->lock);
 	tegra_dc_io_start(dc);
