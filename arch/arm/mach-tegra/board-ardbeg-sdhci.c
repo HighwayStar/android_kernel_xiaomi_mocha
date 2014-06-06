@@ -517,7 +517,8 @@ int __init ardbeg_sdhci_init(void)
 	}
 
 	platform_device_register(&tegra_sdhci_device3);
-	platform_device_register(&tegra_sdhci_device2);
+	if (!is_uart_over_sd_enabled())
+		platform_device_register(&tegra_sdhci_device2);
 	platform_device_register(&tegra_sdhci_device0);
 	ardbeg_wifi_init();
 

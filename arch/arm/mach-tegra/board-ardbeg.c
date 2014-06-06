@@ -242,6 +242,24 @@ static void ardbeg_i2c_init(void)
 		i2c_register_board_info(1, &i2c_touchpad_board_info , 1);
 	}
 }
+/* Pinmux changes to support UART over uSD adapter E2542 */
+static __initdata struct tegra_pingroup_config ardbeg_sdmmc3_uart_pinmux[] = {
+	DEFAULT_PINMUX(SDMMC3_CMD,    UARTA,      NORMAL,   NORMAL,   INPUT),
+	DEFAULT_PINMUX(SDMMC3_DAT1,   UARTA,      NORMAL,   NORMAL,   OUTPUT),
+};
+
+int __init ardbeg_pinmux_init(void)
+{
+	if (is_uart_over_sd_enabled()) {
+		tegra_pinmux_config_table(ardbeg_sdmmc3_uart_pinmux,
+				ARRAY_SIZE(ardbeg_sdmmc3_uart_pinmux));
+		/* On ST8, UART-A is the physical device for
+		* UART over uSD card
+		*/
+		 set_sd_uart_port_id(0);
+	}
+	return 0;
+}
 
 #ifndef CONFIG_USE_OF
 static struct platform_device *ardbeg_uart_devices[] __initdata = {
@@ -1267,8 +1285,11 @@ static void __init tegra_ardbeg_late_init(void)
 		board_info.minor_revision);
 
 	if (board_info.board_id == BOARD_E2548 ||
-			board_info.board_id == BOARD_P2530)
+		board_info.board_id == BOARD_P2530)
 		loki_pinmux_init();
+	if (board_info.board_id == BOARD_P1761)
+		ardbeg_pinmux_init();
+
 #ifndef CONFIG_MACH_EXUMA
 	ardbeg_display_init();
 #endif
