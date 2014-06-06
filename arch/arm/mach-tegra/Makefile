@@ -302,3 +302,7 @@ obj-${CONFIG_MACH_ROTH}                 += board-roth-kbc.o
 obj-${CONFIG_MACH_ROTH}                 += board-roth-sensors.o
 obj-${CONFIG_MACH_ROTH}                 += board-roth-fan.o
 obj-${CONFIG_MACH_ROTH}                 += board-roth-leds.o
+
+obj-${CONFIG_TEGRA_NVDUMPER}            += nvdumper.o
+obj-${CONFIG_TEGRA_NVDUMPER}            += nvdumper_regdump.o
+obj-${CONFIG_TEGRA_NVDUMPER}            += nvdumper-footprint.o
