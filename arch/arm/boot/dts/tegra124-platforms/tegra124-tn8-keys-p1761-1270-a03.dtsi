@@ -36,6 +36,7 @@
 			linux,code = <SW_TABLET_MODE>;
 			linux,input-type = <EV_SW>;
 			gpio-key,wakeup;
+			debounce-interval = <200>;
 		};
 		sw_lid {
 			label = "SW LID";
