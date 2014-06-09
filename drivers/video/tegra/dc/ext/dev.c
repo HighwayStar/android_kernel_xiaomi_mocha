@@ -112,6 +112,8 @@ struct tegra_dc_ext_flip_data {
 	int act_window_num;
 };
 
+static void tegra_dc_ext_unpin_window(struct tegra_dc_ext_win *win);
+
 static inline s64 tegra_timespec_to_ns(const struct tegra_timespec *ts)
 {
 	return ((s64) ts->tv_sec * NSEC_PER_SEC) + ts->tv_nsec;
@@ -225,9 +227,11 @@ void tegra_dc_ext_enable(struct tegra_dc_ext *ext)
 	set_enable(ext, true);
 }
 
-void tegra_dc_ext_disable(struct tegra_dc_ext *ext)
+int tegra_dc_ext_disable(struct tegra_dc_ext *ext)
 {
 	int i;
+	unsigned long int windows = 0;
+
 	set_enable(ext, false);
 
 	/*
@@ -239,6 +243,25 @@ void tegra_dc_ext_disable(struct tegra_dc_ext *ext)
 
 		flush_workqueue(win->flip_wq);
 	}
+
+	/*
+	 * Blank all windows owned by dcext driver, unpin buffers that were
+	 * removed from screen, and advance syncpt.
+	 */
+	if (ext->dc->enabled) {
+		for (i = 0; i < DC_N_WINDOWS; i++) {
+			if (ext->win[i].user)
+				windows |= BIT(i);
+		}
+
+		tegra_dc_blank(ext->dc, windows);
+		for_each_set_bit(i, &windows, DC_N_WINDOWS) {
+			tegra_dc_ext_unpin_window(&ext->win[i]);
+			tegra_dc_disable_window(ext->dc, i);
+		}
+	}
+
+	return !!windows;
 }
 
 int tegra_dc_ext_check_windowattr(struct tegra_dc_ext *ext,
