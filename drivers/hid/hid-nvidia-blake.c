@@ -457,13 +457,8 @@ static int nvidia_init_ff(struct hid_device *hdev, struct nvidia_tp_loc *loc)
 			continue;
 		}
 
-		if (report->field[0]->application != (HID_UP_CUSTOM | 0x02)) {
-			hid_warn(hdev, "application usage doesn't match expected\n");
-			continue;
-		}
-
-		if (report->field[0]->report_count < 3) {
-			hid_warn(hdev, "not enough values in the field\n");
+		if (report->field[0]->report_count != 3) {
+			hid_warn(hdev, "not right number of values in the field\n");
 			continue;
 		}
 
@@ -496,6 +491,36 @@ static DEVICE_ATTR(speed, S_IRUGO | S_IWUSR,
 static DEVICE_ATTR(mode, S_IRUGO | S_IWUSR,
 	blake_show_mode, blake_store_mode);
 
+static int nvidia_fixup_trackpad_usage(struct hid_device *hdev)
+{
+	struct hid_report *report;
+	struct list_head *report_list =
+			&hdev->report_enum[HID_INPUT_REPORT].report_list;
+	u8 i;
+
+	if (list_empty(report_list)) {
+		hid_err(hdev, "no output reports found\n");
+		return -ENODEV;
+	}
+
+	list_for_each_entry(report, report_list, list) {
+		if (report->id == TOUCH_REPORT_ID) {
+			/*
+			 * Generic HID drivers do not work well Blake trackpad.
+			 * So, fw uses vendor specific usage for the trackpad.
+			 * Change the usage internally to register trackpad as
+			 * a relative mouse.
+			 */
+			for (i = 0; i < report->maxfield; i++) {
+				report->field[i]->physical = HID_GD_MOUSE;
+				report->field[i]->application = HID_GD_MOUSE;
+			}
+		}
+	}
+
+	return 0;
+}
+
 static int nvidia_probe(struct hid_device *hdev, const struct hid_device_id *id)
 {
 	int ret;
@@ -522,6 +547,10 @@ static int nvidia_probe(struct hid_device *hdev, const struct hid_device_id *id)
 		hid_err(hdev, "parse failed\n");
 		goto err_parse;
 	}
+
+	ret = nvidia_fixup_trackpad_usage(hdev);
+	if (ret)
+		goto err_parse;
 
 	ret = hid_hw_start(hdev, HID_CONNECT_DEFAULT);
 	if (ret)
