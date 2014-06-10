@@ -8396,9 +8396,7 @@ struct clk tegra_list_clks[] = {
 
 	SHARED_EMC_CLK("avp.emc",	"tegra-avp",	"emc",	&tegra_clk_emc, NULL, 0, 0, 0),
 	SHARED_EMC_CLK("mon_cpu.emc",	"tegra_mon", "cpu_emc",	&tegra_clk_emc, NULL, 0, 0, 0),
-#ifdef CONFIG_ARCH_TEGRA_13x_SOC
 	SHARED_EMC_CLK("cpu.emc",	"tegra-cpu", "cpu_emc",	&tegra_clk_emc, NULL, 0, 0, 0),
-#endif
 	SHARED_EMC_CLK("disp1.emc",	"tegradc.0",	"emc",	&tegra_clk_emc, NULL, 0, SHARED_ISO_BW, BIT(EMC_USER_DC1)),
 	SHARED_EMC_CLK("disp2.emc",	"tegradc.1",	"emc",	&tegra_clk_emc, NULL, 0, SHARED_ISO_BW, BIT(EMC_USER_DC2)),
 	SHARED_EMC_CLK("disp1.la.emc",	"tegradc.0",	"emc.la",	&tegra_clk_emc, NULL, 0, 0, 0),
@@ -9303,10 +9301,10 @@ unsigned long tegra_emc_to_cpu_ratio(unsigned long cpu_rate)
 		return 0;		/* emc min */
 }
 
-#ifdef CONFIG_ARCH_TEGRA_13x_SOC
-/* EMC/CPU frequency operational requirement limit */
 unsigned long tegra_emc_cpu_limit(unsigned long cpu_rate)
 {
+#ifdef CONFIG_ARCH_TEGRA_13x_SOC
+	/* EMC/CPU frequency operational requirement limit for T132 */
 	static unsigned long last_emc_rate;
 	unsigned long emc_rate;
 
@@ -9323,8 +9321,10 @@ unsigned long tegra_emc_cpu_limit(unsigned long cpu_rate)
 
 	last_emc_rate = emc_rate;
 	return emc_rate;
-}
+#else
+	return tegra_emc_to_cpu_ratio(cpu_rate);
 #endif
+}
 
 int tegra_update_mselect_rate(unsigned long cpu_rate)
 {
