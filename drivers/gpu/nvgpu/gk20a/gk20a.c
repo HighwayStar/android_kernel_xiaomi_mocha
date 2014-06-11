@@ -763,6 +763,10 @@ static int gk20a_pm_prepare_poweroff(struct device *dev)
 	if (!g->power_on)
 		return 0;
 
+	ret = gk20a_channel_suspend(g);
+	if (ret)
+		return ret;
+
 	/*
 	 * After this point, gk20a interrupts should not get
 	 * serviced.
@@ -772,8 +776,6 @@ static int gk20a_pm_prepare_poweroff(struct device *dev)
 		free_irq(g->irq_nonstall, g);
 		g->irq_requested = false;
 	}
-
-	ret |= gk20a_channel_suspend(g);
 
 	/* disable elpg before gr or fifo suspend */
 	ret |= gk20a_pmu_destroy(g);
