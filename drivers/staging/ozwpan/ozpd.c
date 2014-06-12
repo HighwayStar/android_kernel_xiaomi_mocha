@@ -258,16 +258,55 @@ static void oz_pd_free(struct work_struct *work)
  */
 void oz_pd_destroy(struct oz_pd *pd)
 {
-	int ret;
-
 	if (hrtimer_active(&pd->timeout))
 		hrtimer_cancel(&pd->timeout);
 	if (hrtimer_active(&pd->heartbeat))
 		hrtimer_cancel(&pd->heartbeat);
 
-	memset(&pd->workitem, 0, sizeof(pd->workitem));
-	INIT_WORK(&pd->workitem, oz_pd_free);
-	ret = schedule_work(&pd->workitem);
+	if (in_softirq()) {
+		/* We are in softirq context,
+		 * Should use work_queue to call free() in process context
+		 */
+		int ret;
+		memset(&pd->workitem, 0, sizeof(pd->workitem));
+		INIT_WORK(&pd->workitem, oz_pd_free);
+		ret = schedule_work(&pd->workitem);
+		if (ret)
+			oz_trace("failed to schedule workitem\n");
+	} else {
+		/* We are in process context.
+		 * Call oz_pd_free() immediately.
+		 */
+		oz_pd_free(&pd->workitem);
+	}
+}
+/*------------------------------------------------------------------------------
+ */
+static void oz_pd_uevent_workitem(struct work_struct *work)
+{
+	struct oz_pd *pd;
+	char mac_buf[20];
+	char *envp[2];
+
+	pd = container_of(work, struct oz_pd, uevent_workitem);
+
+	oz_trace_msg(D, "uevent ID_MAC:%pm\n", pd->mac_addr);
+	snprintf(mac_buf, sizeof(mac_buf), "ID_MAC=%pm", pd->mac_addr);
+	envp[0] = mac_buf;
+	envp[1] = NULL;
+	kobject_uevent_env(&g_oz_wpan_dev->kobj, KOBJ_CHANGE, envp);
+	oz_pd_put(pd);
+}
+/*------------------------------------------------------------------------------
+ */
+void oz_pd_notify_uevent(struct oz_pd *pd)
+{
+	int ret;
+
+	oz_pd_get(pd);
+	memset(&pd->uevent_workitem, 0, sizeof(pd->uevent_workitem));
+	INIT_WORK(&pd->uevent_workitem, oz_pd_uevent_workitem);
+	ret = schedule_work(&pd->uevent_workitem);
 
 	if (ret)
 		oz_trace("failed to schedule workitem\n");
@@ -374,12 +413,6 @@ int oz_pd_sleep(struct oz_pd *pd)
 {
 	int do_stop = 0;
 	u16 stop_apps = 0;
-	char mac_buf[20];
-	char *envp[2];
-
-	snprintf(mac_buf, sizeof(mac_buf), "ID_MAC=%pm", pd->mac_addr);
-	envp[0] = mac_buf;
-	envp[1] = NULL;
 	oz_polling_lock_bh();
 	if (pd->state & (OZ_PD_S_SLEEP | OZ_PD_S_STOPPED)) {
 		oz_polling_unlock_bh();
@@ -389,7 +422,7 @@ int oz_pd_sleep(struct oz_pd *pd)
 		if (pd->keep_alive >= OZ_KALIVE_INFINITE)
 			oz_pd_indicate_farewells(pd);
 		oz_pd_set_state(pd, OZ_PD_S_SLEEP);
-		kobject_uevent_env(&g_oz_wpan_dev->kobj, KOBJ_CHANGE, envp);
+		oz_pd_notify_uevent(pd);
 	} else {
 		do_stop = 1;
 	}
