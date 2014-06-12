@@ -248,18 +248,6 @@ static struct tegra_io_dpd csib_io = {
 	.io_dpd_bit		= 1,
 };
 
-static struct tegra_io_dpd csic_io = {
-	.name			= "CSIC",
-	.io_dpd_reg_index	= 1,
-	.io_dpd_bit		= 10,
-};
-
-static struct tegra_io_dpd csid_io = {
-	.name			= "CSID",
-	.io_dpd_reg_index	= 1,
-	.io_dpd_bit		= 11,
-};
-
 static struct tegra_io_dpd csie_io = {
 	.name			= "CSIE",
 	.io_dpd_reg_index	= 1,
@@ -846,10 +834,6 @@ static int ardbeg_ov5693_front_power_on(struct ov5693_power_rail *pw)
 	if (unlikely(WARN_ON(!pw || !pw->dovdd || !pw->avdd)))
 		return -EFAULT;
 
-	/* disable CSIC/D IOs DPD mode to turn on camera for ardbeg */
-	tegra_io_dpd_disable(&csic_io);
-	tegra_io_dpd_disable(&csid_io);
-
 	if (ardbeg_get_extra_regulators())
 		goto ov5693_front_poweron_fail;
 
@@ -888,9 +872,6 @@ ov5693_front_avdd_fail:
 	gpio_set_value(CAM_RSTN, 0);
 
 ov5693_front_poweron_fail:
-	/* put CSIC/D IOs into DPD mode to save additional power for ardbeg */
-	tegra_io_dpd_enable(&csic_io);
-	tegra_io_dpd_enable(&csid_io);
 	pr_err("%s FAILED\n", __func__);
 	return -ENODEV;
 }
@@ -898,11 +879,6 @@ ov5693_front_poweron_fail:
 static int ardbeg_ov5693_front_power_off(struct ov5693_power_rail *pw)
 {
 	if (unlikely(WARN_ON(!pw || !pw->dovdd || !pw->avdd))) {
-		/* put CSIC/D IOs into DPD mode to
-		 * save additional power for ardbeg
-		 */
-		tegra_io_dpd_enable(&csic_io);
-		tegra_io_dpd_enable(&csid_io);
 		return -EFAULT;
 	}
 
@@ -915,9 +891,6 @@ static int ardbeg_ov5693_front_power_off(struct ov5693_power_rail *pw)
 	regulator_disable(pw->dovdd);
 	regulator_disable(pw->avdd);
 
-	/* put CSIC/D IOs into DPD mode to save additional power for ardbeg */
-	tegra_io_dpd_enable(&csic_io);
-	tegra_io_dpd_enable(&csid_io);
 	return 0;
 }
 
@@ -1112,8 +1085,6 @@ static int ardbeg_camera_init(void)
 	 */
 	tegra_io_dpd_enable(&csia_io);
 	tegra_io_dpd_enable(&csib_io);
-	tegra_io_dpd_enable(&csic_io);
-	tegra_io_dpd_enable(&csid_io);
 	tegra_io_dpd_enable(&csie_io);
 
 	platform_device_add_data(&ardbeg_camera_generic,
