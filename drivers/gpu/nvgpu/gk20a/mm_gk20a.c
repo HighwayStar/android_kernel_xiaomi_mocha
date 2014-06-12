@@ -2892,8 +2892,6 @@ void gk20a_mm_tlb_invalidate(struct vm_gk20a *vm)
 		mutex_unlock(&vm->update_gmmu_lock);
 		return;
 	}
-	vm->tlb_dirty = false;
-	mutex_unlock(&vm->update_gmmu_lock);
 
 	mutex_lock(&mm->tlb_lock);
 	do {
@@ -2932,6 +2930,8 @@ void gk20a_mm_tlb_invalidate(struct vm_gk20a *vm)
 			"mmu invalidate too many retries");
 
 	mutex_unlock(&mm->tlb_lock);
+	vm->tlb_dirty = false;
+	mutex_unlock(&vm->update_gmmu_lock);
 }
 
 int gk20a_mm_suspend(struct gk20a *g)
