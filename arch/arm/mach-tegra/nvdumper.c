@@ -119,9 +119,8 @@ static int __init nvdumper_init(void)
 
 	ret = tegra_nct_read_item(NCT_ID_RAMDUMP, item);
 	if (ret < 0) {
-		pr_err("%s: NCT read failure. Set to dirty\n", __func__);
+		pr_err("%s: NCT read failure. nvdumper disabled\n", __func__);
 		kfree(item);
-		set_dirty_state(1);
 		goto err_out3;
 	}
 
