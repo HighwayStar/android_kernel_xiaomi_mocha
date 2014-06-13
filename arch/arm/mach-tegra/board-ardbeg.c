@@ -612,6 +612,7 @@ static struct tegra_usb_platform_data tegra_ehci2_hsic_baseband_pdata = {
 		.hot_plug = false,
 		.remote_wakeup_supported = true,
 		.power_off_on_suspend = true,
+		.skip_resume = true,
 	},
 };
 
@@ -626,6 +627,7 @@ static struct tegra_usb_platform_data tegra_ehci2_hsic_smsc_hub_pdata = {
 		.hot_plug = false,
 		.remote_wakeup_supported = true,
 		.power_off_on_suspend = true,
+		.skip_resume = true,
 	},
 };
 
