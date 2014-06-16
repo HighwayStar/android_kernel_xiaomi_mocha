@@ -160,7 +160,7 @@ struct rm31080a_ts_para {
 #endif
 
 	u8 u8_touchfile_check;
-	u8 u8_stylus_status;
+	u8 u8_touch_event;
 
 #ifdef ENABLE_SMOOTH_LEVEL
 	u32 u32_smooth_level;
@@ -276,6 +276,9 @@ static unsigned int g_spi_bufsize; /*= 0; remove by checkpatch*/
 static unsigned char g_spi_addr;
 bool b_bl_updated;
 u8 g_u8_update_baseline[RM_RAW_DATA_LENGTH];
+
+size_t g_u8_test_mode_count;
+char *g_u8_test_mode_buf;
 
 /*=============================================================================
 	FUNCTION DECLARATION
@@ -443,6 +446,30 @@ int rm_tch_spi_byte_write(unsigned char u8_addr, unsigned char u8_value)
 	buf[0] = u8_addr;
 	buf[1] = u8_value;
 	return rm_tch_spi_write(buf, 2);
+}
+
+/*===========================================================================*/
+static void rm_tch_generate_event(struct rm_tch_ts *dev_touch,
+				     enum tch_update_reason reason)
+{
+	char *envp[2];
+
+	switch (reason) {
+	case STYLUS_DISABLE_BY_WATER:
+		envp[0] = "STYLUS_DISABLE=Water";
+		break;
+	case STYLUS_DISABLE_BY_NOISE:
+		envp[0] = "STYLUS_DISABLE=Noise";
+		break;
+	case STYLUS_IS_ENABLED:
+		envp[0] = "STYLUS_DISABLE=None";
+		break;
+	default:
+		envp[0] = "STYLUS_DISABLE=Others";
+		break;
+	}
+	envp[1] = NULL;
+	kobject_uevent_env(&dev_touch->dev->kobj, KOBJ_CHANGE, envp);
 }
 
 /*===========================================================================*/
@@ -764,7 +791,10 @@ static int rm_tch_read_image_data(unsigned char *p)
 	g_pu8_burstread_buf[0] = SCAN_TYPE_MT;
 	g_pu8_burstread_buf[1] = (u8)(g_st_ctrl.u16_data_length >> 8);
 	g_pu8_burstread_buf[2] = (u8)(g_st_ctrl.u16_data_length);
-	g_pu8_burstread_buf[3] = g_st_ts.u8_ns_sel;
+	if (g_st_ctrl.u8_ns_func_enable&0x01)
+		g_pu8_burstread_buf[3] = g_st_ts.u8_ns_sel;
+	else
+		g_pu8_burstread_buf[3] = 0;
 	g_pu8_burstread_buf[4] = g_st_ts.u8_test_mode_type;
 	g_pu8_burstread_buf[5] = 0x00;
 	g_pu8_burstread_buf[6] = 0x00;
@@ -898,6 +928,9 @@ int rm_tch_ctrl_scan_start(void)
 		rm_set_ns_para(u8NsSel, (u8 *)&g_st_ts.u8_ns_para[0]);
 
 		mutex_unlock(&g_st_ts.mutex_ns_mode);
+	} else {
+		u8NsSel = 0;
+		g_st_ts.u8_ns_sel = 0;
 	}
 #endif
 	return rm_tch_cmd_process(0, g_st_rm_scan_start_cmd, NULL);
@@ -1884,7 +1917,7 @@ static void rm_tch_init_ts_structure_part(void)
 	rm_ctrl_watchdog_func(0);
 
 	g_st_ts.b_is_suspended = 0;
-	g_st_ts.u8_test_mode = false;
+	/*g_st_ts.u8_test_mode = false;*/
 	g_st_ts.u8_test_mode_type = RM_TEST_MODE_NULL;
 
 	b_bl_updated = false;
@@ -2144,15 +2177,15 @@ static ssize_t rm_tch_touchfile_check_store(struct device *dev,
 	return count;
 }
 
-static ssize_t rm_tch_stylus_status_show(struct device *dev,
+static ssize_t rm_tch_touch_event_show(struct device *dev,
 	struct device_attribute *attr,
 	char *buf)
 {
 	return sprintf(buf, "0x%x\n",
-		g_st_ts.u8_stylus_status);
+		g_st_ts.u8_touch_event);
 }
 
-static ssize_t rm_tch_stylus_status_store(struct device *dev,
+static ssize_t rm_tch_touch_event_store(struct device *dev,
 	struct device_attribute *attr,
 	const char *buf, size_t count)
 {
@@ -2320,6 +2353,9 @@ static ssize_t rm_tch_test_mode_store(struct device *dev,
 	struct device_attribute *attr,
 	const char *buf, size_t count)
 {
+	g_u8_test_mode_count = count;
+	memcpy(&g_u8_test_mode_buf, &buf, sizeof(buf));
+
 	return rm_tch_testmode_handler(buf, count);
 }
 
@@ -2378,9 +2414,9 @@ static ssize_t selftest_platform_id_gpio_get(struct device *dev,
 
 	/* Read from data struct */
 	if (pdata->gpio_sensor_select0)
-		buf[1] = 0;
+		buf[1] |= 0x01;
 	if (pdata->gpio_sensor_select1)
-		buf[1] = 1;
+		buf[1] |= 0x02;
 	return 2;
 }
 
@@ -2603,25 +2639,30 @@ static DEVICE_ATTR(touchfile_check, 0640,
 					rm_tch_touchfile_check_show,
 					rm_tch_touchfile_check_store);
 
-static DEVICE_ATTR(stylus_status, 0640,
-					rm_tch_stylus_status_show,
-					rm_tch_stylus_status_store);
+static DEVICE_ATTR(touch_event, 0640,
+					rm_tch_touch_event_show,
+					rm_tch_touch_event_store);
 
 static DEVICE_ATTR(smooth_level, 0640,
 					rm_tch_smooth_level_show,
 					rm_tch_smooth_level_store);
+
 static DEVICE_ATTR(self_test, 0640,
 					rm_tch_self_test_show,
 					rm_tch_self_test_store);
+
 static DEVICE_ATTR(version, 0640,
 					rm_tch_version_show,
 					rm_tch_version_store);
+
 static DEVICE_ATTR(module_detect, 0640,
 					rm_tch_module_detect_show,
 					rm_tch_module_detect_store);
+
 static DEVICE_ATTR(report_mode, 0640,
 					rm_tch_report_mode_show,
 					rm_tch_report_mode_store);
+
 static DEVICE_ATTR(test_mode, 0640,
 					rm_tch_test_mode_show,
 					rm_tch_test_mode_store);
@@ -2630,7 +2671,7 @@ static struct attribute *rm_ts_attributes[] = {
 	&dev_attr_get_platform_id_gpio.attr,
 	&dev_attr_slowscan_enable.attr,
 	&dev_attr_touchfile_check.attr,
-	&dev_attr_stylus_status.attr,
+	&dev_attr_touch_event.attr,
 	&dev_attr_selftest_enable.attr,
 	&dev_attr_selftest_spi_byte_read.attr,
 	&dev_attr_selftest_spi_byte_write.attr,
@@ -2726,6 +2767,7 @@ void rm_tch_set_variable(unsigned int index, unsigned int arg)
 #if ENABLE_FREQ_HOPPING
 	ssize_t missing;
 #endif
+	struct rm_tch_ts *ts = input_get_drvdata(g_input_dev);
 
 	switch (index) {
 	case RM_VARIABLE_SELF_TEST_RESULT:
@@ -2828,8 +2870,9 @@ void rm_tch_set_variable(unsigned int index, unsigned int arg)
 		g_st_ts.u8_touchfile_check = (u8)(arg);
 		break;
 
-	case RM_VARIABLE_STYLUS_STATUS:
-		g_st_ts.u8_stylus_status = (u8)(arg);
+	case RM_VARIABLE_TOUCH_EVENT:
+		g_st_ts.u8_touch_event = (u8)(arg);
+		rm_tch_generate_event(ts, g_st_ts.u8_touch_event);
 		break;
 
 	default:
@@ -2837,6 +2880,7 @@ void rm_tch_set_variable(unsigned int index, unsigned int arg)
 	}
 
 }
+
 static u32 rm_tch_get_variable(unsigned int index, u8 *arg)
 {
 	u32 ret = RETURN_OK;
@@ -2888,8 +2932,9 @@ static void rm_tch_init_ts_structure(void)
 
 	g_st_ts.u8_resume_cnt = 0;
 	g_st_ts.u8_touchfile_check = 0xFF;
-	g_st_ts.u8_stylus_status = 0xFF;
+	g_st_ts.u8_touch_event = 0xFF;
 	g_st_ts.b_init_service = false;
+	g_st_ts.u8_test_mode = false;
 	rm_tch_ctrl_init();
 }
 
@@ -2924,6 +2969,10 @@ static void rm_ctrl_resume(struct rm_tch_ts *ts)
 	rm_tch_init_ts_structure_part();
 	rm_tch_cmd_process(0, g_st_rm_resume_cmd, ts);
 	mutex_unlock(&g_st_ts.mutex_scan_mode);
+
+	if (g_st_ts.u8_test_mode)
+		rm_tch_testmode_handler(g_u8_test_mode_buf,
+			g_u8_test_mode_count);
 }
 
 static void rm_ctrl_suspend(struct rm_tch_ts *ts)

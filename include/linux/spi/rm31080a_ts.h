@@ -49,7 +49,7 @@
 #define RM_VARIABLE_DPW							0x0B
 #define RM_VARIABLE_NS_MODE						0x0C
 #define RM_VARIABLE_TOUCHFILE_STATUS            0x0D
-#define RM_VARIABLE_STYLUS_STATUS               0x0E
+#define RM_VARIABLE_TOUCH_EVENT                 0x0E
 
 
 #define RM_IOCTL_GET_VARIABLE				0x1011
@@ -252,6 +252,11 @@
 #define ENABLE_FREQ_HOPPING		1
 #define ENABLE_FB_CALLBACK		0
 
+enum tch_update_reason {
+	STYLUS_DISABLE_BY_WATER = 0x01,
+	STYLUS_DISABLE_BY_NOISE,
+	STYLUS_IS_ENABLED = 0xFF,
+};
 
 struct rm_touch_event {
 	unsigned char uc_touch_count;
