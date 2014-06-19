@@ -1,4 +1,4 @@
-#include "tegra124-tn8-p1761-1270-a04-e.dts"
+#include "tegra124-tn8-p1761-1270-a04-e-nobattery.dts"
 #include <dt-bindings/iio/meter/ina3221x.h>
 
 / {
