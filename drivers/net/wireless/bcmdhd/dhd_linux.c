@@ -4777,7 +4777,12 @@ dhd_net_attach(dhd_pub_t *dhdp, int ifidx)
 	memcpy(net->dev_addr, temp_addr, ETHER_ADDR_LEN);
 
 	net->ifindex = 0;
-	if ((err = register_netdev(net)) != 0) {
+	if (ifidx == 0)
+		err = register_netdev(net);
+	else
+		err = register_netdevice(net);
+
+	if (err != 0) {
 		DHD_ERROR(("couldn't register the net device, err %d\n", err));
 		goto fail;
 	}

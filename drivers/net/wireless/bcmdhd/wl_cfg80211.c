@@ -1309,10 +1309,6 @@ wl_cfg80211_add_virtual_iface(struct wiphy *wiphy,
 			wl->p2p->vif_created = true;
 			wl_set_mode_by_netdev(wl, _ndev, mode);
 			net_attach =  wl_to_p2p_bss_private(wl, P2PAPI_BSSCFG_CONNECTION);
-			if (rtnl_is_locked()) {
-				rtnl_unlock();
-				rollback_lock = true;
-			}
 			if (net_attach && !net_attach(wl->pub, _ndev->ifindex)) {
 				wl_alloc_netinfo(wl, _ndev, vwdev, mode, PM_ENABLE);
 				val = 1;
@@ -1338,14 +1334,8 @@ wl_cfg80211_add_virtual_iface(struct wiphy *wiphy,
 				/* reinitialize completion to clear previous count */
 				INIT_COMPLETION(wl->iface_disable);
 			} else {
-				/* put back the rtnl_lock again */
-				if (rollback_lock)
-					rtnl_lock();
 				goto fail;
 			}
-			/* put back the rtnl_lock again */
-			if (rollback_lock)
-				rtnl_lock();
 			return ndev_to_cfgdev(_ndev);
 		} else {
 			wl_clr_p2p_status(wl, IF_ADD);
