@@ -7662,7 +7662,7 @@ wl_bss_connect_done(struct wl_priv *wl, struct net_device *ndev,
 		wl_notify_escan_complete(wl, ndev, true, true);
 	}
 #endif /* ESCAN_RESULT_PATCH */
-	if (wl_get_drv_status(wl, CONNECTING, ndev)) {
+	if (wl_get_drv_status(wl, CONNECTING, ndev) && (e->event_type == WLC_E_SET_SSID)) {
 		wl_cfg80211_scan_abort(wl);
 		wl_clr_drv_status(wl, CONNECTING, ndev);
 		if (completed) {
