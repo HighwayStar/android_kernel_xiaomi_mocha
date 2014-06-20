@@ -499,6 +499,7 @@ static void destroy_client(struct nvmap_client *client)
 
 		dma_buf_put(ref->handle->dmabuf);
 		rb_erase(&ref->node, &client->handle_refs);
+		atomic_dec(&ref->handle->share_count);
 
 		dupes = atomic_read(&ref->dupes);
 		while (dupes--)
@@ -879,7 +880,7 @@ static void allocations_stringify(struct nvmap_client *client,
 			phys_addr_t base = iovmm ? 0 :
 					   (handle->carveout->base);
 			seq_printf(s,
-				"%-18s %-18s %8llx %10zuK %8x %6u %6u %6u %6u %6u\n",
+				"%-18s %-18s %8llx %10zuK %8x %6u %6u %6u %6u %6u %6u\n",
 				"", "",
 				(unsigned long long)base, K(handle->size),
 				handle->userflags,
@@ -887,7 +888,8 @@ static void allocations_stringify(struct nvmap_client *client,
 				atomic_read(&ref->dupes),
 				atomic_read(&ref->pin),
 				atomic_read(&handle->kmap_count),
-				atomic_read(&handle->umap_count));
+				atomic_read(&handle->umap_count),
+				atomic_read(&handle->share_count));
 		}
 	}
 	nvmap_ref_unlock(client);
@@ -902,9 +904,9 @@ static int nvmap_debug_allocations_show(struct seq_file *s, void *unused)
 	spin_lock(&node->clients_lock);
 	seq_printf(s, "%-18s %18s %8s %11s\n",
 		"CLIENT", "PROCESS", "PID", "SIZE");
-	seq_printf(s, "%-18s %18s %8s %11s %8s %6s %6s %6s %6s %6s\n",
+	seq_printf(s, "%-18s %18s %8s %11s %8s %6s %6s %6s %6s %6s %6s\n",
 			"", "", "BASE", "SIZE", "FLAGS", "REFS",
-			"DUPES", "PINS", "KMAPS", "UMAPS");
+			"DUPES", "PINS", "KMAPS", "UMAPS", "SHARE");
 	list_for_each_entry(commit, &node->clients, list) {
 		struct nvmap_client *client =
 			get_client_from_carveout_commit(node, commit);
@@ -1023,9 +1025,9 @@ static int nvmap_debug_iovmm_allocations_show(struct seq_file *s, void *unused)
 	spin_lock(&dev->clients_lock);
 	seq_printf(s, "%-18s %18s %8s %11s\n",
 		"CLIENT", "PROCESS", "PID", "SIZE");
-	seq_printf(s, "%-18s %18s %8s %11s %8s %6s %6s %6s %6s %6s\n",
+	seq_printf(s, "%-18s %18s %8s %11s %8s %6s %6s %6s %6s %6s %6s\n",
 			"", "", "BASE", "SIZE", "FLAGS", "REFS",
-			"DUPES", "PINS", "KMAPS", "UMAPS");
+			"DUPES", "PINS", "KMAPS", "UMAPS", "SHARE");
 	list_for_each_entry(client, &dev->clients, list) {
 		int iovm_commit = atomic_read(&client->iovm_commit);
 		client_stringify(client, s);
