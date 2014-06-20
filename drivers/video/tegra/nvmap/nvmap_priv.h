@@ -227,11 +227,6 @@ struct page *nvmap_page_pool_alloc(struct nvmap_page_pool *pool);
 bool nvmap_page_pool_fill(struct nvmap_page_pool *pool, struct page *page);
 #endif
 
-struct nvmap_carveout_commit {
-	size_t commit;
-	struct list_head list;
-};
-
 struct nvmap_client {
 	const char			*name;
 	struct rb_root			handle_refs;
@@ -241,7 +236,6 @@ struct nvmap_client {
 	struct task_struct		*task;
 	struct list_head		list;
 	u32				handle_count;
-	struct nvmap_carveout_commit	carveout_commit[0];
 };
 
 struct nvmap_vma_priv {
@@ -363,12 +357,6 @@ unsigned long nvmap_carveout_usage(struct nvmap_client *c,
 				   struct nvmap_heap_block *b);
 
 struct nvmap_carveout_node;
-void nvmap_carveout_commit_add(struct nvmap_client *client,
-			       struct nvmap_carveout_node *node, size_t len);
-
-void nvmap_carveout_commit_subtract(struct nvmap_client *client,
-				    struct nvmap_carveout_node *node,
-				    size_t len);
 
 int nvmap_find_cache_maint_op(struct nvmap_device *dev,
 		struct nvmap_handle *h);
