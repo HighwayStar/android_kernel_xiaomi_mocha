@@ -1036,7 +1036,6 @@ static int tegra_rt5639_init(struct snd_soc_pcm_runtime *rtd)
 
 	if (gpio_is_valid(pdata->gpio_hp_det)) {
 		tegra_rt5639_hp_jack_gpio.gpio = pdata->gpio_hp_det;
-		tegra_rt5639_hp_jack_gpio.wake = true;
 		tegra_rt5639_hp_jack_gpio.invert =
 			!pdata->gpio_hp_det_active_high;
 		snd_soc_jack_new(codec, "Headphone Jack", SND_JACK_HEADPHONE,
