@@ -152,6 +152,9 @@ struct sdhci_host {
 /* delayed clock gate */
 #define SDHCI_QUIRK2_DELAYED_CLK_GATE			(1<<11)
 
+	unsigned int  acmd12_ctrl;
+	unsigned int  ier;
+	unsigned int  command;
 	int irq;		/* Device IRQ */
 	void __iomem *ioaddr;	/* Mapped address */
 
