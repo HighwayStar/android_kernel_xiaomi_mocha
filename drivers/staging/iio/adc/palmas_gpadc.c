@@ -106,6 +106,7 @@ struct palmas_gpadc {
 	struct dentry			*dentry;
 	bool is_shutdown;
 	struct mutex lock;
+	bool isr_done;
 };
 
 /*
@@ -167,6 +168,7 @@ static irqreturn_t palmas_gpadc_irq(int irq, void *data)
 {
 	struct palmas_gpadc *adc = data;
 
+	adc->isr_done = true;
 	complete(&adc->conv_completion);
 	return IRQ_HANDLED;
 }
@@ -538,6 +540,7 @@ static int palmas_gpadc_start_convertion(struct palmas_gpadc *adc, int adc_chan)
 	unsigned int val;
 	int ret;
 
+	adc->isr_done = false;
 	INIT_COMPLETION(adc->conv_completion);
 	ret = palmas_update_bits(adc->palmas, PALMAS_GPADC_BASE,
 				PALMAS_GPADC_SW_SELECT,
@@ -552,6 +555,19 @@ static int palmas_gpadc_start_convertion(struct palmas_gpadc *adc, int adc_chan)
 				ADC_CONVERTION_TIMEOUT);
 	if (ret == 0) {
 		dev_err(adc->dev, "ADC conversion not completed\n");
+		dev_err(adc->dev, "Channel %d ISR status %d\n", adc_chan, adc->isr_done);
+		ret = palmas_read(adc->palmas, PALMAS_GPADC_BASE,
+				PALMAS_GPADC_STATUS, &val);
+		dev_err(adc->dev, "GPADC_STATUS read st %d and val 0x%02x\n", ret, val);
+		ret = palmas_read(adc->palmas, PALMAS_GPADC_BASE,
+				PALMAS_GPADC_SW_SELECT, &val);
+		dev_err(adc->dev, "GPADC_SW_SELECT read st %d and val 0x%02x\n", ret, val);
+		ret = palmas_read(adc->palmas, PALMAS_GPADC_BASE,
+				PALMAS_GPADC_AUTO_CTRL, &val);
+		dev_err(adc->dev, "GPADC_AUTO_CTRL read st %d and val 0x%02x\n", ret, val);
+		ret = palmas_read(adc->palmas, PALMAS_GPADC_BASE,
+				PALMAS_GPADC_RT_CTRL, &val);
+		dev_err(adc->dev, "GPADC_RT_CTRL read st %d and val 0x%02x\n", ret, val);
 		ret = -ETIMEDOUT;
 		return ret;
 	}
