@@ -104,6 +104,7 @@ enum RM_SLOW_SCAN_LEVELS {
 	RM_SLOW_SCAN_LEVEL_COUNT
 };
 #endif
+
 enum RM_TEST_MODE {
 	RM_TEST_MODE_NULL,
 	RM_TEST_MODE_IDLE_SHOW,
@@ -111,6 +112,7 @@ enum RM_TEST_MODE {
 	RM_TEST_MODE_CALC_TIME_SHOW,
 	RM_TEST_MODE_MAX
 };
+
 #ifdef ENABLE_SMOOTH_LEVEL
 #define RM_SMOOTH_LEVEL_NORMAL		0
 #define RM_SMOOTH_LEVEL_MAX			4
@@ -2507,7 +2509,7 @@ static ssize_t rm_tch_report_mode_handler(const char *buf, size_t count)
 	ssize_t error;
 	ssize_t ret;
 
-	if (count != 2)
+	if (count < 2)
 		return -EINVAL;
 
 	ret = (ssize_t) count;
@@ -2517,7 +2519,8 @@ static ssize_t rm_tch_report_mode_handler(const char *buf, size_t count)
 		ret = error;
 	else {
 		if ((val >= EVENT_REPORT_MODE_STYLUS_ERASER_FINGER) &&
-			(val < EVENT_REPORT_MODE_TYPE_NUM))
+			(val < (EVENT_REPORT_MODE_TYPE_NUM |
+			EVENT_REPORT_MODE_ALL_TYPE_POINTS)))
 			rm_tch_report_mode_change(val);
 		else
 			ret = RETURN_FAIL;
@@ -2530,7 +2533,7 @@ static ssize_t rm_tch_report_mode_show(struct device *dev,
 	struct device_attribute *attr,
 	char *buf)
 {
-	return sprintf(buf, "Raydium Touch Report Mode : %d\n",
+	return sprintf(buf, "Raydium Touch Report Mode : 0x%x\n",
 		g_st_ctrl.u8_event_report_mode);
 }
 

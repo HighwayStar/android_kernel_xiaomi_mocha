@@ -240,6 +240,8 @@
 #define EVENT_REPORT_MODE_STYLUS_ONLY				0x05
 #define EVENT_REPORT_MODE_ERASER_ONLY				0x06
 #define EVENT_REPORT_MODE_TYPE_NUM					0x07
+#define EVENT_REPORT_MODE_ALL_TYPE_POINTS           0x10
+
 /***************************************************************************
  *	DO NOT MODIFY - Kernel Point Report Definition
  *	NOTE: Need to sync with HAL
