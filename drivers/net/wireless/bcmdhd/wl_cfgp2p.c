@@ -1062,14 +1062,15 @@ wl_cfgp2p_set_management_ie(struct wl_priv *wl, struct net_device *ndev, s32 bss
 	u8 *ptr;
 	s32 type = -1;
 	s32 remained_buf_len;
+
+	 if (!wl)
+		return ERR_PTR(-EINVAL);
+
 #define IE_TYPE(type, bsstype) (wl_to_p2p_bss_saved_ie(wl, bsstype).p2p_ ## type ## _ie)
 #define IE_TYPE_LEN(type, bsstype) (wl_to_p2p_bss_saved_ie(wl, bsstype).p2p_ ## type ## _ie_len)
 	memset(g_mgmt_ie_buf, 0, sizeof(g_mgmt_ie_buf));
 	curr_ie_buf = g_mgmt_ie_buf;
 	CFGP2P_DBG((" bssidx %d, pktflag : 0x%02X\n", bssidx, pktflag));
-
-	if (!wl)
-		return ERR_PTR(-EINVAL);
 
 	if (wl->p2p != NULL) {
 		if (wl_cfgp2p_find_type(wl, bssidx, &type)) {
