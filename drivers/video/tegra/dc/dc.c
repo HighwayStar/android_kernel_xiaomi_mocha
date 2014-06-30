@@ -479,6 +479,25 @@ void tegra_dc_put(struct tegra_dc *dc)
 	tegra_dc_io_end(dc);
 }
 
+void tegra_dc_hold_dc_out(struct tegra_dc *dc)
+{
+	if (1 == atomic_inc_return(&dc->holding)) {
+		tegra_dc_get(dc);
+		if (dc->out_ops && dc->out_ops->hold)
+			dc->out_ops->hold(dc);
+		atomic_inc(&dc->holding);
+	}
+}
+
+void tegra_dc_release_dc_out(struct tegra_dc *dc)
+{
+	if (0 == atomic_dec_return(&dc->holding)) {
+		if (dc->out_ops && dc->out_ops->release)
+			dc->out_ops->release(dc);
+		tegra_dc_put(dc);
+	}
+}
+
 #define DUMP_REG(a) do {			\
 	snprintf(buff, sizeof(buff), "%-32s\t%03x\t%08lx\n",  \
 		 #a, a, tegra_dc_readl(dc, a));		      \
@@ -1573,6 +1592,23 @@ int tegra_dc_wait_for_vsync(struct tegra_dc *dc)
 	return ret;
 }
 
+void tegra_dc_vsync_enable(struct tegra_dc *dc)
+{
+	mutex_lock(&dc->lock);
+	set_bit(V_BLANK_USER, &dc->vblank_ref_count);
+	tegra_dc_unmask_interrupt(dc, V_BLANK_INT);
+	mutex_unlock(&dc->lock);
+}
+
+void tegra_dc_vsync_disable(struct tegra_dc *dc)
+{
+	mutex_lock(&dc->lock);
+	clear_bit(V_BLANK_USER, &dc->vblank_ref_count);
+	if (!dc->vblank_ref_count)
+		tegra_dc_mask_interrupt(dc, V_BLANK_INT);
+	mutex_unlock(&dc->lock);
+}
+
 static void tegra_dc_prism_update_backlight(struct tegra_dc *dc)
 {
 	/* Do the actual brightness update outside of the mutex dc->lock */
@@ -1789,13 +1825,22 @@ static void tegra_dc_vpulse2(struct work_struct *work)
 }
 #endif
 
-static void tegra_dc_one_shot_irq(struct tegra_dc *dc, unsigned long status)
+static void tegra_dc_process_vblank(struct tegra_dc *dc, ktime_t timestamp)
+{
+	if (test_bit(V_BLANK_USER, &dc->vblank_ref_count))
+		tegra_dc_ext_process_vblank(dc->ndev->id, timestamp);
+}
+
+static void tegra_dc_one_shot_irq(struct tegra_dc *dc, unsigned long status,
+				ktime_t timestamp)
 {
 	/* pending user vblank, so wakeup */
-	if ((status & (V_BLANK_INT | MSF_INT)) &&
-	    (dc->out->user_needs_vblank)) {
-		dc->out->user_needs_vblank = false;
-		complete(&dc->out->user_vblank_comp);
+	if (status & (V_BLANK_INT | MSF_INT)) {
+		if (dc->out->user_needs_vblank) {
+			dc->out->user_needs_vblank = false;
+			complete(&dc->out->user_vblank_comp);
+		}
+		tegra_dc_process_vblank(dc, timestamp);
 	}
 
 	if (status & V_BLANK_INT) {
@@ -1824,11 +1869,15 @@ static void tegra_dc_one_shot_irq(struct tegra_dc *dc, unsigned long status)
 #endif
 }
 
-static void tegra_dc_continuous_irq(struct tegra_dc *dc, unsigned long status)
+static void tegra_dc_continuous_irq(struct tegra_dc *dc, unsigned long status,
+				ktime_t timestamp)
 {
 	/* Schedule any additional bottom-half vblank actvities. */
 	if (status & V_BLANK_INT)
 		queue_work(system_freezable_wq, &dc->vblank_work);
+
+	if (status & (V_BLANK_INT | MSF_INT))
+		tegra_dc_process_vblank(dc, timestamp);
 
 	if (status & FRAME_END_INT) {
 		struct timespec tm = CURRENT_TIME;
@@ -1868,6 +1917,7 @@ bool tegra_dc_does_vsync_separate(struct tegra_dc *dc, s64 new_ts, s64 old_ts)
 
 static irqreturn_t tegra_dc_irq(int irq, void *ptr)
 {
+	ktime_t timestamp = ktime_get();
 	struct tegra_dc *dc = ptr;
 	unsigned long status;
 	unsigned long underflow_mask;
@@ -1916,9 +1966,9 @@ static irqreturn_t tegra_dc_irq(int irq, void *ptr)
 	}
 
 	if (dc->out->flags & TEGRA_DC_OUT_ONE_SHOT_MODE)
-		tegra_dc_one_shot_irq(dc, status);
+		tegra_dc_one_shot_irq(dc, status, timestamp);
 	else
-		tegra_dc_continuous_irq(dc, status);
+		tegra_dc_continuous_irq(dc, status, timestamp);
 
 	if (dc->nvsr)
 		tegra_dc_nvsr_irq(dc->nvsr, status);
@@ -2436,6 +2486,12 @@ static void _tegra_dc_controller_disable(struct tegra_dc *dc)
 	unsigned i;
 
 	tegra_dc_get(dc);
+
+	if (atomic_read(&dc->holding)) {
+		/* Force release all refs but the last one */
+		atomic_set(&dc->holding, 1);
+		tegra_dc_release_dc_out(dc);
+	}
 
 	if (dc->out && dc->out->prepoweroff)
 		dc->out->prepoweroff();
