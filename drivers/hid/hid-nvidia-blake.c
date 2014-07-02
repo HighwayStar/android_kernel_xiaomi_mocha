@@ -552,9 +552,12 @@ static int nvidia_probe(struct hid_device *hdev, const struct hid_device_id *id)
 	if (ret)
 		goto err_parse;
 
-	ret = hid_hw_start(hdev, HID_CONNECT_DEFAULT);
+	ret = hid_hw_start(hdev, HID_CONNECT_DEFAULT & ~HID_CONNECT_FF);
 	if (ret)
 		goto err_parse;
+
+	nvidia_init_ff(hdev, loc);
+	nvidia_find_tp_len(hdev, loc);
 
 	ret = device_create_file(&hdev->dev, &dev_attr_speed);
 	if (ret)
@@ -562,9 +565,6 @@ static int nvidia_probe(struct hid_device *hdev, const struct hid_device_id *id)
 	ret = device_create_file(&hdev->dev, &dev_attr_mode);
 	if (ret)
 		hid_warn(hdev, "cannot create sysfs for mode\n");
-
-	nvidia_init_ff(hdev, loc);
-	nvidia_find_tp_len(hdev, loc);
 
 	return 0;
 
