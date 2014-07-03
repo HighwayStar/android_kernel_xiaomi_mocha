@@ -1369,10 +1369,8 @@ static int gk20a_channel_add_job(struct channel_gk20a *c,
 
 void gk20a_channel_update(struct channel_gk20a *c, int nr_completed)
 {
-	struct gk20a *g = c->g;
 	struct vm_gk20a *vm = c->vm;
 	struct channel_gk20a_job *job, *n;
-	int i;
 
 	wake_up(&c->submit_wq);
 
@@ -1391,12 +1389,9 @@ void gk20a_channel_update(struct channel_gk20a *c, int nr_completed)
 
 		list_del_init(&job->list);
 		kfree(job);
-		gk20a_idle(g->dev);
+		gk20a_idle(c->g->dev);
 	}
 	mutex_unlock(&c->jobs_lock);
-
-	for (i = 0; i < nr_completed; i++)
-		gk20a_idle(c->g->dev);
 }
 EXPORT_SYMBOL(gk20a_channel_update);
 

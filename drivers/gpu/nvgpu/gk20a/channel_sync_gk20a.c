@@ -216,20 +216,13 @@ static int __gk20a_channel_syncpt_incr(struct gk20a_channel_sync *s,
 	thresh = nvhost_syncpt_incr_max(sp->sp, sp->id, 1);
 
 	if (register_irq) {
-		/* nvhost action_gpfifo_submit_complete releases this ref. */
-		err = gk20a_busy(c->g->dev);
-
-		if (!err) {
-			err = nvhost_intr_add_action(
+		err = nvhost_intr_add_action(
 				&nvhost_get_host(c->g->dev)->intr,
 				sp->id, thresh,
 				NVHOST_INTR_ACTION_GPFIFO_SUBMIT_COMPLETE,
 				c,
 				completed_waiter,
 				NULL);
-			if (err)
-				gk20a_idle(c->g->dev);
-		}
 
 		/* Adding interrupt action should never fail. A proper error
 		 * handling here would require us to decrement the syncpt max
