@@ -44,6 +44,7 @@
 #include <linux/alarmtimer.h>
 #include <linux/power/battery-charger-gauge-comm.h>
 #include <linux/workqueue.h>
+#include <linux/sysrq.h>
 
 #define MAX_STR_PRINT 50
 
@@ -821,6 +822,7 @@ static irqreturn_t bq2419x_irq(int irq, void *data)
 	if (val & BQ2419x_FAULT_WATCHDOG_FAULT) {
 		bq_chg_err(bq2419x, "WatchDog Expired\n");
 		ret = bq2419x_reconfigure_charger_param(bq2419x, "WDT-EXP-ISR");
+		__handle_sysrq('l', false);
 		if (ret < 0) {
 			dev_err(bq2419x->dev, "BQ reconfig failed %d\n", ret);
 			return ret;
