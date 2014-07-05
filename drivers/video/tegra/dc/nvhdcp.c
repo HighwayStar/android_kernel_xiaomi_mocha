@@ -868,6 +868,13 @@ static void nvhdcp_downstream_worker(struct work_struct *work)
 	nvhdcp_vdbg("%s():started thread %s\n", __func__, nvhdcp->name);
 	tegra_dc_io_start(dc);
 
+	if ((!tegra_is_clk_enabled(dc->clk)) ||
+		(!tegra_powergate_is_powered(dc->powergate_id))) {
+		nvhdcp_err("%s, dc is  clockgated\n", __func__);
+		tegra_dc_io_end(dc);
+		return;
+	}
+
 	mutex_lock(&nvhdcp->lock);
 	if (nvhdcp->state == STATE_OFF) {
 		nvhdcp_err("nvhdcp failure - giving up\n");
