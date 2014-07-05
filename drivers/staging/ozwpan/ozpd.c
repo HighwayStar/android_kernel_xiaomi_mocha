@@ -161,10 +161,13 @@ void oz_pd_get(struct oz_pd *pd)
  */
 void oz_pd_put(struct oz_pd *pd)
 {
+	if(atomic_read(&pd->ref_count) <= 0) {
+		WARN(1, "Unexpected ref_count decrement!\n");
+		return;
+	}
+
 	if (atomic_dec_and_test(&pd->ref_count))
 		oz_pd_destroy(pd);
-
-	WARN_ON(atomic_read(&pd->ref_count) < 0);
 }
 /*------------------------------------------------------------------------------
  * Context: softirq-serialized
@@ -285,7 +288,6 @@ void oz_pd_destroy(struct oz_pd *pd)
 		return;
 	}
 	pd->pd_destroy_scheduled = true;
-
 
 	ret = schedule_work(&pd->workitem);
 	if (!ret)
