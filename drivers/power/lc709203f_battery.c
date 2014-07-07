@@ -671,6 +671,9 @@ static int lc709203f_suspend(struct device *dev)
 	if (device_may_wakeup(&chip->client->dev))
 		enable_irq_wake(chip->client->irq);
 
+	dev_info(&chip->client->dev, "At suspend Voltage %dmV and SoC %d%%\n",
+			chip->vcell, chip->soc);
+
 	return 0;
 }
 
@@ -680,6 +683,13 @@ static int lc709203f_resume(struct device *dev)
 
 	if (device_may_wakeup(&chip->client->dev))
 		disable_irq_wake(chip->client->irq);
+
+	mutex_lock(&chip->mutex);
+	lc709203f_update_soc_voltage(chip);
+	mutex_unlock(&chip->mutex);
+
+	dev_info(&chip->client->dev, "At resume Voltage %dmV and SoC %d%%\n",
+			chip->vcell, chip->soc);
 
 	schedule_delayed_work(&chip->work, LC709203F_DELAY);
 	return 0;
