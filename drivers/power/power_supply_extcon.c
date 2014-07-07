@@ -179,7 +179,7 @@ static int power_supply_extcon_attach_cable(
 		psy_extcon->ac_online = 1;
 		dev_info(psy_extcon->dev, "Y cable charging detected\n");
 	} else {
-		dev_info(psy_extcon->dev, "Unknown cable detected\n");
+		dev_info(psy_extcon->dev, "No cable detected\n");
 	}
 
 	power_supply_changed(&psy_extcon->usb);
