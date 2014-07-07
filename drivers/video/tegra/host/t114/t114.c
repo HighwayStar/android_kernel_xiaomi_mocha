@@ -312,7 +312,6 @@ struct nvhost_device_data t11_tsec_info = {
 	.keepalive       = true,
 	.moduleid	= NVHOST_MODULE_TSEC,
 	.init          = nvhost_tsec_init,
-	.deinit        = nvhost_tsec_deinit,
 	.finalize_poweron = nvhost_tsec_finalize_poweron,
 	.prepare_poweroff = nvhost_tsec_prepare_poweroff,
 };

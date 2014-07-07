@@ -304,7 +304,6 @@ struct nvhost_device_data t14_tsec_info = {
 	NVHOST_DEFAULT_CLOCKGATE_DELAY,
 	.moduleid	= NVHOST_MODULE_TSEC,
 	.init          = nvhost_tsec_init,
-	.deinit        = nvhost_tsec_deinit,
 };
 
 static struct platform_device tegra_tsec01_device = {

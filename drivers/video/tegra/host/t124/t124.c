@@ -384,7 +384,6 @@ struct nvhost_device_data t124_tsec_info = {
 	.keepalive       = true,
 	.moduleid      = NVHOST_MODULE_TSEC,
 	.init          = nvhost_tsec_init,
-	.deinit        = nvhost_tsec_deinit,
 	.finalize_poweron = nvhost_tsec_finalize_poweron,
 	.prepare_poweroff = nvhost_tsec_prepare_poweroff,
 };
@@ -571,7 +570,6 @@ struct nvhost_device_data t132_tsec_info = {
 	NVHOST_DEFAULT_CLOCKGATE_DELAY,
 	.moduleid      = NVHOST_MODULE_TSEC,
 	.init          = nvhost_tsec_init,
-	.deinit        = nvhost_tsec_deinit,
 	.finalize_poweron = nvhost_tsec_finalize_poweron,
 };
 
