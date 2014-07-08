@@ -15,7 +15,7 @@ u32 g_debug =
 	TRC_FLG(M)|TRC_FLG(R)|TRC_FLG(T)|
 	TRC_FLG(S)|TRC_FLG(E)|TRC_FLG(C);
 #else
-	TRC_FLG(M);
+	0;
 #endif
 
 void (*func[]) (char *fmt, va_list arg) = {
