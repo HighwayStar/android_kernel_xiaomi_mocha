@@ -2034,9 +2034,6 @@ wl_cfgp2p_down(struct wl_priv *wl)
 			if (index != WL_INVALID)
 				wl_cfgp2p_clear_management_ie(wl, index);
 	}
-#if defined(WL_CFG80211_P2P_DEV_IF)
-	wl_cfgp2p_del_p2p_disc_if(wdev);
-#endif /* WL_CFG80211_P2P_DEV_IF */
 	wl_cfgp2p_deinit_priv(wl);
 	return 0;
 }
