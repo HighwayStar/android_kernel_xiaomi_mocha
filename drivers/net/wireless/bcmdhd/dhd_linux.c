@@ -3701,13 +3701,13 @@ dhd_bus_start(dhd_pub_t *dhdp)
 		flags = dhd_os_spin_lock(&dhd->pub);
 		dhd->wd_timer_valid = FALSE;
 		dhd_os_spin_unlock(&dhd->pub, flags);
-		del_timer_sync(&dhd->timer);
-
-		DHD_ERROR(("%s Host failed to register for OOB\n", __FUNCTION__));
 #ifdef DHDTHREAD
 		if (dhd->threads_only)
 			dhd_os_sdunlock(dhdp);
 #endif /* DHDTHREAD */
+
+		del_timer_sync(&dhd->timer);
+		DHD_ERROR(("%s Host failed to register for OOB\n", __FUNCTION__));
 		DHD_OS_WD_WAKE_UNLOCK(&dhd->pub);
 		return -ENODEV;
 	}
@@ -3721,12 +3721,13 @@ dhd_bus_start(dhd_pub_t *dhdp)
 		flags = dhd_os_spin_lock(&dhd->pub);
 		dhd->wd_timer_valid = FALSE;
 		dhd_os_spin_unlock(&dhd->pub, flags);
-		del_timer_sync(&dhd->timer);
-		DHD_ERROR(("%s failed bus is not ready\n", __FUNCTION__));
 #ifdef DHDTHREAD
 		if (dhd->threads_only)
 			dhd_os_sdunlock(dhdp);
 #endif /* DHDTHREAD */
+
+		del_timer_sync(&dhd->timer);
+		DHD_ERROR(("%s failed bus is not ready\n", __FUNCTION__));
 		DHD_OS_WD_WAKE_UNLOCK(&dhd->pub);
 		return -ENODEV;
 	}
