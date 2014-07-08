@@ -441,59 +441,61 @@ static void iqs253_sar_proximity_detect_work(struct work_struct *ws)
 
 	if (chip->version == 253) {
 		ret = iqs253_i2c_read_byte(chip, PROX_STATUS);
-		if (ret < 0) {
-			pr_err("iqs253: reading proximity status failed\n");
-			goto finish;
-		}
-
-		if (ret & IQS253_RESET) {
-			ret = iqs253_i2c_firsthand_shake(chip);
-			if (ret < 0) {
-				pr_err("func:%s first i2c handshake failed\n",
-					__func__);
-				goto finish;
-			}
+		if (ret < 0)
+			return;
+		/* need to cross check thie */
+		if (ret & BIT(5)) {
 			ret = iqs253_set(chip);
 			if (ret)
 				goto finish;
 		}
-	} else { /* iqs263 */
-		ret = iqs253_i2c_read_byte(chip, SYST_FLAGS);
-		if (ret < 0) {
-			pr_err("iqs263: reading system flags failed\n");
+	} else {
+		/* if this does not work, try ret = iqs263_i2c_read_word, then ret = ret >> 8; then check ret & 0x80*/
+		ret = iqs263_i2c_read_bytes(chip, 0x03);
+		if (ret & 0x80) {
+                    #if 0
+                    ret = iqs263_set(chip);
+		    if (ret)
 			goto finish;
-		}
-
-		if (ret & IQS263_RESET) {
-			ret = iqs263_set(chip);
-			if (ret)
-				goto finish;
+                    #endif
 		}
 	}
 
-	chip->value = -1;
-	if (chip->version == 253) {
+       if (chip->version == 253) {
 		ret = iqs253_i2c_read_byte(chip, PROX_STATUS);
-		if (ret < 0)
+		chip->value = -1;
+		if (ret >= 0) {
+		    ret = ret & PROXIMITY_ONLY;
+		/*
+		 * if both channel detect proximity => distance = 0;
+		 * if one channel detects proximity => distance = 1;
+		 * if no channel detects proximity => distance = 2;
+		 */
+		    chip->value = (ret == (PROX_CH1 | PROX_CH2)) ? 0 :
+							ret ? 1 : 2;
+		}
+		if (chip->value == -1)
 			goto finish;
-
-		chip->value = ret & PROXIMITY_ONLY;
-	} else {
-		ret = iqs263_i2c_read_word(chip, TOUCH_STAT);
-		if (ret < 0)
-			goto finish;
-
-		chip->value = ret & IQS263_EV_MASK;
-	}
-
-	/* provide input to SAR */
-	if (chip->value) {
-		gpio_direction_output(chip->sar_gpio, 0);
-		pr_debug("iqs253 sar: send near event\n");
-	} else {
-		gpio_direction_output(chip->sar_gpio, 1);
-		pr_debug("iqs253 sar: send far event\n");
-	}
+		/* provide input to SAR */
+		if (chip->value/2) {
+			pr_info("%s :<-- undetect -->\n", __func__);
+			gpio_direction_output(chip->sar_gpio, 1);
+		} else {
+			pr_info("%s :--> detect <--\n", __func__);
+			gpio_direction_output(chip->sar_gpio, 0);
+		}
+       } else {
+		    ret= iqs263_i2c_read_word(chip,0x03);
+		    chip->value = ret;
+		     /* provide input to SAR 0x0c -> 0x4 */
+		     if ((chip->value&0x04) !=0) {
+			/* pr_info("%s :<-- detect  status: 0x%x -->\n", __func__ , chip->value); */
+			gpio_direction_output(chip->sar_gpio, 0);
+		     } else {
+			/* pr_info("%s :--> Undetect Status: 0x%x  <--\n", __func__, chip->value); */
+			gpio_direction_output(chip->sar_gpio, 1);
+		     }
+       }
 
 	ret = regulator_disable(chip->vddhi);
 	if (ret)
@@ -570,15 +572,19 @@ static int iqs253_probe(struct i2c_client *client,
 		goto err_gpio_request;
 	}
 	/*
-	 * XXX: leave sensor always on for proper function
-	 * iqs253_chip->using_regulator = true;
+	 * XXX: Do not set using_regulator = true here as
+	 * it affects proximity detection
 	 */
 
 	ret = iqs253_i2c_read_byte(iqs253_chip, 0);
 	if (ret == IQS253_PROD_ID) {
+		pr_info("%s :-->Chipid Detected: %d <--\n", __func__, iqs253_chip->version);
+		iqs253_i2c_firsthand_shake(iqs253_chip);
 		iqs253_chip->version = 253;
 	} else if (ret == IQS263_PROD_ID) {
+	       pr_info("%s :-->Chipid Detected:  %d <--\n", __func__, iqs253_chip->version);
 		iqs253_chip->version = 263;
+		ret = iqs263_set(iqs253_chip);
 	} else {
 		dev_err(&client->dev,
 			"devname:%s func:%s device not present\n",
