@@ -1551,62 +1551,89 @@ void tegra_dc_get_fbvblank(struct tegra_dc *dc, struct fb_vblank *vblank)
 		vblank->flags = FB_VBLANK_HAVE_VSYNC;
 }
 
-int tegra_dc_wait_for_vsync(struct tegra_dc *dc)
+/* assumes dc->lock is already taken. */
+static void _tegra_dc_vsync_enable(struct tegra_dc *dc)
 {
-	int ret = -ENOTTY;
+	int vsync_irq;
 
-	if (!(dc->out->flags & TEGRA_DC_OUT_ONE_SHOT_MODE) || !dc->enabled)
-		return ret;
-
-	tegra_dc_get(dc);
-	if (dc->out_ops && dc->out_ops->hold)
-		dc->out_ops->hold(dc);
-
-	/*
-	 * Logic is as follows
-	 * a) Indicate we need a vblank.
-	 * b) Wait for completion to be signalled from isr.
-	 * c) Initialize completion for next iteration.
-	 */
-
-	mutex_lock(&dc->one_shot_lp_lock);
-	dc->out->user_needs_vblank = true;
-
-	mutex_lock(&dc->lock);
-	tegra_dc_unmask_interrupt(dc, MSF_INT);
-	mutex_unlock(&dc->lock);
-
-	ret = wait_for_completion_interruptible(&dc->out->user_vblank_comp);
-	init_completion(&dc->out->user_vblank_comp);
-
-	mutex_lock(&dc->lock);
-	tegra_dc_mask_interrupt(dc, MSF_INT);
-	mutex_unlock(&dc->lock);
-
-	mutex_unlock(&dc->one_shot_lp_lock);
-
-	if (dc->out_ops && dc->out_ops->release)
-		dc->out_ops->release(dc);
-	tegra_dc_put(dc);
-
-	return ret;
+	if (dc->out->type == TEGRA_DC_OUT_DSI)
+		vsync_irq = MSF_INT;
+	else
+		vsync_irq = V_BLANK_INT;
+	if (!dc->vblank_ref_count)
+		tegra_dc_hold_dc_out(dc);
+	set_bit(V_BLANK_USER, &dc->vblank_ref_count);
+	tegra_dc_unmask_interrupt(dc, vsync_irq);
 }
 
 void tegra_dc_vsync_enable(struct tegra_dc *dc)
 {
 	mutex_lock(&dc->lock);
-	set_bit(V_BLANK_USER, &dc->vblank_ref_count);
-	tegra_dc_unmask_interrupt(dc, V_BLANK_INT);
+	_tegra_dc_vsync_enable(dc);
 	mutex_unlock(&dc->lock);
+}
+
+/* assumes dc->lock is already taken. */
+static void _tegra_dc_vsync_disable(struct tegra_dc *dc)
+{
+	int vsync_irq;
+
+	if (dc->out->type == TEGRA_DC_OUT_DSI)
+		vsync_irq = MSF_INT;
+	else
+		vsync_irq = V_BLANK_INT;
+	clear_bit(V_BLANK_USER, &dc->vblank_ref_count);
+	if (!dc->vblank_ref_count) {
+		tegra_dc_mask_interrupt(dc, vsync_irq);
+		tegra_dc_release_dc_out(dc);
+	}
 }
 
 void tegra_dc_vsync_disable(struct tegra_dc *dc)
 {
 	mutex_lock(&dc->lock);
-	clear_bit(V_BLANK_USER, &dc->vblank_ref_count);
-	if (!dc->vblank_ref_count)
-		tegra_dc_mask_interrupt(dc, V_BLANK_INT);
+	_tegra_dc_vsync_disable(dc);
 	mutex_unlock(&dc->lock);
+}
+
+/* assumes dc->lock is already taken. */
+static void _tegra_dc_user_vsync_enable(struct tegra_dc *dc, bool enable)
+{
+	if (enable) {
+		dc->out->user_needs_vblank++;
+		init_completion(&dc->out->user_vblank_comp);
+		_tegra_dc_vsync_enable(dc);
+	} else {
+		_tegra_dc_vsync_disable(dc);
+		dc->out->user_needs_vblank--;
+	}
+}
+
+int tegra_dc_wait_for_vsync(struct tegra_dc *dc)
+{
+	unsigned long timeout_ms;
+	unsigned long refresh; /* in 1000th Hz */
+	int ret;
+
+	mutex_lock(&dc->lock);
+	if (!dc->enabled) {
+		mutex_unlock(&dc->lock);
+		return -ENOTTY;
+	}
+	refresh = tegra_dc_calc_refresh(&dc->mode);
+	/* time out if waiting took more than 2 frames */
+	timeout_ms = DIV_ROUND_UP(2 * 1000000, refresh);
+	_tegra_dc_user_vsync_enable(dc, true);
+	mutex_unlock(&dc->lock);
+
+	ret = wait_for_completion_interruptible_timeout(
+		&dc->out->user_vblank_comp, msecs_to_jiffies(timeout_ms));
+
+	mutex_lock(&dc->lock);
+	_tegra_dc_user_vsync_enable(dc, false);
+	mutex_unlock(&dc->lock);
+
+	return ret;
 }
 
 static void tegra_dc_prism_update_backlight(struct tegra_dc *dc)
@@ -1836,10 +1863,8 @@ static void tegra_dc_one_shot_irq(struct tegra_dc *dc, unsigned long status,
 {
 	/* pending user vblank, so wakeup */
 	if (status & (V_BLANK_INT | MSF_INT)) {
-		if (dc->out->user_needs_vblank) {
-			dc->out->user_needs_vblank = false;
+		if (dc->out->user_needs_vblank > 0)
 			complete(&dc->out->user_vblank_comp);
-		}
 		tegra_dc_process_vblank(dc, timestamp);
 	}
 
