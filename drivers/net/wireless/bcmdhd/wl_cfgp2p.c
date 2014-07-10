@@ -2543,7 +2543,7 @@ wl_cfgp2p_add_p2p_disc_if(void)
 
 	if (wl->p2p_wdev) {
 		CFGP2P_ERR(("p2p_wdev defined already.\n"));
-		return NULL;
+		wl_cfgp2p_del_p2p_disc_if(wl->p2p_wdev);
 	}
 
 	wdev = kzalloc(sizeof(*wdev), GFP_KERNEL);
