@@ -569,7 +569,7 @@ static int palmas_gpadc_start_convertion(struct palmas_gpadc *adc, int adc_chan)
 				PALMAS_GPADC_RT_CTRL, &val);
 		dev_err(adc->dev, "GPADC_RT_CTRL read st %d and val 0x%02x\n", ret, val);
 		ret = -ETIMEDOUT;
-		return ret;
+		goto error;
 	}
 
 	ret = palmas_bulk_read(adc->palmas, PALMAS_GPADC_BASE,
@@ -581,11 +581,15 @@ static int palmas_gpadc_start_convertion(struct palmas_gpadc *adc, int adc_chan)
 
 	ret = (val & 0xFFF);
 	if (ret == 0) {
-		ret = palmas_gpadc_check_status(adc);
-		if (ret < 0)
-			ret = -EAGAIN;
+		ret = -EBUSY;
+		goto error;
 	}
+	return ret;
 
+error:
+	palmas_gpadc_check_status(adc);
+	palmas_gpadc_auto_conv_reset(adc);
+	palmas_gpadc_auto_conv_configure(adc);
 	return ret;
 }
 
