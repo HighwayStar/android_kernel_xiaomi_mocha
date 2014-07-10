@@ -539,9 +539,23 @@ static int palmas_gpadc_start_convertion(struct palmas_gpadc *adc, int adc_chan)
 {
 	unsigned int val;
 	int ret;
+	unsigned int timeout = 10;
 
 	adc->isr_done = false;
 	INIT_COMPLETION(adc->conv_completion);
+	ret = palmas_read(adc->palmas, PALMAS_GPADC_BASE,
+				PALMAS_GPADC_STATUS, &val);
+	if (ret < 0) {
+		dev_err(adc->dev, "GPADC_STATUS read failed: %d\n",
+			ret);
+		return ret;
+	}
+	if (!(val & PALMAS_GPADC_STATUS_GPADC_AVAILABLE)) {
+		dev_err(adc->dev, "ADC is already busy STATUS = 0x%02x\n",
+				val);
+		return -EBUSY;
+	}
+
 	ret = palmas_update_bits(adc->palmas, PALMAS_GPADC_BASE,
 				PALMAS_GPADC_SW_SELECT,
 				PALMAS_GPADC_SW_SELECT_SW_START_CONV0,
@@ -551,9 +565,20 @@ static int palmas_gpadc_start_convertion(struct palmas_gpadc *adc, int adc_chan)
 		return ret;
 	}
 
-	ret = wait_for_completion_timeout(&adc->conv_completion,
-				ADC_CONVERTION_TIMEOUT);
-	if (ret == 0) {
+	while (timeout--) {
+		usleep_range(500, 600);
+		ret = palmas_read(adc->palmas, PALMAS_GPADC_BASE,
+				PALMAS_GPADC_STATUS, &val);
+		if (ret < 0) {
+			dev_err(adc->dev, "GPADC_STATUS read failed: %d\n",
+				ret);
+			return ret;
+		}
+		if (val & PALMAS_GPADC_STATUS_GPADC_AVAILABLE)
+			break;
+	}
+
+	if (timeout == 0) {
 		dev_err(adc->dev, "ADC conversion not completed\n");
 		dev_err(adc->dev, "Channel %d ISR status %d\n", adc_chan, adc->isr_done);
 		ret = palmas_read(adc->palmas, PALMAS_GPADC_BASE,
