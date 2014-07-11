@@ -135,7 +135,7 @@
 #define MAX_NUM_MAC_FILT        10
 
 
-
+#define CMD_MKEEP_ALIVE     "MKEEP_ALIVE"
 
 /* miracast related definition */
 #define MIRACAST_MODE_OFF	0
@@ -1123,6 +1123,113 @@ wl_android_ampdu_send_delba(struct net_device *dev, char *command)
 	return error;
 }
 
+static int wl_android_mkeep_alive(struct net_device *dev, char *command, int total_len)
+{
+	char *pcmd = command;
+	char *str = NULL;
+	wl_mkeep_alive_pkt_t *mkeep_alive_pkt = NULL;
+	char *ioctl_buf = NULL;
+	u16 kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	s32 err = BCME_OK;
+	uint32 len;
+	char *endptr;
+	int i = 0;
+
+	len = sizeof(wl_mkeep_alive_pkt_t);
+	mkeep_alive_pkt = (wl_mkeep_alive_pkt_t *)kzalloc(len, kflags);
+	if (!mkeep_alive_pkt) {
+		WL_ERR(("%s: mkeep_alive pkt alloc failed\n", __func__));
+		return -ENOMEM;
+	}
+
+	ioctl_buf = kzalloc(WLC_IOCTL_MEDLEN, GFP_KERNEL);
+	if (!ioctl_buf) {
+		WL_ERR(("ioctl memory alloc failed\n"));
+		if (mkeep_alive_pkt) {
+			kfree(mkeep_alive_pkt);
+		}
+		return -ENOMEM;
+	}
+	memset(ioctl_buf, 0, WLC_IOCTL_MEDLEN);
+
+	/* drop command */
+	str = bcmstrtok(&pcmd, " ", NULL);
+
+	/* get index */
+	str = bcmstrtok(&pcmd, " ", NULL);
+	if (!str) {
+		WL_ERR(("Invalid index parameter %s\n", str));
+		err = -EINVAL;
+		goto exit;
+	}
+	mkeep_alive_pkt->keep_alive_id = bcm_strtoul(str, &endptr, 0);
+	if (*endptr != '\0') {
+		WL_ERR(("Invalid index parameter %s\n", str));
+		err = -EINVAL;
+		goto exit;
+	}
+
+	/* get period */
+	str = bcmstrtok(&pcmd, " ", NULL);
+	if (!str) {
+		WL_ERR(("Invalid period parameter %s\n", str));
+		err = -EINVAL;
+		goto exit;
+	}
+	mkeep_alive_pkt->period_msec = bcm_strtoul(str, &endptr, 0);
+	if (*endptr != '\0') {
+		WL_ERR(("Invalid period parameter %s\n", str));
+		err = -EINVAL;
+		goto exit;
+	}
+
+	mkeep_alive_pkt->version = htod16(WL_MKEEP_ALIVE_VERSION);
+	mkeep_alive_pkt->length = htod16(WL_MKEEP_ALIVE_FIXED_LEN);
+
+	/*get packet*/
+	str = bcmstrtok(&pcmd, " ", NULL);
+	if (str) {
+		if (strncmp(str, "0x", 2) != 0 &&
+				strncmp(str, "0X", 2) != 0) {
+			WL_ERR(("Packet invalid format. Needs to start with 0x\n"));
+			err = -EINVAL;
+			goto exit;
+		}
+		str = str + 2; /* Skip past 0x */
+		if (strlen(str) % 2 != 0) {
+			WL_ERR(("Packet invalid format. Needs to be of even length\n"));
+			err = -EINVAL;
+			goto exit;
+		}
+		for (i = 0; *str != '\0'; i++) {
+			char num[3];
+			strncpy(num, str, 2);
+			num[2] = '\0';
+			mkeep_alive_pkt->data[i] = (uint8)bcm_strtoul(num, NULL, 16);
+			str += 2;
+		}
+		mkeep_alive_pkt->len_bytes = i;
+	}
+
+	err = wldev_iovar_setbuf(dev, "mkeep_alive", mkeep_alive_pkt,
+		len + i, ioctl_buf, WLC_IOCTL_MEDLEN, NULL);
+	if (err != BCME_OK) {
+		WL_ERR(("%s: Fail to set iovar %d\n", __func__, err));
+		err = -EINVAL;
+	}
+
+exit:
+	if (mkeep_alive_pkt)
+		kfree(mkeep_alive_pkt);
+
+	if (ioctl_buf)
+		kfree(ioctl_buf);
+
+	return err;
+
+
+}
+
 int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 {
 #define PRIVATE_COMMAND_MAX_LEN	8192
@@ -1335,6 +1442,11 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		strlen(CMD_SETIBSSBEACONOUIDATA)) == 0)
 		bytes_written = wl_android_set_ibss_beacon_ouidata(net, command,
 			priv_cmd.total_len);
+	else if (strnicmp(command, CMD_MKEEP_ALIVE,
+		strlen(CMD_MKEEP_ALIVE)) == 0) {
+		DHD_ERROR(("%s: CMD_MKEEP_ALIVE\n", __func__));
+		bytes_written = wl_android_mkeep_alive(net, command, priv_cmd.total_len);
+	}
 	else {
 		DHD_ERROR(("Unknown PRIVATE command %s - ignored\n", command));
 		snprintf(command, 3, "OK");
