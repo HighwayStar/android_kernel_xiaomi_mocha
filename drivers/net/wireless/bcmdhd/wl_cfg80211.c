@@ -7732,6 +7732,9 @@ wl_bss_connect_done(struct wl_priv *wl, struct net_device *ndev,
 				INIT_COMPLETION(wl->iface_disable);
 			}
 		}
+		/* Update the cfg layer with the lates active channels available */
+		wl_update_wiphybands(NULL, true);
+
 		cfg80211_connect_result(ndev,
 			curbssid,
 			conn_info->req_ie,
