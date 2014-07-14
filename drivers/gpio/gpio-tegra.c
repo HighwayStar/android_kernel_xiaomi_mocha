@@ -6,7 +6,7 @@
  * Author:
  *	Erik Gilling <konkers@google.com>
  *
- * Copyright (c) 2011-2013, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2011-2014, NVIDIA CORPORATION.  All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -36,6 +36,7 @@
 #include <linux/syscore_ops.h>
 #include <linux/tegra-soc.h>
 #include <linux/irqchip/tegra.h>
+#include <linux/tegra-pm.h>
 
 #define GPIO_BANK(x)		((x) >> 5)
 #define GPIO_PORT(x)		(((x) >> 3) & 0x3)
@@ -79,6 +80,7 @@ struct tegra_gpio_bank {
 	u32 int_lvl[4];
 	u32 wake_enb[4];
 	int wake_depth;
+	int wake_lp0_cap[4];
 #endif
 };
 
@@ -371,6 +373,7 @@ static int tegra_gpio_suspend(void)
 
 		for (p = 0; p < ARRAY_SIZE(bank->oe); p++) {
 			unsigned int gpio = (b<<5) | (p<<3);
+			unsigned int wake_enb;
 			bank->cnf[p] = tegra_gpio_readl(GPIO_CNF(gpio));
 			bank->out[p] = tegra_gpio_readl(GPIO_OUT(gpio));
 			bank->oe[p] = tegra_gpio_readl(GPIO_OE(gpio));
@@ -378,7 +381,10 @@ static int tegra_gpio_suspend(void)
 			bank->int_lvl[p] = tegra_gpio_readl(GPIO_INT_LVL(gpio));
 
 			/* disable gpio interrupts that are not wake sources */
-			tegra_gpio_writel(bank->wake_enb[p], GPIO_INT_ENB(gpio));
+			wake_enb = (current_suspend_mode == TEGRA_SUSPEND_LP0) ?
+				(bank->wake_enb[p] & bank->wake_lp0_cap[p]) :
+				bank->wake_enb[p];
+			tegra_gpio_writel(wake_enb, GPIO_INT_ENB(gpio));
 		}
 	}
 	local_irq_restore(flags);
@@ -386,7 +392,7 @@ static int tegra_gpio_suspend(void)
 	return 0;
 }
 
-static int tegra_update_lp1_gpio_wake(struct irq_data *d, bool enable)
+static int tegra_update_lp1_gpio_wake(struct irq_data *d, bool enable, int wake)
 {
 #ifdef CONFIG_PM_SLEEP
 	struct tegra_gpio_bank *bank = irq_data_get_irq_chip_data(d);
@@ -406,6 +412,10 @@ static int tegra_update_lp1_gpio_wake(struct irq_data *d, bool enable)
 		bank->wake_enb[port_index] |= mask;
 	else
 		bank->wake_enb[port_index] &= ~mask;
+
+	/* Enable GPIO interrupt in Lp0 when GPIO is a Lp0 wake up source */
+	if (wake >= 0)
+		bank->wake_lp0_cap[port_index] |= mask;
 #endif
 
 	return 0;
@@ -421,7 +431,7 @@ static int tegra_gpio_irq_set_wake(struct irq_data *d, unsigned int enable)
 	 * update LP1 mask for gpio port/pin interrupt
 	 * LP1 enable independent of LP0 wake support
 	 */
-	ret = tegra_update_lp1_gpio_wake(d, enable);
+	ret = tegra_update_lp1_gpio_wake(d, enable, wake);
 	if (ret) {
 		pr_err("Failed gpio lp1 %s for irq=%d, error=%d\n",
 			(enable ? "enable" : "disable"), d->irq, ret);
