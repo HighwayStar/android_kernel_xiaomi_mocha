@@ -150,7 +150,6 @@ static int lc709203f_update_soc_voltage(struct lc709203f_chip *chip)
 		chip->capacity_level = POWER_SUPPLY_CAPACITY_LEVEL_NORMAL;
 	}
 
-	battery_gauge_report_battery_soc(chip->bg_dev, chip->soc);
 	return 0;
 }
 
@@ -189,6 +188,7 @@ static void lc709203f_work(struct work_struct *work)
 	}
 
 	mutex_unlock(&chip->mutex);
+	battery_gauge_report_battery_soc(chip->bg_dev, chip->soc);
 	schedule_delayed_work(&chip->work, LC709203F_DELAY);
 }
 
@@ -687,6 +687,7 @@ static int lc709203f_resume(struct device *dev)
 	mutex_lock(&chip->mutex);
 	lc709203f_update_soc_voltage(chip);
 	mutex_unlock(&chip->mutex);
+	battery_gauge_report_battery_soc(chip->bg_dev, chip->soc);
 
 	dev_info(&chip->client->dev, "At resume Voltage %dmV and SoC %d%%\n",
 			chip->vcell, chip->soc);
