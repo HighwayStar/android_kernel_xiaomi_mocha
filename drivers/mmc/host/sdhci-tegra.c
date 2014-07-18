@@ -1434,6 +1434,7 @@ static void tegra_sdhci_set_clock(struct sdhci_host *sdhci, unsigned int clock)
 			if (ret) {
 				dev_err(mmc_dev(sdhci->mmc),
 				"clock enable is failed, ret: %d\n", ret);
+				mutex_unlock(&tegra_host->set_clock_mutex);
 				return;
 			}
 			tegra_host->clk_enabled = true;
@@ -1449,6 +1450,7 @@ static void tegra_sdhci_set_clock(struct sdhci_host *sdhci, unsigned int clock)
 			if (ret) {
 				dev_err(mmc_dev(sdhci->mmc),
 				"clock enable is failed, ret: %d\n", ret);
+				mutex_unlock(&tegra_host->set_clock_mutex);
 				return;
 			}
 			tegra_host->is_sdmmc_emc_clk_on = true;
@@ -1458,6 +1460,7 @@ static void tegra_sdhci_set_clock(struct sdhci_host *sdhci, unsigned int clock)
 			if (ret) {
 				dev_err(mmc_dev(sdhci->mmc),
 				"clock enable is failed, ret: %d\n", ret);
+				mutex_unlock(&tegra_host->set_clock_mutex);
 				return;
 			}
 			tegra_host->is_sdmmc_sclk_on = true;
