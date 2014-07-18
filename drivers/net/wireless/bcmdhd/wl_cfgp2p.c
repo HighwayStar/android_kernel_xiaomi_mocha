@@ -2655,6 +2655,7 @@ wl_cfgp2p_del_p2p_disc_if(struct wireless_dev *wdev)
 	WL_TRACE(("Enter\n"));
 
 	cfg80211_unregister_wdev(wdev);
+	cancel_work_sync(&wdev->cleanup_work);
 
 	kfree(wdev);
 
