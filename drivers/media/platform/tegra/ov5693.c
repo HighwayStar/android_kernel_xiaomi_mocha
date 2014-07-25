@@ -2909,6 +2909,8 @@ static int ov5693_get_fuse_id(struct ov5693_info *info)
 {
 	/* fuse stored at ov5693 bank 0 */
 	int err;
+	/* delay to ensure i2c is ready after poweron */
+	usleep_range(150, 200);
 	err = regmap_write(info->regmap, 0x0100, 0x01);
 	if (err != 0) {
 		dev_err(&info->i2c_client->dev,
