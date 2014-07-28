@@ -164,7 +164,9 @@ struct tegra_dc {
 	int				n_windows;
 #ifdef CONFIG_TEGRA_DC_CMU
 	struct tegra_dc_cmu		cmu;
+	struct tegra_dc_cmu		cmu_shadow;
 	bool				cmu_dirty;
+	bool				cmu_shadow_dirty;
 	bool				cmu_enabled;
 #endif
 	wait_queue_head_t		wq;
@@ -201,6 +203,7 @@ struct tegra_dc {
 
 	struct work_struct		vblank_work;
 	long				vblank_ref_count;
+	struct work_struct		frame_end_work;
 	struct work_struct		vpulse2_work;
 	long				vpulse2_ref_count;
 

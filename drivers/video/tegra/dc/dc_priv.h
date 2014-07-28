@@ -438,6 +438,7 @@ void tegra_dc_set_color_control(struct tegra_dc *dc);
 #ifdef CONFIG_TEGRA_DC_CMU
 void tegra_dc_cmu_enable(struct tegra_dc *dc, bool cmu_enable);
 int tegra_dc_update_cmu(struct tegra_dc *dc, struct tegra_dc_cmu *cmu);
+int tegra_dc_update_cmu_aligned(struct tegra_dc *dc, struct tegra_dc_cmu *cmu);
 #endif
 
 struct tegra_dc_platform_data
