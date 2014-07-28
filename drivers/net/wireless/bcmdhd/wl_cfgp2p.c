@@ -2629,6 +2629,9 @@ wl_cfgp2p_stop_p2p_device(struct wiphy *wiphy, struct wireless_dev *wdev)
 	if (clear_flag)
 		wl_clr_drv_status(wl, SCANNING, ndev);
 
+	if (!wl->p2p)
+		return;
+
 	ret = wl_cfgp2p_disable_discovery(wl);
 	if (unlikely(ret < 0)) {
 		CFGP2P_ERR(("P2P disable discovery failed, ret=%d\n", ret));
