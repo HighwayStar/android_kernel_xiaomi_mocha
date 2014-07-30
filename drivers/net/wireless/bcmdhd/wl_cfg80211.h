@@ -32,6 +32,7 @@
 #include <proto/ethernet.h>
 #include <wlioctl.h>
 #include <linux/wireless.h>
+#include <linux/workqueue.h>
 #include <net/cfg80211.h>
 #include <linux/rfkill.h>
 
@@ -502,6 +503,7 @@ struct wl_priv {
 	EVENT_HANDLER evt_handler[WLC_E_LAST];
 	struct list_head eq_list;	/* used for event queue */
 	struct list_head net_list;     /* used for struct net_info */
+	struct list_head dealloc_list;     /* used for struct net_info which can be freed */
 	spinlock_t eq_lock;	/* for event queue synchronization */
 	spinlock_t cfgdrv_lock;	/* to protect scan status (and others if needed) */
 	struct completion act_frm_scan;
@@ -587,6 +589,7 @@ struct wl_priv {
 	bool scan_suppressed;
 	struct timer_list scan_supp_timer;
 	struct work_struct wlan_work;
+	struct work_struct dealloc_work;
 	struct mutex event_sync;	/* maily for up/down synchronization */
 	bool pm_enable_work_on;
 	struct delayed_work pm_enable_work;
@@ -626,23 +629,27 @@ wl_alloc_netinfo(struct wl_priv *wl, struct net_device *ndev,
 	return err;
 }
 static inline void
-wl_dealloc_netinfo(struct wl_priv *wl, struct net_device *ndev)
+wl_remove_netinfo(struct wl_priv *wl, struct net_device *ndev)
 {
 	struct net_info *_net_info, *next;
+	bool dealloc_needed = false;
 
 	list_for_each_entry_safe(_net_info, next, &wl->net_list, list) {
 		if (ndev && (_net_info->ndev == ndev)) {
 			list_del(&_net_info->list);
 			wl->iface_cnt--;
 			if (_net_info->wdev) {
-				kfree(_net_info->wdev);
 				ndev->ieee80211_ptr = NULL;
 			}
-			kfree(_net_info);
+			INIT_LIST_HEAD(&_net_info->list);
+			list_add(&_net_info->list, &wl->dealloc_list);
+			dealloc_needed = true;
 		}
 	}
-
+	if (dealloc_needed)
+		schedule_work(&wl->dealloc_work);
 }
+
 static inline void
 wl_delete_all_netinfo(struct wl_priv *wl)
 {

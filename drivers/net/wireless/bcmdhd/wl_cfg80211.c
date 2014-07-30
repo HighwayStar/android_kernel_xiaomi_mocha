@@ -8742,7 +8742,7 @@ wl_cfg80211_netdev_notifier_call(struct notifier_block * nb,
 
 		case NETDEV_UNREGISTER:
 			/* after calling list_del_rcu(&wdev->list) */
-			wl_dealloc_netinfo(wl, ndev);
+			wl_remove_netinfo(wl, ndev);
 			break;
 		case NETDEV_GOING_DOWN:
 			/* At NETDEV_DOWN state, wdev_cleanup_work work will be called.
@@ -9372,6 +9372,23 @@ static s32 wl_init_scan(struct wl_priv *wl)
 	return err;
 }
 
+static void wl_dealloc_netinfo(struct work_struct *work)
+{
+	struct net_info *_net_info, *next;
+	struct wl_priv *wl = container_of(work, struct wl_priv, dealloc_work);
+
+	list_for_each_entry_safe(_net_info, next, &wl->dealloc_list, list) {
+		list_del(&_net_info->list);
+		if (_net_info->wdev) {
+			flush_work(&_net_info->wdev->cleanup_work);
+			WARN_ON(work_pending(&_net_info->wdev->cleanup_work));
+			kfree(_net_info->wdev);
+		}
+		kfree(_net_info);
+	}
+
+}
+
 static s32 wl_init_priv(struct wl_priv *wl)
 {
 	struct wiphy *wiphy = wl_to_wiphy(wl);
@@ -9412,6 +9429,8 @@ static s32 wl_init_priv(struct wl_priv *wl)
 	wl_init_prof(wl, ndev);
 	wl_link_down(wl);
 	DNGL_FUNC(dhd_cfg80211_init, (wl));
+	INIT_LIST_HEAD(&wl->dealloc_list);
+	INIT_WORK(&wl->dealloc_work, wl_dealloc_netinfo);
 
 	return err;
 }
