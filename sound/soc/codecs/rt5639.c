@@ -65,8 +65,8 @@ static struct rt5639_init_reg init_list[] = {
 	{RT5639_PRIV_DATA	, 0x0aa8},
 	{RT5639_PRIV_INDEX	, 0x0014},/* PR14 = 8aaa'h */
 	{RT5639_PRIV_DATA	, 0x8aaa},
-	{RT5639_PRIV_INDEX	, 0x0020},/* PR20 = 6115'h */
-	{RT5639_PRIV_DATA	, 0x6115},
+	{RT5639_PRIV_INDEX	, 0x0020},/* PR20 = 6110'h */
+	{RT5639_PRIV_DATA	, 0x6110},
 	{RT5639_PRIV_INDEX	, 0x0023},/* PR23 = 0804'h */
 	{RT5639_PRIV_DATA	, 0x0804},
 	/*{RT5639_PRIV_INDEX	, 0x0015},*//* PR15 = ab00'h */
@@ -511,7 +511,6 @@ int rt5639_headset_detect(struct snd_soc_codec *codec, int jack_insert)
 {
 	int jack_type;
 	int sclk_src = RT5639_SCLK_S_MCLK;
-	int reg63, reg64;
 	int i, headphone = 0, headset = 0, previous_state = RT5639_NO_JACK;
 	bool hp_detected = false;
 	struct rt5639_priv *rt5639 = snd_soc_codec_get_drvdata(codec);
@@ -519,8 +518,9 @@ int rt5639_headset_detect(struct snd_soc_codec *codec, int jack_insert)
 	if (jack_insert) {
 		if (snd_soc_read(codec, RT5639_INT_IRQ_ST) & 0x10)
 			return RT5639_NO_JACK;
-		reg63 = snd_soc_read(codec, RT5639_PWR_ANLG1);
-		reg64 = snd_soc_read(codec, RT5639_PWR_ANLG2);
+		snd_soc_dapm_force_enable_pin(&codec->dapm, "LDO2");
+		snd_soc_dapm_force_enable_pin(&codec->dapm, "micbias1");
+		snd_soc_dapm_sync(&codec->dapm);
 		if (SND_SOC_BIAS_OFF == codec->dapm.bias_level) {
 			snd_soc_write(codec, RT5639_PWR_ANLG1, 0xa814);
 			snd_soc_write(codec, RT5639_MICBIAS, 0x3810);
@@ -621,8 +621,9 @@ int rt5639_headset_detect(struct snd_soc_codec *codec, int jack_insert)
 		}
 		snd_soc_update_bits(codec, RT5639_GLB_CLK,
 			RT5639_SCLK_SRC_MASK, sclk_src);
-		snd_soc_write(codec, RT5639_PWR_ANLG1, reg63);
-		snd_soc_write(codec, RT5639_PWR_ANLG2, reg64);
+		snd_soc_dapm_disable_pin(&codec->dapm, "micbias1");
+		snd_soc_dapm_disable_pin(&codec->dapm, "LDO2");
+		snd_soc_dapm_sync(&codec->dapm);
 	} else {
 		snd_soc_update_bits(codec, RT5639_MICBIAS,
 			RT5639_MIC1_OVCD_MASK,
@@ -3154,10 +3155,6 @@ static int rt5639_set_bias_level(struct snd_soc_codec *codec,
 				RT5639_PWR_FV1 | RT5639_PWR_FV2,
 				RT5639_PWR_FV1 | RT5639_PWR_FV2);
 			snd_soc_write(codec, RT5639_GEN_CTRL1, 0x3b01);
-			codec->cache_only = false;
-			codec->cache_sync = 1;
-			snd_soc_cache_sync(codec);
-			rt5639_index_sync(codec);
 		}
 		break;
 
@@ -3301,13 +3298,14 @@ static int rt5639_resume(struct snd_soc_codec *codec)
 {
 	int ret = 0 ;
 
+	rt5639_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
 	codec->cache_sync = 1;
 	ret = snd_soc_cache_sync(codec);
 	if (ret) {
 		dev_err(codec->dev,"Failed to sync cache: %d\n", ret);
 		return ret;
 	}
-	rt5639_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
+	rt5639_index_sync(codec);
 	return 0;
 }
 #else
@@ -3446,3 +3444,4 @@ module_exit(rt5639_modexit);
 MODULE_DESCRIPTION("ASoC RT5639 driver");
 MODULE_AUTHOR("Johnny Hsu <johnnyhsu@realtek.com>");
 MODULE_LICENSE("GPL");
+
