@@ -165,7 +165,7 @@ struct tegra_dc {
 #ifdef CONFIG_TEGRA_DC_CMU
 	struct tegra_dc_cmu		cmu;
 	struct tegra_dc_cmu		cmu_shadow;
-	bool				cmu_dirty;
+	bool				cmu_skip_once;
 	bool				cmu_shadow_dirty;
 	bool				cmu_enabled;
 #endif
