@@ -226,7 +226,8 @@ static int handle_page_alloc(struct nvmap_client *client,
 	 * corruption in pages that get mapped as something other than WB in
 	 * userspace and leaked kernel data structures.
 	 */
-	nvmap_flush_cache(pages, nr_page);
+	if (page_index < nr_page)
+		nvmap_flush_cache(&pages[page_index], nr_page - page_index);
 
 	if (err)
 		goto fail;
