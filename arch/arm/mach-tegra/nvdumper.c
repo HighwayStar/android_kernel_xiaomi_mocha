@@ -73,10 +73,6 @@ static int __init nvdumper_init(void)
 {
 	int ret, dirty;
 
-#ifdef CONFIG_TEGRA_USE_NCT
-	union nct_item_type *item;
-#endif
-
 	if (!nvdumper_reserved) {
 		pr_info("nvdumper: not configured\n");
 		return -ENOTSUPP;
@@ -110,37 +106,9 @@ static int __init nvdumper_init(void)
 		pr_info("nvdumper: last reboot was unknown\n");
 		break;
 	}
-#ifdef CONFIG_TEGRA_USE_NCT
-	item = kzalloc(sizeof(*item), GFP_KERNEL);
-	if (!item) {
-		pr_err("failed to allocate memory\n");
-		goto err_out3;
-	}
 
-	ret = tegra_nct_read_item(NCT_ID_RAMDUMP, item);
-	if (ret < 0) {
-		pr_err("%s: NCT read failure. nvdumper disabled\n", __func__);
-		kfree(item);
-		goto err_out3;
-	}
-
-	pr_info("%s: RAMDUMP flag(%d) from NCT\n",
-			__func__, item->ramdump.flag);
-	if (item->ramdump.flag == 1)
-		set_dirty_state(1);
-	else
-		set_dirty_state(0);
-
-	kfree(item);
-
-	return 0;
-
-err_out3:
-
-#else
 	set_dirty_state(1);
 	return 0;
-#endif
 
 err_out2:
 	unregister_reboot_notifier(&nvdumper_reboot_notifier);
