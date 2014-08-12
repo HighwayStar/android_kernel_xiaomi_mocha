@@ -36,7 +36,7 @@
 
 static int wdt_heartbeat = 30;
 
-#if defined(CONFIG_ARCH_TEGRA_3x_SOC)
+#if defined(CONFIG_ARCH_TEGRA_3x_SOC) || defined(CONFIG_ARCH_TEGRA_12x_SOC)
 #define TIMER_PTV			0
  #define TIMER_EN			(1 << 31)
  #define TIMER_PERIODIC			(1 << 30)
@@ -119,11 +119,15 @@ static struct syscore_ops tegra_wdt_syscore_ops = {
 	.resume =	tegra_wdt_reset_enable,
 };
 
-void __init tegra_wdt_recovery_init(void)
+static int __init tegra_wdt_recovery_init(void)
 {
 #ifdef CONFIG_PM
 	/* Register PM notifier. */
 	register_pm_notifier(&tegra_wdt_notify);
 #endif
 	register_syscore_ops(&tegra_wdt_syscore_ops);
+
+	return 0;
 }
+
+subsys_initcall(tegra_wdt_recovery_init);
