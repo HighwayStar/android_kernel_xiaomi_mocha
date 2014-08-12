@@ -218,6 +218,8 @@ static int vi_probe(struct platform_device *dev)
 	if (err)
 		goto camera_unregister;
 
+	nvhost_vi_init(dev);
+
 	return 0;
 
 camera_unregister:
