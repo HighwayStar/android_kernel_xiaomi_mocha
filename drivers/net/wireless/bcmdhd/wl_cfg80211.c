@@ -7537,26 +7537,37 @@ static s32 wl_update_bss_info(struct wl_priv *wl, struct net_device *ndev)
 	u8 *curbssid;
 	s32 err = 0;
 	struct wiphy *wiphy;
+	struct ieee80211_supported_band *band;
+	struct ieee80211_channel *channel = NULL;
+	u16 chan;
+	u32 freq;
 
+	mutex_lock(&wl->usr_sync);
 	wiphy = wl_to_wiphy(wl);
 
 	ssid = (struct wlc_ssid *)wl_read_prof(wl, ndev, WL_PROF_SSID);
 	curbssid = wl_read_prof(wl, ndev, WL_PROF_BSSID);
-	bss = cfg80211_get_bss(wiphy, NULL, curbssid,
-		ssid->SSID, ssid->SSID_len, WLAN_CAPABILITY_ESS,
-		WLAN_CAPABILITY_ESS);
-
-	mutex_lock(&wl->usr_sync);
+	*(u32 *) wl->extra_buf = htod32(WL_EXTRA_BUF_MAX);
+	err = wldev_ioctl(ndev, WLC_GET_BSS_INFO,
+				wl->extra_buf, WL_EXTRA_BUF_MAX, false);
+	if (unlikely(err)) {
+		WL_ERR(("Could not get bss info %d\n", err));
+		goto update_bss_info_out;
+	}
+	bi = (struct wl_bss_info *)(wl->extra_buf + 4);
+	chan = bi->ctl_ch ? bi->ctl_ch :
+		CHSPEC_CHANNEL(wl_chspec_driver_to_host(bi->chanspec));
+	if (chan <= CH_MAX_2G_CHANNEL)
+		band = wiphy->bands[IEEE80211_BAND_2GHZ];
+	else
+		band = wiphy->bands[IEEE80211_BAND_5GHZ];
+	freq = ieee80211_channel_to_frequency(chan, band->band);
+	channel = ieee80211_get_channel(wiphy, freq);
+	bss = cfg80211_get_bss(wiphy, channel, curbssid,
+				ssid->SSID, ssid->SSID_len, WLAN_CAPABILITY_ESS,
+				WLAN_CAPABILITY_ESS);
 	if (!bss) {
 		WL_DBG(("Could not find the AP\n"));
-		*(u32 *) wl->extra_buf = htod32(WL_EXTRA_BUF_MAX);
-		err = wldev_ioctl(ndev, WLC_GET_BSS_INFO,
-			wl->extra_buf, WL_EXTRA_BUF_MAX, false);
-		if (unlikely(err)) {
-			WL_ERR(("Could not get bss info %d\n", err));
-			goto update_bss_info_out;
-		}
-		bi = (struct wl_bss_info *)(wl->extra_buf + 4);
 		if (memcmp(bi->BSSID.octet, curbssid, ETHER_ADDR_LEN)) {
 			WL_ERR(("Bssid doesn't match\n"));
 			err = -EIO;
