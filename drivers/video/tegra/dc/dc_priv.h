@@ -399,7 +399,7 @@ void tegra_dc_release_dc_out(struct tegra_dc *dc);
 int tegra_dc_config_frame_end_intr(struct tegra_dc *dc, bool enable);
 
 /* defined in dc.c, used in dsi.c */
-int tegra_dc_wait_for_frame_end(struct tegra_dc *dc,
+int _tegra_dc_wait_for_frame_end(struct tegra_dc *dc,
 	u32 timeout_ms);
 
 /* defined in bandwidth.c, used in dc.c */
