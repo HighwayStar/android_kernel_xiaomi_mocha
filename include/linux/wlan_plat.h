@@ -15,6 +15,8 @@
  */
 #ifndef _LINUX_WLAN_PLAT_H_
 #define _LINUX_WLAN_PLAT_H_
+#define WLAN_PLAT_NODFS_FLAG   0x01
+
 
 #include <linux/sysedp.h>
 
@@ -24,7 +26,7 @@ struct wifi_platform_data {
 	int (*set_carddetect)(int val);
 	void *(*mem_prealloc)(int section, unsigned long size);
 	int (*get_mac_addr)(unsigned char *buf);
-	void *(*get_country_code)(char *ccode);
+	void *(*get_country_code)(char *ccode, u32 flags);
 	struct sysedp_consumer *sysedpc;
 };
 
