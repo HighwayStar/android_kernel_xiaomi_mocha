@@ -1474,22 +1474,17 @@ static int tegra_usb_set_charging_current(struct tegra_udc *udc)
 	}
 
 	ret = 0;
-	/*
-	 * we set charging regulator's maximum charging current 1st, then
-	 * notify the charging type.
-	 */
 	if (NULL != udc->vbus_reg && !udc->vbus_in_lp0) {
+		tegra_udc_set_extcon_state(udc);
 		if (udc->connect_type != udc->connect_type_lp0 ||
 					udc->connect_type == CONNECT_TYPE_NONE)
 			ret = regulator_set_current_limit(udc->vbus_reg,
 								 0, max_ua);
 	}
 
-
-	if (!udc->vbus_in_lp0) {
-		tegra_udc_set_extcon_state(udc);
+	if (!udc->vbus_in_lp0)
 		udc->connect_type_lp0 = CONNECT_TYPE_NONE;
-	}
+
 	return ret;
 }
 

@@ -449,7 +449,8 @@ static void irq_work(struct work_struct *work)
 	unsigned long status;
 
 	/* Adding delay for proper detection of y-cable */
-	msleep(150);
+	if (tegra->support_y_cable && otg->phy->state == OTG_STATE_A_SUSPEND)
+		msleep(400);
 
 	mutex_lock(&tegra->irq_work_mutex);
 
