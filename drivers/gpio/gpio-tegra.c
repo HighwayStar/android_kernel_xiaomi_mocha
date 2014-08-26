@@ -488,6 +488,7 @@ static struct irq_chip tegra_gpio_irq_chip = {
 	.irq_ack	= tegra_gpio_irq_ack,
 	.irq_mask	= tegra_gpio_irq_mask,
 	.irq_unmask	= tegra_gpio_irq_unmask,
+	.irq_disable	= tegra_gpio_irq_mask,
 	.irq_set_type	= tegra_gpio_irq_set_type,
 	.irq_set_wake	= tegra_gpio_irq_set_wake,
 	.flags		= IRQCHIP_MASK_ON_SUSPEND,
