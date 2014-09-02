@@ -5200,14 +5200,11 @@ wl_cfg80211_set_channel(struct wiphy *wiphy, struct net_device *dev,
 	s32 _chan;
 	chanspec_t chspec = 0;
 	chanspec_t fw_chspec = 0;
-	u32 bw = WL_CHANSPEC_BW_20;
+	u32 bw = WL_CHANSPEC_BW_40;
+	u32 chanspec = 0;
+	struct net_info *iter, *next;
 
 	s32 err = BCME_OK;
-	s32 bw_cap = 0;
-	struct {
-		u32 band;
-		u32 bw_cap;
-	} param = {0, 0};
 	struct wl_priv *wl = wiphy_priv(wiphy);
 
 	if (!wl)
@@ -5217,35 +5214,33 @@ wl_cfg80211_set_channel(struct wiphy *wiphy, struct net_device *dev,
 	WL_ERR(("netdev_ifidx(%d), chan_type(%d) target channel(%d) \n",
 		dev->ifindex, channel_type, _chan));
 
-
-	if (chan->band == IEEE80211_BAND_5GHZ) {
-		param.band = WLC_BAND_5G;
-		err = wldev_iovar_getbuf(dev, "bw_cap", &param, sizeof(param),
-			wl->ioctl_buf, WLC_IOCTL_SMLEN, &wl->ioctl_buf_sync);
-		if (err) {
-			if (err != BCME_UNSUPPORTED) {
-				WL_ERR(("bw_cap failed, %d\n", err));
-				return err;
-			} else {
-				err = wldev_iovar_getint(dev, "mimo_bw_cap", &bw_cap);
-				if (err) {
-					WL_ERR(("error get mimo_bw_cap (%d)\n", err));
+	/* In 5GHz band If AP is connected in 20 MHz then follow AP's bw
+	   else 40MHz by default. */
+	for_each_ndev(wl, iter, next) {
+		/* In case interface name is not wlan0 put the right
+		   interface name. */
+		if(!strncmp(iter->ndev->name, "wlan0", strlen("wlan0"))) {
+			if (wl_get_drv_status(wl, CONNECTED, iter->ndev)) {
+				if (chan->band == IEEE80211_BAND_5GHZ) {
+					if(wldev_iovar_getint(iter->ndev,
+						"chanspec", (s32 *)&chanspec) == BCME_OK) {
+						chanspec = wl_chspec_driver_to_host(chanspec);
+						/* bits 11,12 and 13 starting from 0 are bw
+						   bits. So, values formed with these bits
+						   are 0 ,1, 2, 3, 4, 5, 6 which are mapped
+						   to 5, 10, 20 ,40 ,80, 160, 80+80 MHz
+						   respectively. In below case, 0x1000 = 2
+						   which is for 20 MHz */
+						if((chanspec & 0x3800) == 0x1000)
+							bw = WL_CHANSPEC_BW_20;
+					}
+				} else {
+					/* In 2.4 GHz supported bw is 20 MHz */
+					bw = WL_CHANSPEC_BW_20;
 				}
-				if (bw_cap != WLC_N_BW_20ALL)
-					bw = WL_CHANSPEC_BW_40;
 			}
-		} else {
-			if (WL_BW_CAP_80MHZ(wl->ioctl_buf[0]))
-				bw = WL_CHANSPEC_BW_80;
-			else if (WL_BW_CAP_40MHZ(wl->ioctl_buf[0]))
-				bw = WL_CHANSPEC_BW_40;
-			else
-				bw = WL_CHANSPEC_BW_20;
-
 		}
-
-	} else if (chan->band == IEEE80211_BAND_2GHZ)
-		bw = WL_CHANSPEC_BW_20;
+	}
 set_channel:
 	chspec = wf_channel2chspec(_chan, bw);
 	if (wf_chspec_valid(chspec)) {
