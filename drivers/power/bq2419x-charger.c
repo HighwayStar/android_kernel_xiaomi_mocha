@@ -117,6 +117,7 @@ struct bq2419x_chip {
 	struct bq2419x_reg_info		chg_voltage_control;
 	struct bq2419x_vbus_platform_data *vbus_pdata;
 	struct bq2419x_charger_platform_data *charger_pdata;
+	int				last_input_voltage;
 };
 
 static int current_to_reg(const unsigned int *tbl,
@@ -340,6 +341,7 @@ static int bq2419x_charger_init(struct bq2419x_chip *bq2419x)
 			bq2419x->input_src.mask, bq2419x->input_src.val);
 	if (ret < 0)
 		dev_err(bq2419x->dev, "INPUT_SRC_REG write failed %d\n", ret);
+	bq2419x->last_input_voltage = (bq2419x->input_src.val >> 3) & 0xF;
 
 	ret = regmap_update_bits(bq2419x->regmap, BQ2419X_THERM_REG,
 		    bq2419x->ir_comp_therm.mask, bq2419x->ir_comp_therm.val);
@@ -427,6 +429,7 @@ static int bq2419x_configure_charging_current(struct bq2419x_chip *bq2419x,
 		dev_err(bq2419x->dev, "INPUT_SRC_REG update failed %d\n", ret);
 		return ret;
 	}
+	bq2419x->last_input_voltage =  (bq2419x->input_src.val >> 3) & 0xF;
 
 	/* Configure input current limit in steps */
 	val = current_to_reg(iinlim, ARRAY_SIZE(iinlim), in_current_limit);
@@ -1402,9 +1405,16 @@ static int bq2419x_charger_input_voltage_configure(
 	if (!input_voltage_limit)
 		return 0;
 
+
 	/*Configure input voltage limit */
 	vreg = bq2419x_val_to_reg(input_voltage_limit,
 			BQ2419X_INPUT_VINDPM_OFFSET, 80, 4, 0);
+	if (bq2419x->last_input_voltage == vreg)
+		return 0;
+
+	dev_info(bq2419x->dev, "Changing VINDPM to soc:voltage:vreg %d:%d:%d\n",
+			battery_soc, input_voltage_limit, vreg);
+
 	ret = regmap_update_bits(bq2419x->regmap, BQ2419X_INPUT_SRC_REG,
 				BQ2419X_INPUT_VINDPM_MASK,
 				(vreg << 3));
@@ -1412,6 +1422,7 @@ static int bq2419x_charger_input_voltage_configure(
 		dev_err(bq2419x->dev, "INPUT_VOLTAGE update failed %d\n", ret);
 		return ret;
 	}
+	bq2419x->last_input_voltage = vreg;
 
 	return 0;
 }

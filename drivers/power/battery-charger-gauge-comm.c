@@ -358,9 +358,6 @@ int battery_gauge_report_battery_soc(struct battery_gauge_dev *bg_dev,
 	if (!bg_dev)
 		return -EINVAL;
 
-	if (battery_soc < 90 || battery_soc > 100)
-		return -EINVAL;
-
 	mutex_lock(&charger_gauge_list_mutex);
 
 	list_for_each_entry(node, &charger_list, list) {
