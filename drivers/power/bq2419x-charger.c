@@ -404,12 +404,60 @@ static int bq2419x_disable_otg_mode(struct bq2419x_chip *bq2419x)
 	return ret;
 }
 
+static int bq2419x_charger_input_voltage_configure(
+		struct battery_charger_dev *bc_dev, int battery_soc)
+{
+	struct bq2419x_chip *bq2419x = battery_charger_get_drvdata(bc_dev);
+	struct bq2419x_charger_platform_data *chg_pdata;
+	u32 input_voltage_limit = 0;
+	int ret;
+	int i;
+	int vreg;
+
+	chg_pdata = bq2419x->charger_pdata;
+	if (!bq2419x->cable_connected || !chg_pdata->n_soc_profile)
+		return 0;
+
+	for (i = 0; i < chg_pdata->n_soc_profile; ++i) {
+		if (battery_soc < chg_pdata->soc_range[i]) {
+			if (chg_pdata->input_voltage_soc_limit)
+				input_voltage_limit =
+					chg_pdata->input_voltage_soc_limit[i];
+			break;
+		}
+	}
+
+	if (!input_voltage_limit)
+		return 0;
+
+	/*Configure input voltage limit */
+	vreg = bq2419x_val_to_reg(input_voltage_limit,
+			BQ2419X_INPUT_VINDPM_OFFSET, 80, 4, 0);
+	if (bq2419x->last_input_voltage == vreg)
+		return 0;
+
+	dev_info(bq2419x->dev, "Changing VINDPM to soc:voltage:vreg %d:%d:%d\n",
+			battery_soc, input_voltage_limit, vreg);
+
+	ret = regmap_update_bits(bq2419x->regmap, BQ2419X_INPUT_SRC_REG,
+				BQ2419X_INPUT_VINDPM_MASK,
+				(vreg << 3));
+	if (ret < 0) {
+		dev_err(bq2419x->dev, "INPUT_VOLTAGE update failed %d\n", ret);
+		return ret;
+	}
+	bq2419x->last_input_voltage = vreg;
+
+	return 0;
+}
+
 static int bq2419x_configure_charging_current(struct bq2419x_chip *bq2419x,
 	int in_current_limit)
 {
 	int val = 0;
 	int ret = 0;
 	int floor = 0;
+	int battery_soc = 0;
 
 	/* Clear EN_HIZ */
 	if (!bq2419x->emulate_input_disconnected) {
@@ -446,6 +494,14 @@ static int bq2419x_configure_charging_current(struct bq2419x_chip *bq2419x,
 		udelay(BQ2419x_CHARGING_CURRENT_STEP_DELAY_US);
 	}
 	bq2419x->in_current_limit = in_current_limit;
+
+	if (bq2419x->charger_pdata->n_soc_profile) {
+		battery_soc = battery_gauge_get_battery_soc(bq2419x->bc_dev);
+		if (battery_soc > 0)
+			bq2419x_charger_input_voltage_configure(
+				bq2419x->bc_dev, battery_soc);
+	}
+
 	return ret;
 }
 
@@ -1377,54 +1433,6 @@ static int bq2419x_charging_restart(struct battery_charger_dev *bc_dev)
 				bq2419x->chg_restart_time);
 	}
 	return ret;
-}
-
-static int bq2419x_charger_input_voltage_configure(
-		struct battery_charger_dev *bc_dev, int battery_soc)
-{
-	struct bq2419x_chip *bq2419x = battery_charger_get_drvdata(bc_dev);
-	struct bq2419x_charger_platform_data *chg_pdata;
-	u32 input_voltage_limit = 0;
-	int ret;
-	int i;
-	int vreg;
-
-	chg_pdata = bq2419x->charger_pdata;
-	if (!bq2419x->cable_connected || !chg_pdata->n_soc_profile)
-		return 0;
-
-	for (i = 0; i < chg_pdata->n_soc_profile; ++i) {
-		if (battery_soc <= chg_pdata->soc_range[i]) {
-			if (chg_pdata->input_voltage_soc_limit)
-				input_voltage_limit =
-					chg_pdata->input_voltage_soc_limit[i];
-			break;
-		}
-	}
-
-	if (!input_voltage_limit)
-		return 0;
-
-
-	/*Configure input voltage limit */
-	vreg = bq2419x_val_to_reg(input_voltage_limit,
-			BQ2419X_INPUT_VINDPM_OFFSET, 80, 4, 0);
-	if (bq2419x->last_input_voltage == vreg)
-		return 0;
-
-	dev_info(bq2419x->dev, "Changing VINDPM to soc:voltage:vreg %d:%d:%d\n",
-			battery_soc, input_voltage_limit, vreg);
-
-	ret = regmap_update_bits(bq2419x->regmap, BQ2419X_INPUT_SRC_REG,
-				BQ2419X_INPUT_VINDPM_MASK,
-				(vreg << 3));
-	if (ret < 0) {
-		dev_err(bq2419x->dev, "INPUT_VOLTAGE update failed %d\n", ret);
-		return ret;
-	}
-	bq2419x->last_input_voltage = vreg;
-
-	return 0;
 }
 
 static struct battery_charging_ops bq2419x_charger_bci_ops = {
