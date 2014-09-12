@@ -897,7 +897,7 @@ static int tegra_otg_conf(struct platform_device *pdev)
 		pdata = tegra_otg_dt_parse_pdata(pdev, soc_data);
 		tegra->support_aca_nv_cable =
 				of_property_read_bool(pdev->dev.of_node,
-					"nvidia,enable-aca-nv-cable-detection");
+					"nvidia,enable-aca-nv-charger-detection");
 		dev_pdata = dev_get_platdata(&pdev->dev);
 		if (dev_pdata)
 			pdata->is_xhci = dev_pdata->is_xhci;
@@ -977,11 +977,13 @@ static int tegra_otg_conf(struct platform_device *pdev)
 					ehci_pdata->vbus_extcon_dev_name);
 			if (!tegra->vbus_extcon_dev) {
 				err = -ENODEV;
-				dev_err(&pdev->dev, "Cannot get vbus extcon dev\n");
+				dev_err(&pdev->dev,
+					"Cannot get vbus extcon dev\n");
 				goto err_vbus_extcon;
 			}
 			otg_vbus_nb.notifier_call = otg_notifications;
-			extcon_register_notifier(tegra->vbus_extcon_dev, &otg_vbus_nb);
+			extcon_register_notifier(tegra->vbus_extcon_dev,
+								&otg_vbus_nb);
 		}
 	}
 
@@ -1028,7 +1030,7 @@ static int tegra_otg_conf(struct platform_device *pdev)
 		tegra->aca_nv_extcon_dev = tegra->aca_nv_extcon_cable->edev;
 		tegra->otg_aca_nv_nb.notifier_call = otg_notifications;
 		extcon_register_cable_interest(&tegra->aca_nv_extcon_obj,
-				tegra->aca_nv_extcon_cable, &tegra->otg_aca_nv_nb);
+			tegra->aca_nv_extcon_cable, &tegra->otg_aca_nv_nb);
 	}
 
 	err = usb_add_phy(&tegra->phy, USB_PHY_TYPE_USB2);
