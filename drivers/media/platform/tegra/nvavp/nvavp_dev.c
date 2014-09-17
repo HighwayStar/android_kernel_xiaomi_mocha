@@ -1512,8 +1512,6 @@ static int nvavp_pushbuffer_submit_ioctl(struct file *filp, unsigned int cmd,
 	int ret = 0, i;
 	phys_addr_t phys_addr;
 	unsigned long virt_addr;
-	struct nvavp_pushbuffer_submit_hdr *user_hdr =
-			(struct nvavp_pushbuffer_submit_hdr *) arg;
 	struct nvavp_syncpt syncpt;
 
 	syncpt.id = NVSYNCPT_INVALID;
@@ -1621,7 +1619,7 @@ target_dmabuf_fail:
 					      (hdr.flags & NVAVP_UCODE_EXT),
 						clientctx->channel_id);
 
-		if (copy_to_user((void __user *)user_hdr->syncpt, &syncpt,
+		if (copy_to_user((void __user *)hdr.syncpt, &syncpt,
 				sizeof(struct nvavp_syncpt))) {
 			ret = -EFAULT;
 			goto err_reloc_info;
