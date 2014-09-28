@@ -59,6 +59,7 @@
 #include <linux/gfp.h>
 #include <linux/migrate.h>
 #include <linux/string.h>
+#include <linux/dma-contiguous.h>
 
 #include <asm/io.h>
 #include <asm/pgalloc.h>
@@ -1940,7 +1941,8 @@ follow_page_again:
 				return i ? i : PTR_ERR(page);
 			}
 
-			if (is_cma_page(page) && (foll_flags & FOLL_GET)) {
+			if (dma_contiguous_should_replace_page(page) &&
+				(foll_flags & FOLL_GET)) {
 				struct page *old_page = page;
 				unsigned int fault_flags = 0;
 
@@ -1979,7 +1981,8 @@ follow_page_again:
 			}
 
 			mutex_unlock(&s_follow_page_lock);
-			BUG_ON(is_cma_page(page) && (foll_flags & FOLL_GET));
+			BUG_ON(dma_contiguous_should_replace_page(page) &&
+				(foll_flags & FOLL_GET));
 
 			if (pages) {
 				pages[i] = page;
