@@ -860,7 +860,7 @@ static struct tegra_usb_modem_power_platform_data baseband_pdata = {
 				    IRQF_TRIGGER_FALLING |
 				    IRQF_ONESHOT,
 	.autosuspend_delay = 1000,
-	.short_autosuspend_delay = 50,
+	.short_autosuspend_delay = 1000,
 	.tegra_ehci_device = &tegra_ehci2_device,
 	.tegra_ehci_pdata = &tegra_ehci2_hsic_baseband_pdata,
 	.mdm_power_report_gpio = MDM_POWER_REPORT,
