@@ -29,8 +29,6 @@
 #include <linux/of_device.h>
 #include <linux/of_gpio.h>
 #include <linux/sched.h>	/* wake_up_process() */
-#include <linux/sched/rt.h>
-#include <linux/kthread.h>	/* kthread_create(),kthread_run() */
 #include <linux/uaccess.h>	/* copy_to_user() */
 #include <linux/miscdevice.h>
 #include <asm/siginfo.h>	/* siginfo */
@@ -57,6 +55,11 @@
 
 #if (INPUT_PROTOCOL_CURRENT_SUPPORT == INPUT_PROTOCOL_TYPE_B)
 #include <linux/input/mt.h>
+#endif
+
+#if (ISR_POST_HANDLER == KTHREAD)
+#include <linux/kthread.h>	/* kthread_create(),kthread_run() */
+#include <linux/sched/rt.h>
 #endif
 
 #if ENABLE_FB_CALLBACK && defined(CONFIG_FB)
@@ -126,10 +129,6 @@ enum RM_TEST_MODE {
 
 /*#define CS_SUPPORT*/
 #define MASK_USER_SPACE_POINTER 0x00000000FFFFFFFF	/* 64-bit support */
-
-#define ISR_POST_HANDLER WORK_QUEUE                 /*or KTHREAD*/
-#define WORK_QUEUE	0
-#define KTHREAD		1
 
 /* do not use printk in kernel files */
 #define rm_printk(msg...)	dev_info(&g_spi->dev, msg)
@@ -203,6 +202,8 @@ struct rm31080a_ts_para {
 
 	struct workqueue_struct *rm_timer_workqueue;
 	struct work_struct rm_timer_work;
+
+	u8 u8_last_touch_count;
 };
 
 struct rm_tch_ts {
@@ -452,7 +453,7 @@ int rm_tch_spi_byte_write(unsigned char u8_addr, unsigned char u8_value)
 
 /*===========================================================================*/
 static void rm_tch_generate_event(struct rm_tch_ts *dev_touch,
-				     enum tch_update_reason reason)
+					enum tch_update_reason reason)
 {
 	char *envp[2];
 
@@ -502,7 +503,6 @@ void raydium_change_scan_mode(u8 u8_touch_count)
 #if (INPUT_PROTOCOL_CURRENT_SUPPORT == INPUT_PROTOCOL_TYPE_A)
 void raydium_report_pointer(void *p)
 {
-	static unsigned char u8_last_touch_count; /*= 0; remove by checkpatch*/
 	int i;
 	int i_count;
 	int i_max_x, i_max_y;
@@ -530,10 +530,10 @@ void raydium_report_pointer(void *p)
 			i_max_y = RM_INPUT_RESOLUTION_Y;
 	}
 
-	i_count = max(u8_last_touch_count, sp_tp->uc_touch_count);
+	i_count = max(g_st_ts.u8_last_touch_count, sp_tp->uc_touch_count);
 
 	if (i_count && !sp_tp->uc_touch_count) {
-		u8_last_touch_count = 0;
+		g_st_ts.u8_last_touch_count = 0;
 		input_report_key(g_input_dev,
 			BTN_TOOL_RUBBER, 0);
 		input_mt_sync(g_input_dev);
@@ -603,8 +603,8 @@ void raydium_report_pointer(void *p)
 			}
 			input_mt_sync(g_input_dev);
 		}
+		g_st_ts.u8_last_touch_count = sp_tp->uc_touch_count;
 		input_sync(g_input_dev);
-		u8_last_touch_count = sp_tp->uc_touch_count;
 	}
 
 	/*if (g_st_ctrl.u8_power_mode)
@@ -615,7 +615,6 @@ void raydium_report_pointer(void *p)
 #else /*(INPUT_PROTOCOL_CURRENT_SUPPORT == INPUT_PROTOCOL_TYPE_B)*/
 void raydium_report_pointer(void *p)
 {
-	static unsigned char u8_last_touch_count; /*= 0; remove by checkpatch*/
 	unsigned int target_abs_mt_tool = MT_TOOL_FINGER;
 	unsigned int target_key_evt_btn_tool = BTN_TOOL_FINGER;
 	int i;
@@ -644,7 +643,7 @@ void raydium_report_pointer(void *p)
 		i_max_y = RM_INPUT_RESOLUTION_Y;
 	}
 
-	i_count = max(u8_last_touch_count, sp_tp->uc_touch_count);
+	i_count = max(g_st_ts.u8_last_touch_count, sp_tp->uc_touch_count);
 
 	if (!i_count) {
 		/*if (g_st_ctrl.u8_power_mode)
@@ -765,7 +764,7 @@ void raydium_report_pointer(void *p)
 			}
 		}
 	}
-	u8_last_touch_count = sp_tp->uc_touch_count;
+	g_st_ts.u8_last_touch_count = sp_tp->uc_touch_count;
 	input_sync(g_input_dev);
 
 	/*if (g_st_ctrl.u8_power_mode)
@@ -962,6 +961,7 @@ static u32 rm_tch_ctrl_configure(void)
 {
 	u32 u32_flag;
 
+	mutex_lock(&g_st_ts.mutex_scan_mode);
 	switch (g_st_ts.u8_scan_mode_state) {
 	case RM_SCAN_ACTIVE_MODE:
 		u32_flag =
@@ -986,6 +986,7 @@ static u32 rm_tch_ctrl_configure(void)
 		u32_flag = RM_NEED_NONE;
 		break;
 	}
+	mutex_unlock(&g_st_ts.mutex_scan_mode);
 
 	return u32_flag;
 }
@@ -1417,6 +1418,9 @@ static int rm_tch_cmd_process(u8 u8_sel_case,
 			} else
 				ret = RETURN_FAIL;
 			break;
+		case KRL_CMD_DUMMY:
+			ret = RETURN_OK;
+			break;
 		default:
 			break;
 		}
@@ -1560,56 +1564,65 @@ static void rm_tch_enter_manual_mode(void)
 
 static u32 rm_tch_get_platform_id(u8 *p)
 {
-	u32 u32Ret;
+	u32 u32_ret;
+	u8 u8_temp = 0;
+
 	struct rm_spi_ts_platform_data *pdata;
 	pdata = g_input_dev->dev.parent->platform_data;
 
-	u32Ret = copy_to_user(p, &pdata->platform_id,
-		sizeof(pdata->platform_id));
+	u8_temp = (u8)pdata->platform_id;
+	u32_ret = copy_to_user(p, &u8_temp, sizeof(u8));
 
-	return u32Ret;
+	return u32_ret;
 }
 
 static u32 rm_tch_get_gpio_sensor_select(u8 *p)
 {
-	u32 u32Ret = 0;
+	u32 u32_ret = 0;
+	u8 u8_temp = 0;
 	struct rm_spi_ts_platform_data *pdata;
 	pdata = g_input_dev->dev.parent->platform_data;
 
 /* Read from GPIO
-	u32Ret = gpio_set_value(pdata->gpio_sensor_select0)
+	u32_ret = gpio_set_value(pdata->gpio_sensor_select0)
 		| (1 << gpio_set_value(pdata->gpio_sensor_select1));
 */
 
 	/* Read from data struct */
 	if (pdata->gpio_sensor_select0)
-		u32Ret |= 0x01;
+		u8_temp |= 0x01;
 	if (pdata->gpio_sensor_select1)
-		u32Ret |= 0x02;
+		u8_temp |= 0x02;
 
 	if (g_st_ctrl.u8_kernel_msg & DEBUG_DRIVER)
 		rm_printk("Raydium - %s : %d\n",
-			__func__, u32Ret);
+				__func__, u8_temp);
 
-	u32Ret = copy_to_user(p, &u32Ret, sizeof(u32Ret));
+	u32_ret = copy_to_user(p, &u8_temp, sizeof(u8));
 
-	return u32Ret;
+	return u32_ret;
 }
 
 static u32 rm_tch_get_spi_lock_status(u8 *p)
 {
-	u32 u32Ret;
+	u32 u32_ret;
+	u8 u8_temp;
 
 	if (g_st_ctrl.u8_kernel_msg & DEBUG_DRIVER)
 		rm_printk("Raydium - SPI_LOCK = %d\n", g_st_ts.u8_spi_locked);
 
-	u32Ret = copy_to_user(p, &g_st_ts.u8_spi_locked,
-					sizeof(g_st_ts.u8_spi_locked));
+	if (g_st_ctrl.u8_kernel_msg & DEBUG_DRIVER)
+		rm_printk("Raydium - IS_SUSPENDED = %d\n",
+			g_st_ts.b_is_suspended);
+
+	u8_temp = g_st_ts.u8_spi_locked | g_st_ts.b_is_suspended;
+
+	u32_ret = copy_to_user(p, &u8_temp, sizeof(u8));
 
 	if (g_st_ts.u8_spi_locked && g_st_ts.u8_resume_cnt)
 		g_st_ts.u8_resume_cnt--;
 
-	return u32Ret;
+	return u32_ret;
 }
 
 /*===========================================================================*/
@@ -1909,9 +1922,14 @@ static void rm_tch_init_ts_structure_part(void)
 	g_st_ts.b_enable_slow_scan = false;
 	g_st_ts.b_slow_scan_flg = false;
 #endif
+	mutex_lock(&g_st_ts.mutex_scan_mode);
 	g_st_ts.u8_scan_mode_state = RM_SCAN_ACTIVE_MODE;
+	mutex_unlock(&g_st_ts.mutex_scan_mode);
 
-	g_st_ctrl.u8_event_report_mode = EVENT_REPORT_MODE_STYLUS_ERASER_FINGER;
+	/*Just keep the original setting and framework
+	  will handle this after resume.*/
+	/*g_st_ctrl.u8_event_report_mode
+	  = EVENT_REPORT_MODE_STYLUS_ERASER_FINGER;*/
 
 	g_pu8_burstread_buf = NULL;
 #if (ISR_POST_HANDLER == WORK_QUEUE)
@@ -1924,7 +1942,7 @@ static void rm_tch_init_ts_structure_part(void)
 
 	rm_ctrl_watchdog_func(0);
 
-	g_st_ts.b_is_suspended = 0;
+	g_st_ts.b_is_suspended = false;
 	/*g_st_ts.u8_test_mode = false;*/
 	g_st_ts.u8_test_mode_type = RM_TEST_MODE_NULL;
 
@@ -1984,7 +2002,9 @@ static void rm_watchdog_work_function(unsigned char scan_mode)
 	if (g_st_ts.u8_watch_dog_flg) {
 		/*WATCH DOG RESET*/
 		/*rm_printk("Raydium - WatchDog Resume\n");*/
+		mutex_unlock(&g_st_ts.mutex_scan_mode);
 		rm_tch_init_ts_structure_part();
+		mutex_lock(&g_st_ts.mutex_scan_mode);
 		g_st_ts.b_is_suspended = true;
 		rm_tch_cmd_process(0, g_st_rm_watchdog_cmd, NULL);
 		g_st_ts.b_is_suspended = false;
@@ -2086,10 +2106,12 @@ static void rm_tch_ctrl_slowscan(u32 level)
 	g_st_ts.u32_slow_scan_level = level;
 	g_st_ts.b_slow_scan_flg = true;
 
+	mutex_lock(&g_st_ts.mutex_scan_mode);
 	if (g_st_ts.u8_scan_mode_state == RM_SCAN_IDLE_MODE) {
 		g_st_ts.u8_scan_mode_state = RM_SCAN_PRE_IDLE_MODE;
 		rm_tch_ctrl_leave_auto_mode();
 	}
+	mutex_unlock(&g_st_ts.mutex_scan_mode);
 }
 
 static u32 rm_tch_slowscan_round(u32 val)
@@ -2120,15 +2142,11 @@ static ssize_t rm_tch_slowscan_handler(const char *buf, size_t count)
 
 	if (count == 2) {
 		if (buf[0] == '0') {
-			mutex_lock(&g_st_ts.mutex_scan_mode);
 			g_st_ts.b_enable_slow_scan = false;
 			rm_tch_ctrl_slowscan(RM_SLOW_SCAN_LEVEL_MAX);
-			mutex_unlock(&g_st_ts.mutex_scan_mode);
 		} else if (buf[0] == '1') {
-			mutex_lock(&g_st_ts.mutex_scan_mode);
 			g_st_ts.b_enable_slow_scan = true;
 			rm_tch_ctrl_slowscan(RM_SLOW_SCAN_LEVEL_60);
-			mutex_unlock(&g_st_ts.mutex_scan_mode);
 		}
 	} else if ((buf[0] == '2') && (buf[1] == ' ')) {
 		error = kstrtoul(&buf[2], 10, &val);
@@ -2136,10 +2154,8 @@ static ssize_t rm_tch_slowscan_handler(const char *buf, size_t count)
 		if (error) {
 			ret = error;
 		} else {
-			mutex_lock(&g_st_ts.mutex_scan_mode);
 			g_st_ts.b_enable_slow_scan = true;
 			rm_tch_ctrl_slowscan(rm_tch_slowscan_round((u32)val));
-			mutex_unlock(&g_st_ts.mutex_scan_mode);
 		}
 	}
 	return ret;
@@ -2919,6 +2935,8 @@ static void rm_tch_init_ts_structure(void)
 	g_st_ts.u32_slow_scan_level = RM_SLOW_SCAN_LEVEL_MAX;
 #endif
 
+	g_st_ts.u8_last_touch_count = 0;
+
 #if (ISR_POST_HANDLER == WORK_QUEUE)
 	g_st_ts.rm_workqueue = create_singlethread_workqueue("rm_work");
 	INIT_WORK(&g_st_ts.rm_work, rm_work_handler);
@@ -2974,10 +2992,8 @@ static void rm_ctrl_resume(struct rm_tch_ts *ts)
 	if (g_st_ctrl.u8_kernel_msg & DEBUG_DRIVER)
 		rm_printk("Raydium - SPI_LOCKED by resume!!\n");
 
-	mutex_lock(&g_st_ts.mutex_scan_mode);
 	rm_tch_init_ts_structure_part();
 	rm_tch_cmd_process(0, g_st_rm_resume_cmd, ts);
-	mutex_unlock(&g_st_ts.mutex_scan_mode);
 
 	if (g_st_ts.u8_test_mode)
 		rm_tch_testmode_handler(g_u8_test_mode_buf,
@@ -3032,11 +3048,9 @@ static void rm_ctrl_suspend(struct rm_tch_ts *ts)
 			rm_printk("Raydium - No IRQ poster exist!\n");
 	}
 #endif
-	mutex_lock(&g_st_ts.mutex_scan_mode);
 	rm_tch_cmd_process(0, g_st_rm_suspend_cmd, ts);
 	rm_tch_ctrl_wait_for_scan_finish(0);
 	rm_tch_cmd_process(1, g_st_rm_suspend_cmd, ts);
-	mutex_unlock(&g_st_ts.mutex_scan_mode);
 	g_st_ts.u8_spi_locked = 1;
 	if (g_st_ctrl.u8_kernel_msg & DEBUG_DRIVER)
 		rm_printk("Raydium - SPI_LOCKED by suspend!!\n");
@@ -3549,7 +3563,6 @@ static long dev_ioctl(struct file *file,
 	case RM_IOCTL_INIT_END:
 		g_st_ts.b_init_finish = 1;
 		g_st_ts.b_calc_finish = 1;
-		g_st_ts.b_is_suspended = false;
 		if (g_st_ts.u8_resume_cnt)	/* In case issued by boot-up*/
 			g_st_ts.u8_resume_cnt--;
 		if (wake_lock_active(&g_st_ts.wakelock_initialization))
