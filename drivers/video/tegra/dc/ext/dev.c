@@ -471,6 +471,7 @@ static int tegra_dc_ext_set_windowattr(struct tegra_dc_ext *ext,
 static int tegra_dc_ext_set_vblank(struct tegra_dc_ext *ext, bool enable)
 {
 	struct tegra_dc *dc;
+	int ret = 0;
 
 	if (ext->vblank_enabled == enable)
 		return 0;
@@ -479,14 +480,17 @@ static int tegra_dc_ext_set_vblank(struct tegra_dc_ext *ext, bool enable)
 
 	if (enable) {
 		tegra_dc_hold_dc_out(dc);
-		tegra_dc_vsync_enable(dc);
-	} else {
+		ret = tegra_dc_vsync_enable(dc);
+	} else if (ext->vblank_enabled) {
 		tegra_dc_vsync_disable(dc);
 		tegra_dc_release_dc_out(dc);
 	}
 
-	ext->vblank_enabled = enable;
-	return 0;
+	if (!ret) {
+		ext->vblank_enabled = enable;
+		return 0;
+	}
+	return 1;
 }
 
 static void (*flip_callback)(void);
