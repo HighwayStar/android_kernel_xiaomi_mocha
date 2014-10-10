@@ -629,6 +629,7 @@ int nvmap_page_pool_init(struct nvmap_device *dev)
 	unsigned long totalram_mb;
 	struct sysinfo info;
 	struct nvmap_page_pool *pool = &dev->pool;
+	struct sched_param param = {};
 #ifdef CONFIG_NVMAP_PAGE_POOLS_INIT_FILLUP
 	int i;
 	struct page *page;
@@ -668,6 +669,11 @@ int nvmap_page_pool_init(struct nvmap_device *dev)
 	background_allocator = kthread_create(nvmap_background_zero_allocator,
 					    NULL, "nvmap-bz");
 	if (IS_ERR_OR_NULL(background_allocator))
+		goto fail;
+
+	/* set nvmap-bz to very low priority */
+	param.sched_priority = background_allocator->rt_priority;
+	if (sched_setscheduler(background_allocator, SCHED_IDLE, &param))
 		goto fail;
 
 #ifdef CONFIG_NVMAP_PAGE_POOLS_INIT_FILLUP
