@@ -1484,9 +1484,12 @@ dhd_op_if(dhd_if_t *ifp)
 
 	if (ret < 0) {
 		ifp->set_multicast = FALSE;
-		if (ifp->net) {
-			free_netdev(ifp->net);
-			ifp->net = NULL;
+		/* for DHD_DEL_IF we are handling it separately in wl_dealloc_netinfo*/
+		if (ret != DHD_DEL_IF) {
+			if (ifp->net) {
+				free_netdev(ifp->net);
+				ifp->net = NULL;
+			}
 		}
 		dhd->iflist[ifp->idx] = NULL;
 #ifdef SOFTAP
@@ -6369,6 +6372,10 @@ bool dhd_os_check_hang(dhd_pub_t *dhdp, int ifidx, int ret)
 	struct net_device *net;
 
 	net = dhd_idx2net(dhdp, ifidx);
+	if (!net) {
+		DHD_ERROR(("%s : Invalid index : %d\n", __FUNCTION__, ifidx));
+		return -EINVAL;
+	}
 	return dhd_check_hang(net, dhdp, ret);
 }
 

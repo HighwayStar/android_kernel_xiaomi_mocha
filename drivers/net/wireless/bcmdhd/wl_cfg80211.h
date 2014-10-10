@@ -595,6 +595,7 @@ struct wl_priv {
 	struct delayed_work pm_enable_work;
 	vndr_ie_setbuf_t *ibss_vsie;	/* keep the VSIE for IBSS */
 	int ibss_vsie_len;
+	struct rw_semaphore netif_sem;
 
 };
 
@@ -655,12 +656,14 @@ wl_delete_all_netinfo(struct wl_priv *wl)
 {
 	struct net_info *_net_info, *next;
 
+	down_write(&wl->netif_sem);
 	list_for_each_entry_safe(_net_info, next, &wl->net_list, list) {
 		list_del(&_net_info->list);
 			if (_net_info->wdev)
 				kfree(_net_info->wdev);
 			kfree(_net_info);
 	}
+	up_write(&wl->netif_sem);
 	wl->iface_cnt = 0;
 }
 static inline u32

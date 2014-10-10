@@ -9265,6 +9265,7 @@ static s32 wl_notifier_change_state(struct wl_priv *wl, struct net_info *_net_in
 				_net_info->pm_restore = true;
 			}
 			pm = PM_OFF;
+			down_read(&wl->netif_sem);
 			for_each_ndev(wl, iter, next) {
 				if (iter->pm_restore)
 					continue;
@@ -9288,6 +9289,7 @@ static s32 wl_notifier_change_state(struct wl_priv *wl, struct net_info *_net_in
 				} else
 					iter->ndev->ieee80211_ptr->ps = false;
 			}
+			up_read(&wl->netif_sem);
 		} else {
 			/* add PM Enable timer to go to power save mode
 			 * if supplicant control pm mode, it will be cleared or
@@ -9299,7 +9301,7 @@ static s32 wl_notifier_change_state(struct wl_priv *wl, struct net_info *_net_in
 			 * before calling pm_enable_timer, we need to set PM -1 for all ndev
 			 */
 			pm = PM_OFF;
-
+			down_read(&wl->netif_sem);
 			for_each_ndev(wl, iter, next) {
 				if ((err = wldev_ioctl(iter->ndev, WLC_SET_PM, &pm,
 					sizeof(pm), true)) != 0) {
@@ -9309,6 +9311,7 @@ static s32 wl_notifier_change_state(struct wl_priv *wl, struct net_info *_net_in
 						WL_ERR(("%s:error (%d)\n", iter->ndev->name, err));
 				}
 			}
+			up_read(&wl->netif_sem);
 
 			if (wl->pm_enable_work_on) {
 				wl_add_remove_pm_enable_work(wl, FALSE, WL_HANDLER_DEL);
@@ -9323,6 +9326,7 @@ static s32 wl_notifier_change_state(struct wl_priv *wl, struct net_info *_net_in
 		/* clear chan information when the net device is disconnected */
 		wl_update_prof(wl, _net_info->ndev, NULL, &chan, WL_PROF_CHAN);
 		wl_cfg80211_determine_vsdb_mode(wl);
+		down_read(&wl->netif_sem);
 		for_each_ndev(wl, iter, next) {
 			if (iter->pm_restore && iter->pm) {
 				WL_DBG(("%s:restoring power save %s\n",
@@ -9340,6 +9344,7 @@ static s32 wl_notifier_change_state(struct wl_priv *wl, struct net_info *_net_in
 				iter->ndev->ieee80211_ptr->ps = true;
 			}
 		}
+		up_read(&wl->netif_sem);
 		wl_cfg80211_concurrent_roam(wl, 0);
 	}
 	return err;
@@ -9383,6 +9388,7 @@ static void wl_dealloc_netinfo(struct work_struct *work)
 	struct net_info *_net_info, *next;
 	struct wl_priv *wl = container_of(work, struct wl_priv, dealloc_work);
 
+	down_write(&wl->netif_sem);
 	list_for_each_entry_safe(_net_info, next, &wl->dealloc_list, list) {
 		list_del(&_net_info->list);
 		if (_net_info->wdev) {
@@ -9390,9 +9396,23 @@ static void wl_dealloc_netinfo(struct work_struct *work)
 			WARN_ON(work_pending(&_net_info->wdev->cleanup_work));
 			kfree(_net_info->wdev);
 		}
+		if (_net_info->ndev) {
+			/* free_netdev cannot be called unless the net_device
+			   reg_state is marked as NETREG_UNREGISTERED.
+			   So wait for it to become NETREG_UNREGISTERED. */
+			int retry = 0;
+			while (_net_info->ndev->reg_state != NETREG_UNREGISTERED && retry != 10) {
+				msleep(100);
+				retry++;
+			}
+
+			/* if retry has reached 10 then free_netdev will raise a BUG_ON */
+			free_netdev(_net_info->ndev);
+			_net_info->ndev = NULL;
+		}
 		kfree(_net_info);
 	}
-
+	up_write(&wl->netif_sem);
 }
 
 static s32 wl_init_priv(struct wl_priv *wl)
@@ -9416,6 +9436,7 @@ static s32 wl_init_priv(struct wl_priv *wl)
 	set_bit(WL_STATUS_CONNECTED, &wl->interrested_state);
 	spin_lock_init(&wl->cfgdrv_lock);
 	mutex_init(&wl->ioctl_buf_sync);
+	init_rwsem(&wl->netif_sem);
 	init_waitqueue_head(&wl->netif_change_event);
 	init_completion(&wl->send_af_done);
 	init_completion(&wl->iface_disable);
