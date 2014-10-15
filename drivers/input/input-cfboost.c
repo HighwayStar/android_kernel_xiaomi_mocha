@@ -52,7 +52,7 @@ MODULE_DESCRIPTION("Input event CPU frequency booster");
 MODULE_LICENSE("GPL v2");
 
 
-static struct pm_qos_request freq_req, core_req, emc_req;
+static struct pm_qos_request freq_req, core_req, emc_req, gpu_req;
 static struct dev_pm_qos_request gpu_wakeup_req;
 static unsigned int boost_freq; /* kHz */
 static int boost_freq_set(const char *arg, const struct kernel_param *kp)
@@ -81,7 +81,9 @@ static unsigned long boost_cpus;
 module_param(boost_cpus, ulong, 0644);
 static bool gpu_wakeup = 1; /* 1 = enabled */
 module_param(gpu_wakeup, bool, 0644);
+static unsigned int boost_gpu; /* kHz */
 static struct device *gpu_device;
+module_param(boost_gpu, uint, 0644);
 static DEFINE_MUTEX(gpu_device_lock);
 
 static unsigned long last_boost_jiffies;
@@ -116,7 +118,7 @@ void cfb_remove_device(struct device *dev)
 static void cfb_boost(struct kthread_work *w)
 {
 	trace_input_cfboost_params("boost_params", boost_freq, boost_emc,
-			boost_time);
+			boost_gpu, boost_cpus, boost_time);
 	if (boost_cpus > 0)
 		pm_qos_update_request_timeout(&core_req, boost_cpus,
 				boost_time * 1000);
@@ -135,6 +137,9 @@ static void cfb_boost(struct kthread_work *w)
 		pm_runtime_get(gpu_device);
 		pm_runtime_put_autosuspend(gpu_device);
 	}
+	if (boost_gpu > 0)
+		pm_qos_update_request_timeout(&gpu_req, boost_gpu,
+			boost_time * 1000);
 }
 
 static struct task_struct *boost_kthread;
@@ -308,6 +313,8 @@ static int __init cfboost_init(void)
 			   PM_QOS_DEFAULT_VALUE);
 	pm_qos_add_request(&emc_req, PM_QOS_EMC_FREQ_MIN,
 			   PM_QOS_DEFAULT_VALUE);
+	pm_qos_add_request(&gpu_req, PM_QOS_GPU_FREQ_MIN,
+			   PM_QOS_DEFAULT_VALUE);
 
 	return 0;
 }
@@ -317,6 +324,7 @@ static void __exit cfboost_exit(void)
 	/* stop input events */
 	input_unregister_handler(&cfb_input_handler);
 	kthread_stop(boost_kthread);
+	pm_qos_remove_request(&gpu_req);
 	pm_qos_remove_request(&emc_req);
 	pm_qos_remove_request(&freq_req);
 	pm_qos_remove_request(&core_req);
