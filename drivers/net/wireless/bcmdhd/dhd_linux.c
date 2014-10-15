@@ -78,6 +78,23 @@
 #include <dhd_pno.h>
 #endif
 
+#ifdef CONFIG_BCMDHD_CUSTOM_SYSFS_TEGRA
+#include "dhd_custom_sysfs_tegra.h"
+
+#define netif_rx(skb)\
+	{\
+		tegra_sysfs_histogram_tcpdump_rx(skb, __func__, __LINE__);\
+		netif_rx(skb);\
+	}\
+
+#define netif_rx_ni(skb)\
+	{\
+		tegra_sysfs_histogram_tcpdump_rx(skb, __func__, __LINE__);\
+		netif_rx_ni(skb);\
+	}\
+
+#endif
+
 #ifdef WLMEDIA_HTSF
 #include <linux/time.h>
 #include <htsf.h>
@@ -1844,6 +1861,10 @@ dhd_start_xmit(struct sk_buff *skb, struct net_device *net)
 			goto done;
 		}
 	}
+
+#ifdef CONFIG_BCMDHD_CUSTOM_SYSFS_TEGRA
+	tegra_sysfs_histogram_tcpdump_tx(skb, __func__, __LINE__);
+#endif
 
 	/* Convert to packet */
 	if (!(pktbuf = PKTFRMNATIVE(dhd->pub.osh, skb))) {
@@ -4823,6 +4844,14 @@ dhd_net_attach(dhd_pub_t *dhdp, int ifidx)
 		err = register_netdev(net);
 	else
 		err = register_netdevice(net);
+
+#ifdef CONFIG_BCMDHD_CUSTOM_SYSFS_TEGRA
+{
+	extern struct net_device *dhd_custom_sysfs_tegra_histogram_stat_netdev;
+	if (ifidx == 0)
+		dhd_custom_sysfs_tegra_histogram_stat_netdev = net;
+}
+#endif
 
 	if (err != 0) {
 		DHD_ERROR(("couldn't register the net device, err %d\n", err));

@@ -49,6 +49,10 @@ extern void dhdsdio_isr(void * args);
 #include <dhd.h>
 #endif 
 
+#ifdef	CONFIG_BCMDHD_CUSTOM_SYSFS_TEGRA
+#include "dhd_custom_sysfs_tegra.h"
+#endif
+
 /**
  * SDIO Host Controller info
  */
@@ -245,6 +249,13 @@ int bcmsdh_probe(struct device *dev)
 		goto err;
 	}
 
+#ifdef	CONFIG_BCMDHD_CUSTOM_SYSFS_TEGRA
+	if (tegra_sysfs_register(dev) < 0) {
+		pr_err("%s: tegra_sysfs_register() failed\n", __func__);
+		goto err;
+	}
+#endif
+
 	return 0;
 
 	/* error handling */
@@ -268,6 +279,10 @@ int bcmsdh_remove(struct device *dev)
 	bcmsdh_hc_t *sdhc, *prev;
 	osl_t *osh;
 	int sdhcinfo_null = false;
+
+#ifdef	CONFIG_BCMDHD_CUSTOM_SYSFS_TEGRA
+	tegra_sysfs_unregister(dev);
+#endif
 
 	/* find the SDIO Host Controller state for this pdev and take it out from the list */
 	for (sdhc = sdhcinfo, prev = NULL; sdhc; sdhc = sdhc->next) {

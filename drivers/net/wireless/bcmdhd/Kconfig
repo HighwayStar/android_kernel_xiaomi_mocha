@@ -81,3 +81,9 @@ config BCMDHD_DISABLE_P2P_SYSFS_DEVICE_NODE
 	This is a workaround to prevent management tools from
 	directly managing P2P virtual devices.
 
+config BCMDHD_CUSTOM_SYSFS_TEGRA
+	bool "Custom sysfs for Tegra platform"
+	depends on BCMDHD
+	default y
+	---help---
+	  Enable custom sysfs for Tegra platform.
