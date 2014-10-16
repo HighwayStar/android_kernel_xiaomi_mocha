@@ -1816,11 +1816,13 @@ static void rm_work_handler(struct work_struct *work)
 
 	i_ret = rm_tch_ctrl_clear_int();
 
+#ifdef ENABLE_SLOW_SCAN
 	if (g_st_ts.b_slow_scan_flg == true) {
 		rm_tch_cmd_process((u8)(g_st_ts.u32_slow_scan_level - 1),
 		g_st_rm_slow_scan_cmd, NULL);
 		g_st_ts.b_slow_scan_flg = false;
 	}
+#endif ENABLE_SLOW_SCAN
 
 	u32_flag = rm_tch_ctrl_configure();
 
