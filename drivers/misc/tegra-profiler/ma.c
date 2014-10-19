@@ -1,7 +1,7 @@
 /*
  * drivers/misc/tegra-profiler/ma.c
  *
- * Copyright (c) 2014, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2015, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -34,7 +34,6 @@ static void make_sample(struct quadd_hrt_ctx *hrt_ctx,
 {
 	struct quadd_record_data record;
 	struct quadd_ma_data *ma = &record.ma;
-	struct quadd_comm_data_interface *comm = hrt_ctx->quadd_ctx->comm;
 
 	record.record_type = QUADD_RECORD_TYPE_MA;
 
@@ -44,7 +43,7 @@ static void make_sample(struct quadd_hrt_ctx *hrt_ctx,
 	ma->vm_size = vm_size << (PAGE_SHIFT-10);
 	ma->rss_size = rss_size << (PAGE_SHIFT-10);
 
-	comm->put_sample(&record, NULL, 0);
+	quadd_put_sample(&record, NULL, 0);
 }
 
 static void check_ma(struct quadd_hrt_ctx *hrt_ctx)
