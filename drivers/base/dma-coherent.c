@@ -175,7 +175,7 @@ static int declare_coherent_heap(struct device *dev, phys_addr_t base,
 	dma_set_coherent_mask(dev,  DMA_BIT_MASK(64));
 	err = dma_declare_coherent_memory(dev, 0,
 			base, size,
-			DMA_MEMORY_NOMAP);
+			DMA_MEMORY_NOMAP | DMA_MEMORY_EXCLUSIVE);
 	if (err & DMA_MEMORY_NOMAP) {
 		dev_dbg(dev, "dma coherent mem base (%pa) size (%zu)\n",
 			&base, size);
