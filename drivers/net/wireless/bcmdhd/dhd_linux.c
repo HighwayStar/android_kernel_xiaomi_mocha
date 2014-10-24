@@ -1484,14 +1484,20 @@ dhd_op_if(dhd_if_t *ifp)
 
 	if (ret < 0) {
 		ifp->set_multicast = FALSE;
-		/* for DHD_DEL_IF we are handling it separately in wl_dealloc_netinfo*/
-		if (ret != DHD_DEL_IF) {
-			if (ifp->net) {
-				free_netdev(ifp->net);
-				ifp->net = NULL;
-			}
-		}
 		dhd->iflist[ifp->idx] = NULL;
+
+#ifdef WL_CFG80211
+		extern struct wl_priv *wlcfg_drv_priv;
+		struct wl_priv *wl = wlcfg_drv_priv;
+		down_write(&wl->netif_sem);
+#endif
+		if (ifp->net) {
+			free_netdev(ifp->net);
+			ifp->net = NULL;
+		}
+#ifdef WL_CFG80211
+		up_write(&wl->netif_sem);
+#endif
 #ifdef SOFTAP
 		flags = dhd_os_spin_lock(&dhd->pub);
 		if (ifp->net == ap_net_dev)

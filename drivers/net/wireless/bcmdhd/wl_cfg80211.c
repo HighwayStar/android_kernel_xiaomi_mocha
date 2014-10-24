@@ -9403,20 +9403,6 @@ static void wl_dealloc_netinfo(struct work_struct *work)
 			WARN_ON(work_pending(&_net_info->wdev->cleanup_work));
 			kfree(_net_info->wdev);
 		}
-		if (_net_info->ndev) {
-			/* free_netdev cannot be called unless the net_device
-			   reg_state is marked as NETREG_UNREGISTERED.
-			   So wait for it to become NETREG_UNREGISTERED. */
-			int retry = 0;
-			while (_net_info->ndev->reg_state != NETREG_UNREGISTERED && retry != 10) {
-				msleep(100);
-				retry++;
-			}
-
-			/* if retry has reached 10 then free_netdev will raise a BUG_ON */
-			free_netdev(_net_info->ndev);
-			_net_info->ndev = NULL;
-		}
 		kfree(_net_info);
 	}
 	up_write(&wl->netif_sem);
