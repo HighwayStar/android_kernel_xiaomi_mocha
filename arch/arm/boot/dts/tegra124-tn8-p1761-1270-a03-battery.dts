@@ -1,4 +1,5 @@
 #include "tegra124-tn8-p1761-1270-a03.dts"
+#include "tegra124-platforms/tegra124-tn8-usb-devices.dtsi"
 #include <dt-bindings/iio/meter/ina3221x.h>
 
 / {
@@ -24,6 +25,12 @@
 				ti,input-voltage-soc-limit = <4200 4280 4360 4440 4520 4600 4680 4760>;
 				ti,charge-term-current-limit-milliamp = <1>;
 			};
+		};
+	};
+
+	usb-devices {
+		maxim-charger {
+			maxim,max-board-vbus-voltage-uv = <12000000>;
 		};
 	};
 };
