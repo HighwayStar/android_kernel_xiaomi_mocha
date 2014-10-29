@@ -96,8 +96,6 @@ struct tegra_otg {
 	bool support_pmu_vbus;
 	bool support_usb_id;
 	bool support_pmu_id;
-	bool support_gpio_id;
-	int id_det_gpio;
 	struct extcon_dev *id_extcon_dev;
 	struct extcon_dev *vbus_extcon_dev;
 	struct extcon_dev *aca_nv_extcon_dev;
@@ -257,40 +255,6 @@ static int otg_notifications(struct notifier_block *nb,
 
 	DBG("%s(%d) End\n", __func__, __LINE__);
 	return NOTIFY_DONE;
-}
-
-void check_host_cable_connection(struct tegra_otg *tegra)
-{
-	unsigned long flags;
-	bool id_present;
-	DBG("%s(%d) Begin\n", __func__, __LINE__);
-
-	id_present = (gpio_get_value_cansleep(tegra->id_det_gpio) == 0);
-
-	spin_lock_irqsave(&tegra->lock, flags);
-	if (id_present) {
-		DBG("%s(%d) id connect\n", __func__, __LINE__);
-		tegra->int_status &= ~USB_ID_STATUS;
-		tegra->int_status |= USB_ID_INT_EN;
-	} else {
-		DBG("%s(%d) id disconnect\n", __func__, __LINE__);
-		tegra->int_status |= USB_ID_STATUS;
-	}
-	spin_unlock_irqrestore(&tegra->lock, flags);
-	DBG("%s(%d) tegra->int_status = 0x%lx\n", __func__,
-				__LINE__, tegra->int_status);
-
-	mutex_lock(&tegra->irq_work_mutex);
-	if (!tegra->suspended)
-		schedule_work(&tegra->work);
-	mutex_unlock(&tegra->irq_work_mutex);
-}
-
-static irqreturn_t tegra_otg_id_detect_gpio_thr(int irq, void *data)
-{
-	struct tegra_otg *tegra = data;
-	check_host_cable_connection(tegra);
-	return IRQ_HANDLED;
 }
 
 static const char *tegra_state_name(enum usb_otg_state state)
@@ -637,9 +601,6 @@ static int tegra_otg_set_peripheral(struct usb_otg *otg,
 				tegra->support_aca_nv_cable)
 		otg_notifications(NULL, 0, NULL);
 
-	if (tegra->support_gpio_id && gpio_is_valid(tegra->id_det_gpio))
-		check_host_cable_connection(tegra);
-
 	DBG("%s(%d) END\n", __func__, __LINE__);
 	return 0;
 }
@@ -772,9 +733,6 @@ void tegra_otg_set_id_detection_type(struct tegra_otg *tegra)
 	case TEGRA_USB_PMU_ID:
 		tegra->support_pmu_id = true;
 		break;
-	case TEGRA_USB_GPIO_ID:
-		tegra->support_gpio_id = true;
-		break;
 	case TEGRA_USB_VIRTUAL_ID:
 		tegra->support_usb_id = false;
 		break;
@@ -809,10 +767,6 @@ static struct tegra_usb_otg_data *tegra_otg_dt_parse_pdata(
 					"nvidia,enable-pmu-vbus-detection");
 	pdata->ehci_pdata->u_data.host.turn_off_vbus_on_lp0 =
 		of_property_read_bool(np, "nvidia,turn-off-vbus-in-lp0");
-	pdata->id_det_gpio = of_get_named_gpio(np,
-				"nvidia,id-detection-gpio", 0);
-	if (pdata->id_det_gpio < 0)
-		pdata->id_det_gpio = 0;
 	of_property_read_u32(np, "nvidia,id-detection-type",
 			&pdata->ehci_pdata->id_det_type);
 	pdata->ehci_pdata->vbus_extcon_dev_name = NULL;
@@ -951,7 +905,6 @@ static int tegra_otg_conf(struct platform_device *pdev)
 			pdata->ehci_pdata->u_data.host.support_y_cable;
 	tegra->y_cable_conn = false;
 	tegra->support_pmu_vbus = pdata->ehci_pdata->support_pmu_vbus;
-	tegra->id_det_gpio = pdata->id_det_gpio ? pdata->id_det_gpio : -1;
 	tegra->pdata = pdata;
 	tegra_otg_set_id_detection_type(tegra);
 
@@ -1111,24 +1064,6 @@ static int tegra_otg_start(struct platform_device *pdev)
 		goto err_irq;
 	}
 
-	if (tegra->support_gpio_id && gpio_is_valid(tegra->id_det_gpio)) {
-		err = gpio_request(tegra->id_det_gpio, "id_det_gpio");
-		if (err) {
-			dev_err(&pdev->dev,
-				"failed to allocate id_det_gpio\n");
-			goto err_id_gpio_req;
-		}
-		gpio_direction_input(tegra->id_det_gpio);
-
-		err = request_threaded_irq(gpio_to_irq(tegra->id_det_gpio), NULL
-			, tegra_otg_id_detect_gpio_thr, IRQF_TRIGGER_FALLING |
-			IRQF_TRIGGER_RISING, "tegra-otg", tegra);
-		if (err) {
-			dev_err(&pdev->dev, "request irq error\n");
-			goto err_id_gpio_irq;
-		}
-	}
-
 	if (tegra->support_y_cable) {
 		tegra->vbus_bat_reg = regulator_get(&pdev->dev, "usb_bat_chg");
 		if (IS_ERR_OR_NULL(tegra->vbus_bat_reg)) {
@@ -1141,7 +1076,7 @@ static int tegra_otg_start(struct platform_device *pdev)
 		if (!tegra->edev) {
 			dev_err(&pdev->dev, "failed to allocate memory for extcon\n");
 			err = -ENOMEM;
-			goto err_id_free_irq;
+			goto err_irq;
 		}
 		tegra->edev->name = "tegra-otg";
 		tegra->edev->supported_cable =
@@ -1156,13 +1091,6 @@ static int tegra_otg_start(struct platform_device *pdev)
 	}
 
 	return 0;
-err_id_free_irq:
-	if (gpio_is_valid(tegra->id_det_gpio))
-		free_irq(gpio_to_irq(tegra->id_det_gpio), tegra);
-err_id_gpio_irq:
-	if (gpio_is_valid(tegra->id_det_gpio))
-		gpio_free(tegra->id_det_gpio);
-err_id_gpio_req:
 err_irq:
 	iounmap(tegra->regs);
 err_io:
@@ -1194,8 +1122,7 @@ static int tegra_otg_probe(struct platform_device *pdev)
 	}
 
 	tegra = tegra_clone;
-	if (!tegra->support_usb_id && !tegra->support_pmu_id
-					&& !tegra->support_gpio_id) {
+	if (!tegra->support_usb_id && !tegra->support_pmu_id) {
 		err = device_create_file(&pdev->dev, &dev_attr_enable_host);
 		if (err) {
 			dev_warn(&pdev->dev,
@@ -1231,12 +1158,8 @@ static int __exit tegra_otg_remove(struct platform_device *pdev)
 	if (tegra->support_y_cable && tegra->vbus_bat_reg)
 		regulator_put(tegra->vbus_bat_reg);
 
-	if (tegra->support_gpio_id && gpio_is_valid(tegra->id_det_gpio)) {
-		free_irq(gpio_to_irq(tegra->id_det_gpio), tegra);
-		gpio_free(tegra->id_det_gpio);
-	} else if (tegra->support_pmu_id && !pdev->dev.of_node) {
+	if (tegra->support_pmu_id && !pdev->dev.of_node)
 		extcon_unregister_notifier(tegra->id_extcon_dev, &otg_id_nb);
-	}
 
 	if (tegra->support_pmu_vbus && !pdev->dev.of_node)
 		extcon_unregister_notifier(tegra->vbus_extcon_dev,
@@ -1297,16 +1220,6 @@ static int tegra_otg_suspend(struct device *dev)
 		}
 	}
 
-	if (!(tegra->id_det_gpio == -1)) {
-		err = enable_irq_wake(
-				gpio_to_irq(tegra->id_det_gpio));
-		if (err < 0) {
-			dev_err(&pdev->dev,
-			"Couldn't enable USB otg mode gpio wakeup, irq=%d,"
-			"error=%d\n", gpio_to_irq(tegra->id_det_gpio), err);
-			goto fail;
-		}
-	}
 fail:
 	tegra->suspended = true;
 	DBG("%s(%d) END\n", __func__, __LINE__);
@@ -1337,13 +1250,6 @@ static void tegra_otg_resume(struct device *dev)
 			"irq=%d, error=%d\n", tegra->irq, err);
 	}
 
-	if (!(tegra->id_det_gpio == -1)) {
-		err = disable_irq_wake(gpio_to_irq(tegra->id_det_gpio));
-		if (err < 0)
-			dev_err(&pdev->dev,
-			"Couldn't disable USB otg mode gpio wakeup, irq=%d,"
-			"error=%d\n", gpio_to_irq(tegra->id_det_gpio), err);
-	}
 	/* Detect cable status after LP0 for all detection types */
 
 	if (tegra->support_usb_id || !tegra->support_pmu_vbus) {
@@ -1369,12 +1275,6 @@ static void tegra_otg_resume(struct device *dev)
 	if (tegra->support_pmu_vbus || tegra->support_pmu_id
 				|| tegra->support_aca_nv_cable)
 		otg_notifications(NULL, 0, NULL);
-
-	if (tegra->support_gpio_id && gpio_is_valid(tegra->id_det_gpio)) {
-		mutex_unlock(&tegra->irq_work_mutex);
-		check_host_cable_connection(tegra);
-		mutex_lock(&tegra->irq_work_mutex);
-	}
 
 	if (tegra->turn_off_vbus_on_lp0 &&
 		!(tegra->int_status & USB_ID_STATUS)) {
