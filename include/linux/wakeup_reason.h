@@ -19,5 +19,6 @@
 #define _LINUX_WAKEUP_REASON_H
 
 void log_wakeup_reason(int irq);
+int check_wakeup_reason(int irq);
 
 #endif /* _LINUX_WAKEUP_REASON_H */
