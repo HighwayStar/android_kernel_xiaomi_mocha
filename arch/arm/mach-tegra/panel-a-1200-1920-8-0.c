@@ -41,16 +41,12 @@
 #define DC_CTRL_MODE	(TEGRA_DC_OUT_CONTINUOUS_MODE  |\
 			TEGRA_DC_OUT_INITIALIZED_MODE)
 
-#define PRISM_THRESHOLD		50
-#define HYST_VAL		25
-
 static bool reg_requested;
 static bool gpio_requested;
 static struct platform_device *disp_device;
 static struct regulator *avdd_lcd_3v3;
 static struct regulator *vdd_lcd_bl_en;
 static struct regulator *dvdd_lcd_1v8;
-static struct device *dc_dev;
 
 static struct tegra_dc_sd_settings dsi_a_1200_1920_8_0_sd_settings = {
 	.enable = 0, /* disabled by default. */
@@ -313,7 +309,7 @@ static int dsi_a_1200_1920_8_0_enable(struct device *dev)
 		msleep(20);
 	}
 #endif
-	dc_dev = dev;
+
 	return 0;
 fail:
 	return err;
@@ -338,7 +334,6 @@ static int dsi_a_1200_1920_8_0_disable(void)
 	if (dvdd_lcd_1v8)
 		regulator_disable(dvdd_lcd_1v8);
 
-	dc_dev = NULL;
 	return 0;
 }
 
@@ -534,17 +529,11 @@ static struct tegra_dc_cmu dsi_a_1200_1920_8_0_cmu = {
 
 static int dsi_a_1200_1920_8_0_bl_notify(struct device *unused, int brightness)
 {
-	int cur_sd_brightness;
+	int cur_sd_brightness = atomic_read(&sd_brightness);
 
 	/* apply the non-linear curve adjustment */
 	brightness = dsi_a_1200_1920_8_0_bl_nonlinear[brightness];
-	if (dc_dev) {
-		if (brightness <= PRISM_THRESHOLD)
-			nvsd_enbl_dsbl_prism(dc_dev, false);
-		else if (brightness > PRISM_THRESHOLD + HYST_VAL)
-			nvsd_enbl_dsbl_prism(dc_dev, true);
-	}
-	cur_sd_brightness = atomic_read(&sd_brightness);
+
 	/* SD brightness is a percentage */
 	brightness = (brightness * cur_sd_brightness) / 255;
 
