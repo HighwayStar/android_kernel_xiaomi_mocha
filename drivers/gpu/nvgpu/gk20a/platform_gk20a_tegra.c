@@ -3,7 +3,7 @@
  *
  * GK20A Tegra Platform Interface
  *
- * Copyright (c) 2014, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2014-2015, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -521,6 +521,8 @@ struct gk20a_platform t132_gk20a_tegra_platform = {
 	.railgate_delay		= 500,
 	.clockgate_delay	= 50,
 
+	.force_reset_in_do_idle = false,
+
 	.probe = gk20a_tegra_probe,
 	.late_probe = gk20a_tegra_late_probe,
 
@@ -549,6 +551,8 @@ struct gk20a_platform gk20a_tegra_platform = {
 	.railgate_delay		= 500,
 	.clockgate_delay	= 50,
 	.can_railgate		= true,
+
+	.force_reset_in_do_idle = false,
 
 	.probe = gk20a_tegra_probe,
 	.late_probe = gk20a_tegra_late_probe,

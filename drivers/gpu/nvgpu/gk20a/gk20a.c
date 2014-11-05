@@ -3,7 +3,7 @@
  *
  * GK20A Graphics
  *
- * Copyright (c) 2011-2014, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2011-2015, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -1666,7 +1666,7 @@ int __gk20a_do_idle(struct platform_device *pdev)
 	 */
 	pm_runtime_put_sync(&pdev->dev);
 
-	if (platform->can_railgate) {
+	if (platform->can_railgate && !platform->force_reset_in_do_idle) {
 		/* add sufficient delay to allow GPU to rail gate */
 		msleep(platform->railgate_delay);
 

@@ -3,7 +3,7 @@
  *
  * GK20A Platform (SoC) Interface
  *
- * Copyright (c) 2014, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2014-2015, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -60,6 +60,12 @@ struct gk20a_platform {
 
 	/* Delay before clock gated */
 	int clockgate_delay;
+
+	/*
+	 * gk20a_do_idle() API can take GPU either into rail gate or CAR reset
+	 * This flag can be used to force CAR reset case instead of rail gate
+	 */
+	bool force_reset_in_do_idle;
 
 	/* Initialize the platform interface of the gk20a driver.
 	 *
