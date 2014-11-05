@@ -291,6 +291,9 @@ static void alloc_handle(struct nvmap_client *client,
 		h->heap_pgalloc = true;
 		mb();
 		h->alloc = true;
+		if (client->task)
+			add_mm_counter(client->task->mm, MM_ANONPAGES,
+				h->size >> PAGE_SHIFT);
 	}
 }
 
@@ -430,6 +433,9 @@ void nvmap_free_handle(struct nvmap_client *client,
 
 	smp_rmb();
 	pins = atomic_read(&ref->pin);
+	if (client->task && handle->heap_pgalloc)
+		add_mm_counter(client->task->mm, MM_ANONPAGES,
+				-(ref->handle->size >> PAGE_SHIFT));
 	rb_erase(&ref->node, &client->handle_refs);
 	client->handle_count--;
 	atomic_dec(&ref->handle->share_count);
@@ -613,6 +619,9 @@ struct nvmap_handle_ref *nvmap_duplicate_handle(struct nvmap_client *client,
 	ref->handle = h;
 	atomic_set(&ref->pin, 0);
 	add_handle_ref(client, ref);
+	if (client->task && h->heap_pgalloc)
+		add_mm_counter(client->task->mm, MM_ANONPAGES,
+			h->size >> PAGE_SHIFT);
 
 	/*
 	 * Ref counting on the dma_bufs follows the creation and destruction of
