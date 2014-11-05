@@ -344,13 +344,13 @@ static int dsi_a_1200_1920_8_0_postsuspend(void)
 
 static struct tegra_dc_mode dsi_a_1200_1920_8_0_modes[] = {
 	{
-		.pclk = 154779200,
+		.pclk = 155774400,
 		.h_ref_to_sync = 4,
 		.v_ref_to_sync = 1,
 		.h_sync_width = 10,
 		.v_sync_width = 2,
 		.h_back_porch = 54,
-		.v_back_porch = 15,
+		.v_back_porch = 30,
 		.h_active = 1200,
 		.v_active = 1920,
 		.h_front_porch = 64,
