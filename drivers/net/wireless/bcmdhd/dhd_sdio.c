@@ -1547,6 +1547,7 @@ dhd_tcpack_suppress(dhd_pub_t *dhdp, void *pkt)
 	if (cur_framelen < bdc_hdr_len + ETHER_HDR_LEN) {
 		DHD_TRACE(("dhd_tcpack_suppress: Too short packet length %d\n", cur_framelen));
 		return FALSE;
+
 	}
 
 	/* Get rid of BDC header */
@@ -2125,8 +2126,9 @@ dhd_bus_txdata(struct dhd_bus *bus, void *pkt)
 	protocol = (dump_data[12] << 8) | dump_data[13];
 
 	if (protocol == ETHER_TYPE_802_1X) {
-		DHD_ERROR(("ETHER_TYPE_802_1X [TX]: ver %d, type %d, replay %d\n",
-			dump_data[14], dump_data[15], dump_data[30]));
+		pr_info("ETHER_TYPE_802_1X [TX]: ver %d, type %d, replay %d\n",
+			dump_data[14], dump_data[15], dump_data[30]);
+		prhex("802.1X TX DUMP:", dump_data, datalen - 4);
 	}
 #endif /* DHD_TX_DUMP || DHD_8021X_DUMP */
 
