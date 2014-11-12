@@ -1686,10 +1686,6 @@ uint8 prio2fifo[8] = { 1, 0, 0, 1, 2, 2, 3, 3 };
 #define WME_PRIO2AC(prio)	wme_fifo2ac[prio2fifo[(prio)]]
 
 #endif /* PROP_TXSTATUS */
-
-static int
-dhd_get_pend_8021x_cnt(dhd_info_t *dhd);
-
 int
 dhd_sendpkt(dhd_pub_t *dhdp, int ifidx, void *pktbuf)
 {
@@ -1711,10 +1707,8 @@ dhd_sendpkt(dhd_pub_t *dhdp, int ifidx, void *pktbuf)
 
 		if (ETHER_ISMULTI(eh->ether_dhost))
 			dhdp->tx_multicast++;
-		if (ntoh16(eh->ether_type) == ETHER_TYPE_802_1X) {
+		if (ntoh16(eh->ether_type) == ETHER_TYPE_802_1X)
 			atomic_inc(&dhd->pend_8021x_cnt);
-			DHD_ERROR(("%s: pend_8021x_cnt = %d\n", __func__, dhd_get_pend_8021x_cnt(dhd)));
-		}
 	} else {
 			PKTFREE(dhd->pub.osh, pktbuf, TRUE);
 			return BCME_ERROR;
@@ -2040,11 +2034,10 @@ dhd_rx_frame(dhd_pub_t *dhdp, int ifidx, void *pktbuf, int numpkt, uint8 chan)
 		protocol = (dump_data[12] << 8) | dump_data[13];
 
 		if (protocol == ETHER_TYPE_802_1X) {
-			pr_info("ETHER_TYPE_802_1X [RX]: "
+			DHD_ERROR(("ETHER_TYPE_802_1X: "
 				"ver %d, type %d, replay %d\n",
 				dump_data[14], dump_data[15],
-				dump_data[30]);
-			prhex("802.1X RX DUMP:", dump_data, skb->len);
+				dump_data[30]));
 		}
 #endif /* DHD_RX_DUMP || DHD_8021X_DUMP */
 #if defined(DHD_RX_DUMP)
