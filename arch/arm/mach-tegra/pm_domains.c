@@ -207,7 +207,7 @@ static int __init tegra_init_pm_domain(void)
 {
 	pm_genpd_init(&tegra_mc_clk.gpd, &simple_qos_governor, false);
 
-	pm_genpd_init(&tegra_nvavp.gpd, &simple_qos_governor, false);
+	pm_genpd_init(&tegra_nvavp.gpd, &simple_qos_governor, true);
 	tegra_pd_add_sd(&tegra_nvavp.gpd);
 
 	return 0;
