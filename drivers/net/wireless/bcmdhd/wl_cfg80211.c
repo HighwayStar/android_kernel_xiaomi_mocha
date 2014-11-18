@@ -9287,6 +9287,8 @@ static s32 wl_notifier_change_state(struct wl_priv *wl, struct net_info *_net_in
 
 			}
 			for_each_ndev(wl, iter, next) {
+				if (!wl_get_drv_status(wl, CONNECTED, iter->ndev))
+					continue;
 				if ((err = wldev_ioctl(iter->ndev, WLC_SET_PM, &pm,
 					sizeof(pm), true)) != 0) {
 					if (err == -ENODEV)
@@ -9309,7 +9311,25 @@ static s32 wl_notifier_change_state(struct wl_priv *wl, struct net_info *_net_in
 			 */
 			pm = PM_OFF;
 			down_read(&wl->netif_sem);
+			if (!_net_info->pm_block) {
+				for_each_ndev(wl, iter, next) {
+					if (iter->pm_restore)
+						continue;
+					/* Save the current power mode */
+					err = wldev_ioctl(iter->ndev, WLC_GET_PM, &iter->pm,
+							sizeof(iter->pm), false);
+					WL_DBG(("%s:power save %s\n", iter->ndev->name,
+								iter->pm ? "enabled" : "disabled"));
+					if (!err && iter->pm) {
+						iter->pm_restore = true;
+					}
+
+				}
+			}
+
 			for_each_ndev(wl, iter, next) {
+				if (!wl_get_drv_status(wl, CONNECTED, iter->ndev))
+					continue;
 				if ((err = wldev_ioctl(iter->ndev, WLC_SET_PM, &pm,
 					sizeof(pm), true)) != 0) {
 					if (err == -ENODEV)
