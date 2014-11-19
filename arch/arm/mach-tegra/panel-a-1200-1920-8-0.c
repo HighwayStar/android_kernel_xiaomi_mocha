@@ -593,6 +593,11 @@ static int  __init dsi_a_1200_1920_8_0_register_bl_dev(void)
 {
 	int err = 0;
 
+#ifdef CONFIG_ANDROID
+	if (get_androidboot_mode_charger())
+		dsi_a_1200_1920_8_0_bl_data.dft_brightness = 112;
+#endif
+
 	if (tegra_get_touch_vendor_id() == MAXIM_TOUCH) {
 		struct platform_pwm_backlight_data *pfm_dat;
 		pfm_dat = dsi_a_1200_1920_8_0_bl_devices[0]->dev.platform_data;
