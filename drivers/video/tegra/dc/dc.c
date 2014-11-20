@@ -2791,8 +2791,6 @@ static void _tegra_dc_disable(struct tegra_dc *dc)
 	if (dc->out->flags & TEGRA_DC_OUT_ONE_SHOT_MODE)
 		mutex_unlock(&dc->one_shot_lock);
 	pm_runtime_put(&dc->ndev->dev);
-
-	tegra_log_suspend_time();
 }
 
 void tegra_dc_disable(struct tegra_dc *dc)

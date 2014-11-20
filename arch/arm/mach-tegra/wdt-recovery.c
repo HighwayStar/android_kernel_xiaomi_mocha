@@ -32,6 +32,7 @@
 #include <linux/nvmap.h>
 #include <mach/irqs.h>
 
+#include "wdt-recovery.h"
 #include "iomap.h"
 
 static int wdt_heartbeat = 30;
@@ -70,6 +71,7 @@ static void tegra_wdt_reset_enable(void)
 		/*WDT_CFG_SYS_RST_EN |*/ WDT_CFG_PMC2CAR_RST_EN;
 	writel(val, wdt_source + WDT_CFG);
 	writel(WDT_CMD_START_COUNTER, wdt_source + WDT_CMD);
+	tegra_log_suspend_time();
 	pr_info("%s: WDT Recovery Enabled\n", __func__);
 }
 
@@ -78,7 +80,6 @@ static int tegra_wdt_reset_disable(void)
 	writel(TIMER_PCR_INTR, wdt_timer + TIMER_PCR);
 	writel(WDT_UNLOCK_PATTERN, wdt_source + WDT_UNLOCK);
 	writel(WDT_CMD_DISABLE_COUNTER, wdt_source + WDT_CMD);
-
 	writel(0, wdt_timer + TIMER_PTV);
 	pr_info("%s: WDT Recovery Disabled\n", __func__);
 
