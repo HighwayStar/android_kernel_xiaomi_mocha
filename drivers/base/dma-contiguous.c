@@ -22,6 +22,8 @@
 #include <asm/page.h>
 #include <asm/dma-contiguous.h>
 
+#include <linux/buffer_head.h>
+#include <linux/delay.h>
 #include <linux/memblock.h>
 #include <linux/err.h>
 #include <linux/mm.h>
@@ -32,6 +34,11 @@
 #include <linux/swap.h>
 #include <linux/mm_types.h>
 #include <linux/dma-contiguous.h>
+#include <linux/dma-mapping.h>
+
+#include <asm/tlbflush.h>
+#include <asm/cacheflush.h>
+#include <asm/outercache.h>
 
 struct cma {
 	unsigned long	base_pfn;
@@ -292,24 +299,63 @@ err:
 	return base;
 }
 
-/**
- * dma_alloc_from_contiguous() - allocate pages from contiguous area
- * @dev:   Pointer to device for which the allocation is performed.
- * @count: Requested number of pages.
- * @align: Requested alignment of pages (in PAGE_SIZE order).
- *
- * This function allocates memory buffer for specified device. It uses
- * device specific contiguous memory area if available or the default
- * global one. Requires architecture specific get_dev_cma_area() helper
- * function.
- */
-struct page *dma_alloc_from_contiguous(struct device *dev, int count,
-				       unsigned int align)
+static int __dma_update_pte(pte_t *pte, pgtable_t token, unsigned long addr,
+			    void *data)
+{
+	struct page *page = virt_to_page(addr);
+	pgprot_t prot = *(pgprot_t *)data;
+
+	set_pte_at(&init_mm, addr, pte, mk_pte(page, prot));
+	return 0;
+}
+
+static void __dma_remap(struct page *page, size_t size, pgprot_t prot)
+{
+	unsigned long start = (unsigned long) page_address(page);
+	unsigned end = start + size;
+
+	if (PageHighMem(page))
+		return;
+	apply_to_page_range(&init_mm, start,
+		size, __dma_update_pte, &prot);
+	dsb();
+	flush_tlb_kernel_range(start, end);
+}
+
+static void __dma_clear_buffer(struct page *page, size_t size)
+{
+	/*
+	 * Ensure that the allocated pages are zeroed, and that any data
+	 * lurking in the kernel direct-mapped region is invalidated.
+	 */
+	if (PageHighMem(page)) {
+		phys_addr_t base = __pfn_to_phys(page_to_pfn(page));
+		phys_addr_t end = base + size;
+		while (size > 0) {
+			void *ptr = kmap_atomic(page);
+			memset(ptr, 0, PAGE_SIZE);
+			dmac_flush_range(ptr, ptr + PAGE_SIZE);
+			kunmap_atomic(ptr);
+			page++;
+			size -= PAGE_SIZE;
+		}
+		outer_flush_range(base, end);
+	} else {
+		void *ptr = page_address(page);
+		memset(ptr, 0, size);
+		dmac_flush_range(ptr, ptr + size);
+		outer_flush_range(__pa(ptr), __pa(ptr) + size);
+	}
+}
+
+struct page *dma_alloc_at_from_contiguous(struct device *dev, int count,
+				       unsigned int align, phys_addr_t at_addr)
 {
 	unsigned long mask, pfn, pageno, start = 0;
 	struct cma *cma = dev_get_cma_area(dev);
 	struct page *page = NULL;
 	int ret;
+	unsigned long start_pfn = __phys_to_pfn(at_addr);
 
 	if (!cma || !cma->count)
 		return NULL;
@@ -325,21 +371,41 @@ struct page *dma_alloc_from_contiguous(struct device *dev, int count,
 
 	mask = (1 << align) - 1;
 
+	if (start_pfn && start_pfn < cma->base_pfn)
+		return NULL;
+	start = start_pfn ? start_pfn - cma->base_pfn : start;
+
 	mutex_lock(&cma_mutex);
 
 	for (;;) {
+		unsigned long timeout = jiffies + msecs_to_jiffies(8000);
+		int retries = 0;
+
 		pageno = bitmap_find_next_zero_area(cma->bitmap, cma->count,
 						    start, count, mask);
-		if (pageno >= cma->count)
+		if (pageno >= cma->count || (start && start != pageno))
 			break;
 
 		pfn = cma->base_pfn + pageno;
+retry:
 		ret = alloc_contig_range(pfn, pfn + count, MIGRATE_CMA);
 		if (ret == 0) {
 			bitmap_set(cma->bitmap, pageno, count);
 			page = pfn_to_page(pfn);
 			break;
-		} else if (ret != -EBUSY) {
+		} else if (start && time_before(jiffies, timeout)) {
+			/* Possible migration contention from
+			 * __get_user_pages(). Retry after a bit of sleep.
+			 */
+			if (retries >= 5) {
+				msleep(retries > 10 ? 3 : 1);
+				invalidate_bh_lrus();
+			} else {
+				cond_resched();
+			}
+			retries++;
+			goto retry;
+		} else if (ret != -EBUSY || start) {
 			break;
 		}
 		pr_debug("%s(): memory range at %p is busy, retrying\n",
@@ -350,7 +416,29 @@ struct page *dma_alloc_from_contiguous(struct device *dev, int count,
 
 	mutex_unlock(&cma_mutex);
 	pr_debug("%s(): returned %p\n", __func__, page);
+	if (page) {
+		__dma_remap(page, count << PAGE_SHIFT,
+			pgprot_dmacoherent(PAGE_KERNEL));
+		__dma_clear_buffer(page, count << PAGE_SHIFT);
+	}
 	return page;
+}
+
+/**
+ * dma_alloc_from_contiguous() - allocate pages from contiguous area
+ * @dev:   Pointer to device for which the allocation is performed.
+ * @count: Requested number of pages.
+ * @align: Requested alignment of pages (in PAGE_SIZE order).
+ *
+ * This function allocates memory buffer for specified device. It uses
+ * device specific contiguous memory area if available or the default
+ * global one. Requires architecture specific get_dev_cma_area() helper
+ * function.
+ */
+struct page *dma_alloc_from_contiguous(struct device *dev, int count,
+				       unsigned int align)
+{
+	return dma_alloc_at_from_contiguous(dev, count, align, 0);
 }
 
 /**
@@ -381,6 +469,8 @@ bool dma_release_from_contiguous(struct device *dev, struct page *pages,
 
 	VM_BUG_ON(pfn + count > cma->base_pfn + cma->count);
 
+	__dma_remap(pages, count << PAGE_SHIFT, PAGE_KERNEL_EXEC);
+
 	mutex_lock(&cma_mutex);
 	bitmap_clear(cma->bitmap, pfn - cma->base_pfn, count);
 	free_contig_range(pfn, count);
@@ -406,5 +496,63 @@ int dma_get_contiguous_stats(struct device *dev,
 	stats->size = (cma->count) << PAGE_SHIFT;
 	stats->base = (cma->base_pfn) << PAGE_SHIFT;
 
+	return 0;
+}
+
+#define MAX_REPLACE_DEV 16
+static struct device *replace_dev_list[MAX_REPLACE_DEV];
+static atomic_t replace_dev_count;
+
+bool dma_contiguous_should_replace_page(struct page *page)
+{
+	int i;
+	ulong pfn;
+	struct cma *cma;
+	struct device *dev;
+	int count = atomic_read(&replace_dev_count);
+
+	if (!page)
+		return false;
+	pfn = page_to_pfn(page);
+
+	for (i = 0; i < count; i++) {
+		dev = replace_dev_list[i];
+		if (!dev)
+			continue;
+		cma = dev->cma_area;
+		if (!cma)
+			continue;
+		if (pfn >= cma->base_pfn &&
+		    pfn < cma->base_pfn + cma->count)
+			return true;
+	}
+
+	return false;
+}
+
+/* Enable replacing pages during get_user_pages.
+ * any ref count on CMA page from get_user_pages
+ * makes the page not migratable and can cause
+ * CMA allocation failure. Enabling replace
+ * would force replacing the CMA pages with non-CMA
+ * pages during get_user_pages
+ */
+int dma_contiguous_enable_replace_pages(struct device *dev)
+{
+	int idx;
+	struct cma *cma;
+
+	if (!dev)
+		return -EINVAL;
+
+	idx = atomic_inc_return(&replace_dev_count);
+	if (idx > MAX_REPLACE_DEV)
+		return -EINVAL;
+	replace_dev_list[idx - 1] = dev;
+	cma = dev->cma_area;
+	if (cma) {
+		pr_info("enabled page replacement for spfn=%lx, epfn=%lx\n",
+			cma->base_pfn, cma->base_pfn + cma->count);
+	}
 	return 0;
 }

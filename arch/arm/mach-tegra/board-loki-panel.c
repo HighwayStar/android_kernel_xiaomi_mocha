@@ -460,7 +460,7 @@ int __init loki_panel_init(int board_id)
 	struct resource __maybe_unused *res;
 	struct platform_device *phost1x = NULL;
 	struct board_info bi;
-#ifdef CONFIG_TEGRA_NVMAP
+#ifdef CONFIG_NVMAP_USE_CMA_FOR_CARVEOUT
 	struct dma_declare_info vpr_dma_info;
 	struct dma_declare_info generic_dma_info;
 #endif
@@ -492,6 +492,7 @@ int __init loki_panel_init(int board_id)
 	loki_carveouts[2].base = tegra_vpr_start;
 	loki_carveouts[2].size = tegra_vpr_size;
 
+#ifdef CONFIG_NVMAP_USE_CMA_FOR_CARVEOUT
 	generic_dma_info.name = "generic";
 	generic_dma_info.base = tegra_carveout_start;
 	generic_dma_info.size = tegra_carveout_size;
@@ -503,20 +504,15 @@ int __init loki_panel_init(int board_id)
 	vpr_dma_info.size = tegra_vpr_size;
 	vpr_dma_info.resize = false;
 	vpr_dma_info.cma_dev = NULL;
-#ifdef CONFIG_NVMAP_USE_CMA_FOR_CARVEOUT
-	carveout_linear_set(&tegra_generic_cma_dev);
 	loki_carveouts[1].cma_dev = &tegra_generic_cma_dev;
 	loki_carveouts[1].resize = false;
-	carveout_linear_set(&tegra_vpr_cma_dev);
 	loki_carveouts[2].cma_dev = &tegra_vpr_cma_dev;
 	loki_carveouts[2].resize = true;
-	loki_carveouts[2].cma_chunk_size = SZ_32M;
 
 	vpr_dma_info.size = SZ_32M;
 	vpr_dma_info.resize = true;
 	vpr_dma_info.cma_dev = &tegra_vpr_cma_dev;
 	vpr_dma_info.notifier.ops = &vpr_dev_ops;
-#endif
 
 	if (tegra_carveout_size) {
 		err = dma_declare_coherent_resizable_cma_memory(
@@ -534,6 +530,7 @@ int __init loki_panel_init(int board_id)
 			return err;
 		}
 	}
+#endif
 
 	err = platform_device_register(&loki_nvmap_device);
 	if (err) {

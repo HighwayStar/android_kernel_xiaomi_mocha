@@ -78,11 +78,15 @@ int dma_declare_contiguous(struct device *dev, phys_addr_t size,
 
 struct page *dma_alloc_from_contiguous(struct device *dev, int count,
 				       unsigned int order);
+struct page *dma_alloc_at_from_contiguous(struct device *dev, int count,
+				       unsigned int order, phys_addr_t at_addr);
 bool dma_release_from_contiguous(struct device *dev, struct page *pages,
 				 int count);
 int dma_get_contiguous_stats(struct device *dev,
 			struct dma_contiguous_stats *stats);
 
+bool dma_contiguous_should_replace_page(struct page *page);
+int dma_contiguous_enable_replace_pages(struct device *dev);
 #else
 
 struct dma_contiguous_stats;
@@ -96,6 +100,13 @@ int dma_declare_contiguous(struct device *dev, phys_addr_t size,
 			   phys_addr_t base, phys_addr_t limit)
 {
 	return -ENOSYS;
+}
+
+static inline
+struct page *dma_alloc_at_from_contiguous(struct device *dev, int count,
+				       unsigned int order, phys_addr_t at_addr)
+{
+	return NULL;
 }
 
 static inline
@@ -117,6 +128,18 @@ int dma_get_contiguous_stats(struct device *dev,
 			struct dma_contiguous_stats *stats)
 {
 	return -ENOSYS;
+}
+
+static inline
+bool dma_contiguous_should_replace_page(struct page *page)
+{
+	return false;
+}
+
+static inline
+int dma_contiguous_enable_replace_pages(struct device *dev)
+{
+	return 0;
 }
 #endif
 

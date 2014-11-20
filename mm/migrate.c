@@ -36,6 +36,7 @@
 #include <linux/hugetlb_cgroup.h>
 #include <linux/gfp.h>
 #include <linux/balloon_compaction.h>
+#include <linux/dma-contiguous.h>
 
 #include <asm/tlbflush.h>
 
@@ -218,18 +219,31 @@ static void __migration_entry_wait(struct mm_struct *mm, pte_t *ptep,
 
 	page = migration_entry_to_page(entry);
 
-	/*
-	 * Once radix-tree replacement of page migration started, page_count
-	 * *must* be zero. And, we don't want to call wait_on_page_locked()
-	 * against a page without get_page().
-	 * So, we use get_page_unless_zero(), here. Even failed, page fault
-	 * will occur again.
-	 */
-	if (!get_page_unless_zero(page))
-		goto out;
-	pte_unmap_unlock(ptep, ptl);
-	wait_on_page_locked(page);
-	put_page(page);
+	if (dma_contiguous_should_replace_page(page)) {
+		pte_unmap_unlock(ptep, ptl);
+		/* don't take ref on page, as it causes
+		 * migration to get aborted in between.
+		 * migration goes ahead after locking the page.
+		 * Wait on page to be unlocked. In case page get
+		 * unlocked, allocated and locked again forever,
+		 * before this function call, it would timeout in
+		 * next tick and exit.
+		 */
+		wait_on_page_locked_timeout(page);
+	} else {
+		/*
+		 * Once radix-tree replacement of page migration started, page_count
+		 * *must* be zero. And, we don't want to call wait_on_page_locked()
+		 * against a page without get_page().
+		 * So, we use get_page_unless_zero(), here. Even failed, page fault
+		 * will occur again.
+		 */
+		if (!get_page_unless_zero(page))
+			goto out;
+		pte_unmap_unlock(ptep, ptl);
+		wait_on_page_locked(page);
+		put_page(page);
+	}
 	return;
 out:
 	pte_unmap_unlock(ptep, ptl);
@@ -1082,6 +1096,62 @@ int migrate_huge_page(struct page *hpage, new_page_t get_new_page,
 	}
 out:
 	return rc;
+}
+
+/*
+ * migrate_replace_page
+ *
+ * The function takes one single page and a target page (newpage) and
+ * tries to migrate data to the target page. The caller must ensure that
+ * the source page is locked with one additional get_page() call, which
+ * will be freed during the migration. The caller also must release newpage
+ * if migration fails, otherwise the ownership of the newpage is taken.
+ * Source page is released if migration succeeds.
+ *
+ * Return: error code or 0 on success.
+ */
+int migrate_replace_page(struct page *page, struct page *newpage)
+{
+	struct zone *zone = page_zone(page);
+	unsigned long flags;
+	int ret = -EAGAIN;
+	int pass;
+
+	migrate_prep();
+
+	spin_lock_irqsave(&zone->lru_lock, flags);
+
+	if (PageLRU(page) &&
+	    __isolate_lru_page(page, ISOLATE_UNEVICTABLE) == 0) {
+		struct lruvec *lruvec = mem_cgroup_page_lruvec(page, zone);
+		del_page_from_lru_list(page, lruvec, page_lru(page));
+		spin_unlock_irqrestore(&zone->lru_lock, flags);
+	} else {
+		spin_unlock_irqrestore(&zone->lru_lock, flags);
+		return -EAGAIN;
+	}
+
+	for (pass = 0; pass < 10 && ret != 0; pass++) {
+		cond_resched();
+
+		if (page_count(page) == 1) {
+			/* page was freed from under us, so we are done */
+			ret = 0;
+			break;
+		}
+		ret = __unmap_and_move(page, newpage, 1, MIGRATE_SYNC);
+	}
+
+	if (ret == 0) {
+		/* take ownership of newpage and add it to lru */
+		putback_lru_page(newpage);
+	} else {
+		/* restore additional reference to the oldpage */
+		get_page(page);
+	}
+
+	putback_lru_page(page);
+	return ret;
 }
 
 #ifdef CONFIG_NUMA
