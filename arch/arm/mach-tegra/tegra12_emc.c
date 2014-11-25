@@ -98,6 +98,10 @@ static struct emc_iso_usage tegra12_emc_iso_usage[] = {
 		80, iso_share_calc_t124_os_idle
 	},
 	{
+		BIT(EMC_USER_DC2),
+		80, iso_share_calc_t124_os_idle
+	},
+	{
 		BIT(EMC_USER_DC1) | BIT(EMC_USER_DC2),
 		50, iso_share_calc_t124_general
 	},
