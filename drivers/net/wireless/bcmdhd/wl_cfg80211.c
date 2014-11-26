@@ -7307,7 +7307,8 @@ wl_notify_connect_status(struct wl_priv *wl, bcm_struct_cfgdev *cfgdev,
 		if (wl_is_linkup(wl, e, ndev)) {
 			wl_link_up(wl);
 			act = true;
-			if (!wl_get_drv_status(wl, DISCONNECTING, ndev)) {
+			if (!wl_get_drv_status(wl, DISCONNECTING, ndev) ||
+			    wl_get_drv_status(wl, CONNECTING, ndev)) {
 					printk("wl_bss_connect_done succeeded with " MACDBG "\n",
 						MAC2STRDBG((u8*)(&e->addr)));
 					wl_bss_connect_done(wl, ndev, e, data, true);
