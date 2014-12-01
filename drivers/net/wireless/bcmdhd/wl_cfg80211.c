@@ -69,6 +69,9 @@
 #include <dhd_wlfc.h>
 #endif
 
+#ifdef CONFIG_BCMDHD_CUSTOM_SYSFS_TEGRA
+#include "dhd_custom_sysfs_tegra.h"
+#endif
 
 
 #define IW_WSEC_ENABLED(wsec)   ((wsec) & (WEP_ENABLED | TKIP_ENABLED | AES_ENABLED))
@@ -2178,6 +2181,7 @@ wl_do_escan(struct wl_priv *wl, struct wiphy *wiphy, struct net_device *ndev,
 		goto exit;
 	}
 
+	TEGRA_SYSFS_HISTOGRAM_SCAN_REQUEST(ndev, request, sizeof(*request))
 	err = wl_run_escan(wl, ndev, request, WL_SCAN_ACTION_START);
 exit:
 	mutex_unlock(&wl->usr_sync);
@@ -7863,6 +7867,7 @@ wl_notify_scan_status(struct wl_priv *wl, bcm_struct_cfgdev *cfgdev,
 	bss_list->version = dtoh32(bss_list->version);
 	bss_list->count = dtoh32(bss_list->count);
 
+	TEGRA_SYSFS_HISTOGRAM_SCAN_RESULTS(ndev, bss_list, bss_list->buflen)
 	err = wl_inform_bss(wl);
 
 scan_done_out:
@@ -8552,6 +8557,7 @@ wl_get_iscan_results(struct wl_iscan_ctrl *iscan, u32 *status,
 	*status = dtoh32(list_buf->status);
 	*bss_list = results;
 
+	TEGRA_SYSFS_HISTOGRAM_SCAN_RESULTS(iscan->dev, results, results->buflen)
 	return err;
 }
 
