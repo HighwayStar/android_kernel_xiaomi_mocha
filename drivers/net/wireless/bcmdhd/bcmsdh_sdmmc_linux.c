@@ -38,6 +38,10 @@
 #include <linux/mmc/sdio_func.h>
 #include <linux/mmc/sdio_ids.h>
 
+#ifdef	CONFIG_BCMDHD_CUSTOM_SYSFS_TEGRA
+#include "dhd_custom_sysfs_tegra.h"
+#endif
+
 #if !defined(SDIO_VENDOR_ID_BROADCOM)
 #define SDIO_VENDOR_ID_BROADCOM		0x02d0
 #endif /* !defined(SDIO_VENDOR_ID_BROADCOM) */
@@ -230,6 +234,10 @@ static int bcmsdh_sdmmc_suspend(struct device *pdev)
 		return  -EINVAL;
 	}
 
+#ifdef	CONFIG_BCMDHD_CUSTOM_SYSFS_TEGRA
+	tegra_sysfs_suspend();
+#endif
+
 	/* keep power while host suspended */
 	ret = sdio_set_host_pm_flags(func, MMC_PM_KEEP_POWER);
 	if (ret) {
@@ -256,6 +264,9 @@ static int bcmsdh_sdmmc_resume(struct device *pdev)
 	if ((func->num == 2) && dhd_os_check_if_up(bcmsdh_get_drvdata()))
 		bcmsdh_oob_intr_set(1);
 #endif 
+#ifdef	CONFIG_BCMDHD_CUSTOM_SYSFS_TEGRA
+	tegra_sysfs_resume();
+#endif
 
 	smp_mb();
 	return 0;
