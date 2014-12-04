@@ -39,8 +39,11 @@
 #define AD5823_FOCUS_INFINITY	(146)
 
 #define SETTLETIME_MS	(15)
-#define FOCAL_LENGTH	(4.507f)
-#define FNUMBER		(2.8f)
+/* define FOCAL_LENGTH/MAX_APERTURE/FNUMBER as integer with granularity of 10000
+   instead of previous float type -- bug 1519258 */
+#define FOCAL_LENGTH	(29500)
+#define MAX_APERTURE	(25261)	/* in APEX unit = 2 * log2(fnumber) */
+#define FNUMBER		(24000)
 #define	AD5823_MOVE_TIME_VALUE	(0x43)
 
 #define AD5823_MAX_RETRIES (3)
@@ -345,7 +348,7 @@ static int ad5823_probe(struct i2c_client *client,
 
 	info->config.focal_length = FOCAL_LENGTH;
 	info->config.fnumber = FNUMBER;
-	info->config.max_aperture = FNUMBER;
+	info->config.max_aperture = MAX_APERTURE;
 	info->config.range_ends_reversed = 0;
 
 	info->config.pos_working_low = AD5823_FOCUS_INFINITY;
