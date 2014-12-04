@@ -538,6 +538,9 @@ static struct tegra_dc_platform_data ardbeg_disp2_pdata = {
 	.default_out	= &ardbeg_disp2_out,
 	.fb		= &ardbeg_disp2_fb_data,
 	.emc_clk_rate	= 300000000,
+#ifdef CONFIG_TEGRA_DC_CMU
+	.cmu_enable	= 1,
+#endif
 };
 
 static struct platform_device ardbeg_disp2_device = {
