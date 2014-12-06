@@ -1,7 +1,7 @@
 /*
  * drivers/video/tegra/dc/dev.c
  *
- * Copyright (c) 2011-2014, NVIDIA CORPORATION, All rights reserved.
+ * Copyright (c) 2011-2015, NVIDIA CORPORATION, All rights reserved.
  *
  * Author: Robert Morell <rmorell@nvidia.com>
  * Some code based on fbdev extensions written by:
@@ -1182,6 +1182,9 @@ static int tegra_dc_ext_set_cmu_aligned(struct tegra_dc_ext_user *user,
 	cmu = kzalloc(sizeof(*cmu), GFP_KERNEL);
 	if (!cmu)
 		return -ENOMEM;
+
+	for (i = 0; i < 256; i++)
+		cmu->lut1[i] = args->lut1[i];
 
 	cmu->csc.krr = args->csc[0];
 	cmu->csc.kgr = args->csc[1];
