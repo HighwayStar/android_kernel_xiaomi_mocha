@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 NVIDIA Corporation. All rights reserved.
+ * Copyright (c) 2013-2015 NVIDIA Corporation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -134,6 +134,7 @@ enum {
 	TE_SMC_OPEN_SESSION		= 0x30000001,
 	TE_SMC_CLOSE_SESSION		= 0x30000002,
 	TE_SMC_LAUNCH_OPERATION		= 0x30000003,
+	TE_SMC_TA_EVENT			= 0x30000004,
 
 	/* Trusted OS calls */
 	TE_SMC_REGISTER_REQ_BUF		= 0x32000002,
@@ -340,6 +341,12 @@ struct te_ss_op {
 
 struct te_ss_op_legacy {
 	uint8_t		data[SS_OP_MAX_DATA_SIZE];
+};
+
+enum ta_event_id {
+	TA_EVENT_RESTORE_KEYS = 0,
+
+	TA_EVENT_MASK = (1 << TA_EVENT_RESTORE_KEYS),
 };
 
 int te_handle_ss_ioctl(struct file *file, unsigned int ioctl_num,

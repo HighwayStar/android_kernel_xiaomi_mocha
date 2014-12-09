@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 NVIDIA Corporation. All rights reserved.
+ * Copyright (c) 2012-2015 NVIDIA Corporation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -516,6 +516,37 @@ int te_set_vpr_params(void *vpr_base, size_t vpr_size)
 }
 EXPORT_SYMBOL(te_set_vpr_params);
 
+void te_restore_keyslots(void)
+{
+	uint32_t retval;
+
+	mutex_lock(&smc_lock);
+
+	if (current->flags &
+			(PF_WQ_WORKER | PF_NO_SETAFFINITY | PF_KTHREAD)) {
+		struct tlk_smc_work_args work_args;
+		int cpu = cpu_logical_map(smp_processor_id());
+
+		work_args.arg0 = TE_SMC_TA_EVENT;
+		work_args.arg1 = TA_EVENT_RESTORE_KEYS;
+		work_args.arg2 = 0;
+
+		/* workers don't change CPU. depending on the CPU, execute
+		 * directly or sched work */
+		if (cpu == 0 && (current->flags & PF_WQ_WORKER)) {
+			retval = tlk_generic_smc_on_cpu0(&work_args);
+		} else {
+			retval = work_on_cpu(0,
+					tlk_generic_smc_on_cpu0, &work_args);
+		}
+	} else {
+		retval = tlk_generic_smc(TE_SMC_TA_EVENT,
+				TA_EVENT_RESTORE_KEYS, 0);
+	}
+
+	mutex_unlock(&smc_lock);
+}
+EXPORT_SYMBOL(te_restore_keyslots);
 
 /*
  * Open session SMC (supporting client-based te_open_session() calls)
