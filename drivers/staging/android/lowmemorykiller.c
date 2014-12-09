@@ -68,6 +68,9 @@ static unsigned long lowmem_deathpending_timeout;
 			pr_info(x);			\
 	} while (0)
 
+#define CACHED_APP_ADJ	9
+#define CACHED_APP_SCORE_ADJ	((CACHED_APP_ADJ * OOM_SCORE_ADJ_MAX) / -OOM_DISABLE)
+
 static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 {
 	struct task_struct *tsk;
@@ -77,6 +80,7 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 	int i;
 	short min_score_adj = OOM_SCORE_ADJ_MAX + 1;
 	int minfree = 0;
+	bool zombie_ps = false;
 	int selected_tasksize = 0;
 	short selected_oom_score_adj;
 	int array_size = ARRAY_SIZE(lowmem_adj);
@@ -131,7 +135,10 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		    time_before_eq(jiffies, lowmem_deathpending_timeout)) {
 			task_unlock(p);
 			rcu_read_unlock();
-			return 0;
+			zombie_ps = true;
+			lowmem_print(2, "process not kill:'%s' (%d), adj %hd, size %d\n",
+			     p->comm, p->pid, oom_score_adj, tasksize);
+			continue;
 		}
 		oom_score_adj = p->signal->oom_score_adj;
 		if (oom_score_adj < min_score_adj) {
@@ -152,6 +159,13 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		selected = p;
 		selected_tasksize = tasksize;
 		selected_oom_score_adj = oom_score_adj;
+
+		if (zombie_ps && (selected_oom_score_adj < CACHED_APP_SCORE_ADJ)) {
+			lowmem_print(2, "Do not kill '%s' (%d), adj %hd, size %d\n",
+			    p->comm, p->pid, oom_score_adj, tasksize);
+			continue;
+		}
+
 		lowmem_print(2, "select '%s' (%d), adj %hd, size %d, to kill\n",
 			     p->comm, p->pid, oom_score_adj, tasksize);
 	}
@@ -291,4 +305,3 @@ module_init(lowmem_init);
 module_exit(lowmem_exit);
 
 MODULE_LICENSE("GPL");
-
