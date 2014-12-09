@@ -2415,6 +2415,19 @@ out:
 	return false;
 }
 
+unsigned long reclaim_counter;
+unsigned long nv_reclaim_counter()
+{
+	return reclaim_counter;
+}
+
+unsigned long kswapd_counter;
+unsigned long nv_kswapd_counter()
+{
+	return kswapd_counter;
+}
+
+
 unsigned long try_to_free_pages(struct zonelist *zonelist, int order,
 				gfp_t gfp_mask, nodemask_t *nodemask)
 {
@@ -2447,6 +2460,7 @@ unsigned long try_to_free_pages(struct zonelist *zonelist, int order,
 				gfp_mask);
 
 	nr_reclaimed = do_try_to_free_pages(zonelist, &sc, &shrink);
+	reclaim_counter++;
 
 	trace_mm_vmscan_direct_reclaim_end(nr_reclaimed);
 
@@ -3097,6 +3111,7 @@ static int kswapd(void *p)
 		 */
 		if (!ret) {
 			trace_mm_vmscan_kswapd_wake(pgdat->node_id, order);
+			kswapd_counter++;
 			balanced_classzone_idx = classzone_idx;
 			balanced_order = balance_pgdat(pgdat, order,
 						&balanced_classzone_idx);
