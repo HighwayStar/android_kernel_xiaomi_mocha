@@ -127,9 +127,18 @@
 			skb->data_len);\
 	}\
 
+#define UDP_NETSTAT(sock, bucket)\
+	{\
+		netstat_save('U',\
+			sock,\
+			bucket);\
+	}\
+
 #else
 
 #define UDP_DROP(skb)
+
+#define UDP_NETSTAT(sock, bucket)
 
 #endif
 
@@ -2215,6 +2224,7 @@ int udp4_seq_show(struct seq_file *seq, void *v)
 		struct udp_iter_state *state = seq->private;
 		int len;
 
+		UDP_NETSTAT(v, state->bucket);
 		udp4_format_sock(v, seq, state->bucket, &len);
 		seq_printf(seq, "\n");
 	}

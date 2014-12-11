@@ -22,10 +22,22 @@
 #include <linux/kernel.h>
 #include <linux/device.h>
 #include <linux/netdevice.h>
+#include <linux/net.h>
 #include <linux/skbuff.h>
 #include <linux/stat.h>
 #include <linux/debugfs.h>
 #include <linux/fs.h>
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/syscalls.h>
+#include <linux/file.h>
+#include <linux/fcntl.h>
+#include <asm/uaccess.h>
+#include <linux/socket.h>
+#include <linux/inet.h>
+#include <net/inet_sock.h>
+#include <linux/seq_file.h>
+#include <net/tcp.h>
 
 /* initialization */
 
@@ -181,5 +193,39 @@ tegra_debugfs_histogram_tcpdump_read(struct file *filp,
 ssize_t
 tegra_debugfs_histogram_tcpdump_write(struct file *filp,
 	const char __user *buff, size_t count, loff_t *offp);
+
+/* netstat histogram */
+
+void
+tegra_sysfs_histogram_netstat_work_start(void);
+
+void
+tegra_sysfs_histogram_netstat_work_stop(void);
+
+ssize_t
+tegra_sysfs_histogram_netstat_show(struct device *dev,
+		struct device_attribute *attr,
+		char *buf);
+
+ssize_t
+tegra_sysfs_histogram_netstat_store(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t count);
+
+void
+netstat_save(char tag, struct sock *sp, int bucket);
+
+
+void
+netstat_tcp_save(char tag, struct sock *sp, int bucket);
+
+void
+netstat_tcp_syn_save(char tag, struct sock *sp,
+		struct request_sock *req, int bucket);
+
+
+void
+netstat_tcp_wait_save(char tag,
+	const struct inet_timewait_sock *sp, int bucket);
 
 #endif  /* _dhd_custom_sysfs_tegra_h_ */

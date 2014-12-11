@@ -87,6 +87,44 @@
 #include <linux/crypto.h>
 #include <linux/scatterlist.h>
 
+#ifdef CONFIG_BCMDHD_CUSTOM_SYSFS_TEGRA
+
+#include "../../drivers/net/wireless/bcmdhd/include/dhd_custom_sysfs_tegra.h"
+
+#define TCP_NETSTAT(sock, bucket)\
+{\
+	netstat_tcp_save('T',\
+			sock,\
+			bucket);\
+}\
+
+#define TCP_NETSTAT1(sock, req_sock, bucket)\
+{\
+	netstat_tcp_syn_save('T',\
+			sock,\
+			req_sock,\
+			bucket);\
+}\
+
+#define TCP_NETSTAT2(sock, bucket)\
+{\
+	netstat_tcp_wait_save('T',\
+			sock,\
+			bucket);\
+}\
+
+#else
+
+#define TCP_NETSTAT(sock, bucket)
+
+#define TCP_NETSTAT1(sock, req_sock, stat, bucket)
+
+#define TCP_NETSTAT2(sock, stat, bucket)
+
+#endif
+
+
+
 int sysctl_tcp_tw_reuse __read_mostly;
 int sysctl_tcp_low_latency __read_mostly;
 EXPORT_SYMBOL(sysctl_tcp_low_latency);
@@ -2757,12 +2795,15 @@ static int tcp4_seq_show(struct seq_file *seq, void *v)
 	case TCP_SEQ_STATE_LISTENING:
 	case TCP_SEQ_STATE_ESTABLISHED:
 		get_tcp4_sock(v, seq, st->num, &len);
+		TCP_NETSTAT(v, st->num);
 		break;
 	case TCP_SEQ_STATE_OPENREQ:
 		get_openreq4(st->syn_wait_sk, v, seq, st->num, st->uid, &len);
+		TCP_NETSTAT1(st->syn_wait_sk, v, st->num);
 		break;
 	case TCP_SEQ_STATE_TIME_WAIT:
 		get_timewait4_sock(v, seq, st->num, &len);
+		TCP_NETSTAT2(v, st->num);
 		break;
 	}
 	seq_printf(seq, "\n");
