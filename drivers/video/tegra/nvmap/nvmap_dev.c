@@ -37,6 +37,7 @@
 #include <linux/module.h>
 #include <linux/resource.h>
 #include <linux/security.h>
+#include <linux/sched.h>
 #include <linux/stat.h>
 #include <linux/kthread.h>
 
@@ -407,6 +408,9 @@ struct nvmap_client *__nvmap_create_client(struct nvmap_device *dev,
 	}
 	task_unlock(current->group_leader);
 	client->task = task;
+	if (task)
+		/* Hold the mm pointer for rss management during process exit */
+		client->mm = task->mm;
 
 	mutex_init(&client->ref_lock);
 	atomic_set(&client->count, 1);
@@ -446,6 +450,9 @@ static void destroy_client(struct nvmap_client *client)
 		}
 
 		dma_buf_put(ref->handle->dmabuf);
+		if (client->task && ref->handle->heap_pgalloc)
+			add_mm_counter(client->mm, MM_ANONPAGES,
+				-(ref->handle->size >> PAGE_SHIFT));
 		rb_erase(&ref->node, &client->handle_refs);
 		atomic_dec(&ref->handle->share_count);
 

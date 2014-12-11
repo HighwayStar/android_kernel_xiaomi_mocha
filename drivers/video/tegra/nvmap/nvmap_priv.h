@@ -271,6 +271,7 @@ struct nvmap_client {
 	bool				kernel_client;
 	atomic_t			count;
 	struct task_struct		*task;
+	struct mm_struct		*mm;
 	struct list_head		list;
 	u32				handle_count;
 };
