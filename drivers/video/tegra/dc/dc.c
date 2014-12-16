@@ -1164,10 +1164,6 @@ static int _tegra_dc_config_frame_end_intr(struct tegra_dc *dc, bool enable)
 int tegra_dc_update_cmu_aligned(struct tegra_dc *dc, struct tegra_dc_cmu *cmu)
 {
 	mutex_lock(&dc->lock);
-	if (!dc->enabled) {
-		mutex_unlock(&dc->lock);
-		return 0;
-	}
 
 	memcpy(&dc->cmu_shadow, cmu, sizeof(dc->cmu));
 	dc->cmu_shadow_dirty = true;
