@@ -136,7 +136,6 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		if (test_tsk_thread_flag(p, TIF_MEMDIE) &&
 		    time_before_eq(jiffies, lowmem_deathpending_timeout)) {
 			task_unlock(p);
-			rcu_read_unlock();
 			zombie_ps = true;
 			lowmem_print(2, "process not kill:'%s' (%d), adj %hd, size %d\n",
 			     p->comm, p->pid, oom_score_adj, tasksize);
@@ -165,6 +164,7 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		if (zombie_ps && (selected_oom_score_adj < CACHED_APP_SCORE_ADJ)) {
 			lowmem_print(2, "Do not kill '%s' (%d), adj %hd, size %d\n",
 			    p->comm, p->pid, oom_score_adj, tasksize);
+			selected = NULL;
 			continue;
 		}
 
