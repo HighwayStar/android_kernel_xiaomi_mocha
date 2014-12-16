@@ -1654,8 +1654,11 @@ int gk20a_do_idle(void)
 		ref_cnt = atomic_read(&pdev->dev.power.usage_count);
 	} while (ref_cnt != 1 && time_before(jiffies, timeout));
 
-	if (ref_cnt != 1)
+	if (ref_cnt != 1) {
+		gk20a_err(&pdev->dev, "failed to idle - refcount %d != 1\n",
+			ref_cnt);
 		goto fail;
+	}
 
 	/*
 	 * if GPU is now idle, we will have only one ref count
@@ -1678,10 +1681,12 @@ int gk20a_do_idle(void)
 			is_railgated = platform->is_railgated(pdev);
 		} while (!is_railgated && time_before(jiffies, timeout));
 
-		if (is_railgated)
+		if (is_railgated) {
 			return 0;
-		else
+		} else {
+			gk20a_err(&pdev->dev, "failed to idle in timeout\n");
 			goto fail_timeout;
+		}
 	} else {
 		pm_runtime_get_sync(&pdev->dev);
 		gk20a_pm_prepare_poweroff(&pdev->dev);
