@@ -129,6 +129,10 @@ ifneq ($(CONFIG_BCMDHD_CUSTOM_SYSFS_TEGRA),)
   DHDOFILES += dhd_custom_sysfs_tegra_netstat.o
 endif
 
+ifneq ($(CONFIG_BCMDHD_TEGRA_REGION_BASED_NVRAM),)
+  DHDOFILES += nvram_params.o
+  DHDCFLAGS += -DTEGRA_REGION_BASED_NVRAM
+endif
 obj-$(CONFIG_BCMDHD) += bcmdhd.o
 bcmdhd-objs += $(DHDOFILES)
 
