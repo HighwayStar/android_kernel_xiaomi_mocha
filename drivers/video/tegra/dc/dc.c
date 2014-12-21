@@ -2702,9 +2702,10 @@ static void _tegra_dc_controller_disable(struct tegra_dc *dc)
 	tegra_dc_put(dc);
 
 	/* disable always on dc clk in continuous mode */
-	if (!(dc->out->flags & TEGRA_DC_OUT_ONE_SHOT_MODE))
-		tegra_dc_clk_disable(dc);
-	else
+	if (!(dc->out->flags & TEGRA_DC_OUT_ONE_SHOT_MODE)) {
+		if (tegra_is_clk_enabled(dc->clk))
+			tegra_dc_clk_disable(dc);
+	} else
 		tegra_dvfs_set_rate(dc->clk, 0);
 
 #ifdef CONFIG_ARCH_TEGRA_12x_SOC
