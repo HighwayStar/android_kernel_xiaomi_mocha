@@ -83,8 +83,12 @@ void quadd_hrt_deinit(void);
 int quadd_hrt_start(void);
 void quadd_hrt_stop(void);
 
-void quadd_put_sample(struct quadd_record_data *data,
-		      struct quadd_iovec *vec, int vec_count);
+void
+quadd_put_sample_cur_cpu(struct quadd_record_data *data,
+			 struct quadd_iovec *vec, int vec_count);
+void
+quadd_put_sample(struct quadd_record_data *data,
+		 struct quadd_iovec *vec, int vec_count);
 
 void quadd_hrt_get_state(struct quadd_module_state *state);
 u64 quadd_get_time(void);

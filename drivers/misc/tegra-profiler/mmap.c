@@ -76,7 +76,7 @@ void quadd_process_mmap(struct vm_area_struct *vma, pid_t pid)
 	if (!(vma->vm_flags & VM_EXEC))
 		return;
 
-	tmp_buf = kzalloc(PATH_MAX + sizeof(u64), GFP_KERNEL);
+	tmp_buf = kzalloc(PATH_MAX + sizeof(u64), GFP_ATOMIC);
 	if (!tmp_buf)
 		return;
 
@@ -164,7 +164,7 @@ int quadd_get_current_mmap(pid_t pid)
 
 	pr_info("Get mapped memory objects\n");
 
-	tmp_buf = kzalloc(PATH_MAX + sizeof(u64), GFP_KERNEL);
+	tmp_buf = kzalloc(PATH_MAX + sizeof(u64), GFP_ATOMIC);
 	if (!tmp_buf)
 		return -ENOMEM;
 
