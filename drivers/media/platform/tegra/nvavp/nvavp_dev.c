@@ -1,7 +1,7 @@
 /*
  * drivers/media/video/tegra/nvavp/nvavp_dev.c
  *
- * Copyright (c) 2011-2014, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2011-2015, NVIDIA CORPORATION.  All rights reserved.
  *
  * This file is licensed under the terms of the GNU General Public License
  * version 2. This program is licensed "as is" without any warranty of any
@@ -57,6 +57,10 @@
 #include <linux/of_platform.h>
 #include <linux/of_address.h>
 #include <linux/tegra-timer.h>
+
+#ifdef CONFIG_TRUSTED_LITTLE_KERNEL
+#include <linux/ote_protocol.h>
+#endif
 
 #if defined(CONFIG_TEGRA_AVP_KERNEL_ON_MMU)
 #include "../avp/headavp.h"
@@ -2644,6 +2648,12 @@ static int tegra_nvavp_resume(struct device *dev)
 
 	nvavp_halt_avp(nvavp);
 	tegra_nvavp_runtime_resume(dev);
+
+#ifdef CONFIG_TRUSTED_LITTLE_KERNEL
+	nvavp_clks_enable(nvavp);
+	te_restore_keyslots();
+	nvavp_clks_disable(nvavp);
+#endif
 
 	return 0;
 }
