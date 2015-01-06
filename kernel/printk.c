@@ -1329,6 +1329,9 @@ static int have_callable_console(void)
 	return 0;
 }
 
+bool console_enabled = 1;
+EXPORT_SYMBOL(console_enabled);
+
 /*
  * Can we actually use the console at this time on this cpu?
  *
@@ -1339,7 +1342,7 @@ static int have_callable_console(void)
  */
 static inline int can_use_console(unsigned int cpu)
 {
-	return cpu_online(cpu) || have_callable_console();
+	return console_enabled && (cpu_online(cpu) || have_callable_console());
 }
 
 /*
