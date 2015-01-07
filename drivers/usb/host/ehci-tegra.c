@@ -229,8 +229,10 @@ static irqreturn_t tegra_ehci_irq(struct usb_hcd *hcd)
 	}
 	if (tegra_usb_phy_pmc_wakeup(tegra->phy)) {
 		ehci_dbg(ehci, "pmc interrupt detected\n");
-		wake_lock(&tegra->ehci_wake_lock);
-		hcd_to_bus(hcd)->skip_resume = false;
+		if (tegra->is_skip_resume_enabled) {
+			wake_lock(&tegra->ehci_wake_lock);
+			hcd_to_bus(hcd)->skip_resume = false;
+		}
 		usb_hcd_resume_root_hub(hcd);
 		spin_unlock(&ehci->lock);
 		return irq_status;
@@ -431,8 +433,10 @@ static int tegra_ehci_bus_suspend(struct usb_hcd *hcd)
 		tegra->bus_suspended_fail = true;
 	else {
 		usb_phy_set_suspend(get_usb_phy(tegra->phy), 1);
-		hcd_to_bus(hcd)->skip_resume = true;
-		wake_unlock(&tegra->ehci_wake_lock);
+		if (tegra->is_skip_resume_enabled) {
+			hcd_to_bus(hcd)->skip_resume = true;
+			wake_unlock(&tegra->ehci_wake_lock);
+		}
 	}
 	mutex_unlock(&tegra->sync_lock);
 	EHCI_DBG("%s() END\n", __func__);
@@ -446,7 +450,8 @@ static int tegra_ehci_bus_resume(struct usb_hcd *hcd)
 	EHCI_DBG("%s() BEGIN\n", __func__);
 
 	mutex_lock(&tegra->sync_lock);
-	wake_lock(&tegra->ehci_wake_lock);
+	if (tegra->is_skip_resume_enabled)
+		wake_lock(&tegra->ehci_wake_lock);
 	usb_phy_set_suspend(get_usb_phy(tegra->phy), 0);
 	err = ehci_bus_resume(hcd);
 	mutex_unlock(&tegra->sync_lock);
