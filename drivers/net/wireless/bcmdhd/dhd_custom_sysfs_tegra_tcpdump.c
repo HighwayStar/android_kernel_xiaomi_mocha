@@ -62,7 +62,7 @@ int tcpdump_tail;
 unsigned long tcpdump_serial_no;
 tcpdump_pkt_t tcpdump_pkt[TCPDUMP_MAXSIZ / sizeof(tcpdump_pkt_t)];
 int tcpdump_maxpkt = sizeof(tcpdump_pkt) / sizeof(tcpdump_pkt[0]);
-static int pkt_save = 0;
+static int pkt_save = 1;
 static int pkt_rx_save = 1;
 static int pkt_tx_save = 1;
 
