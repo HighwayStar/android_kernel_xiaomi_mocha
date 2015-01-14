@@ -2345,7 +2345,7 @@ static int tegra_dc_init(struct tegra_dc *dc)
 #endif
 
 #ifdef CONFIG_TEGRA_DC_CMU
-	_tegra_dc_update_cmu_aligned(dc, tegra_dc_get_cmu(dc), true);
+	_tegra_dc_update_cmu_aligned(dc, &dc->cmu, true);
 #endif
 	tegra_dc_set_color_control(dc);
 	for_each_set_bit(i, &dc->valid_windows, DC_N_WINDOWS) {
