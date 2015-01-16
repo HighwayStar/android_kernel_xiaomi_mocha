@@ -1109,11 +1109,6 @@ static void _tegra_dc_update_cmu(struct tegra_dc *dc, struct tegra_dc_cmu *cmu)
 
 	tegra_dc_cache_cmu(dc, cmu);
 
-	if (dc->cmu_skip_once) {
-		dc->cmu_skip_once = false;
-		return;
-	}
-
 	/* Disable CMU to avoid programming it while it is in use */
 	val = tegra_dc_readl(dc, DC_DISP_DISP_COLOR_CONTROL);
 	if (val & CMU_ENABLE) {
@@ -2345,7 +2340,11 @@ static int tegra_dc_init(struct tegra_dc *dc)
 #endif
 
 #ifdef CONFIG_TEGRA_DC_CMU
-	_tegra_dc_update_cmu_aligned(dc, &dc->cmu, true);
+	if (dc->is_cmu_set_bl)
+		_tegra_dc_update_cmu_aligned(dc, &dc->cmu, true);
+	else
+		_tegra_dc_update_cmu(dc, &dc->cmu);
+	dc->is_cmu_set_bl = false;
 #endif
 	tegra_dc_set_color_control(dc);
 	for_each_set_bit(i, &dc->valid_windows, DC_N_WINDOWS) {
@@ -3212,6 +3211,8 @@ static int tegra_dc_probe(struct platform_device *ndev)
 	pm_runtime_enable(&ndev->dev);
 
 #ifdef CONFIG_TEGRA_DC_CMU
+	/* if bootloader leaves this head enabled, then skip CMU programming. */
+	dc->is_cmu_set_bl = (dc->pdata->flags & TEGRA_DC_FLAG_ENABLED) != 0;
 	dc->cmu_enabled = dc->pdata->cmu_enable;
 #endif
 
