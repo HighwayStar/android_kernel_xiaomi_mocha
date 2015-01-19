@@ -20,8 +20,17 @@
 #include "wlioctl.h"
 #include "wldev_common.h"
 
-/* 13+1+13+1+2 */
-#define MAX_NETSTAT_PKT_SZ 26
+/* 4+4+2+2+1 */
+#define MAX_NETSTAT_PKT_SZ 13
+
+struct netstat{
+	__be32 dest;
+	__be32 src;
+	__u16 destp;
+	__u16 srcp;
+	__u8 state;
+};
+
 static void
 netstat_work_func(struct work_struct *work);
 
@@ -31,7 +40,6 @@ static DECLARE_DELAYED_WORK(netstat_work, netstat_work_func);
 static void
 netstat_work_func(struct work_struct *work)
 {
-	struct delayed_work *dwork = to_delayed_work(work);
 	int fp = -1;
 	char buf[1024];
 
@@ -79,18 +87,18 @@ tegra_sysfs_histogram_netstat_work_start(void)
 void
 netstat_save(char tag, struct sock *sp, int bucket)
 {
-	char data[64];
+	struct netstat nstat;
 	struct inet_sock *inet = inet_sk(sp);
-	__be32 dest = inet->inet_daddr;
-	__be32 src  = inet->inet_rcv_saddr;
-	__u16 destp       = ntohs(inet->inet_dport);
-	__u16 srcp        = ntohs(inet->inet_sport);
-	sprintf(data, "%08x%04x%08x%04x%02x", src, srcp,
-			dest, destp, sp->sk_state);
+	nstat.dest	= inet->inet_daddr;
+	nstat.src	= inet->inet_rcv_saddr;
+	nstat.destp	= inet->inet_dport;
+	nstat.srcp	= inet->inet_sport;
+	nstat.state	= sp->sk_state;
+
 	tcpdump_pkt_save(tag, "",
 			__func__,
 			__LINE__,
-			data,
+			(unsigned char*)&nstat,
 			MAX_NETSTAT_PKT_SZ,
 			0);
 }
@@ -98,19 +106,17 @@ netstat_save(char tag, struct sock *sp, int bucket)
 void
 netstat_tcp_save(char tag, struct sock *sp, int bucket)
 {
-	char data[64];
+	struct netstat nstat;
 	struct inet_sock *inet = inet_sk(sp);
-	const struct tcp_sock *tp = tcp_sk(sp);
-	__be32 dest = inet->inet_daddr;
-	__be32 src  = inet->inet_rcv_saddr;
-	__u16 destp       = ntohs(inet->inet_dport);
-	__u16 srcp        = ntohs(inet->inet_sport);
-	sprintf(data, "%08x%04x%08x%04x%02x", src, srcp,
-		dest, destp, sp->sk_state);
+	nstat.dest	= inet->inet_daddr;
+	nstat.src	= inet->inet_rcv_saddr;
+	nstat.destp	= inet->inet_dport;
+	nstat.srcp	= inet->inet_sport;
+	nstat.state	= sp->sk_state;
 	tcpdump_pkt_save(tag, "",
 			__func__,
 			__LINE__,
-			data,
+			(unsigned char*)&nstat,
 			MAX_NETSTAT_PKT_SZ,
 			0);
 }
@@ -118,19 +124,17 @@ netstat_tcp_save(char tag, struct sock *sp, int bucket)
 void
 netstat_tcp_syn_save(char tag, struct sock *sp, struct request_sock *req, int bucket)
 {
-	char data[64];
-	struct inet_sock *inet = inet_sk(sp);
+	struct netstat nstat;
 	const struct inet_request_sock *ireq = inet_rsk(req);
-	__be32 dest = ireq->rmt_addr;
-	__be32 src  = ireq->loc_addr;
-	__u16 destp       = ntohs(inet_sk(sp)->inet_dport);
-	__u16 srcp        = ntohs(ireq->rmt_port);
-	sprintf(data, "%08x%04x%08x%04x%02x", src, srcp,
-			dest, destp, TCP_SYN_RECV);
+	nstat.dest	= ireq->rmt_addr;
+	nstat.src	= ireq->loc_addr;
+	nstat.destp	= ireq->rmt_port;
+	nstat.srcp	= inet_sk(sp)->inet_dport;
+	nstat.state	= TCP_SYN_RECV;
 	tcpdump_pkt_save(tag, "",
 			__func__,
 			__LINE__,
-			data,
+			(unsigned char*)&nstat,
 			MAX_NETSTAT_PKT_SZ,
 			0);
 }
@@ -138,21 +142,18 @@ netstat_tcp_syn_save(char tag, struct sock *sp, struct request_sock *req, int bu
 void
 netstat_tcp_wait_save(char tag, const struct inet_timewait_sock *sp, int bucket)
 {
-	char data[64];
-	__be32 dest, src;
-	__u16 destp, srcp;
+	struct netstat nstat;
 
-	dest  = sp->tw_daddr;
-	src   = sp->tw_rcv_saddr;
-	destp = ntohs(sp->tw_dport);
-	srcp  = ntohs(sp->tw_sport);
+	nstat.dest  = sp->tw_daddr;
+	nstat.src   = sp->tw_rcv_saddr;
+	nstat.destp = sp->tw_dport;
+	nstat.srcp  = sp->tw_sport;
+	nstat.state = sp->tw_substate;
 
-	sprintf(data, "%08x%04x%08x%04x%02x", src, srcp,
-			dest, destp, sp->tw_substate);
 	tcpdump_pkt_save(tag, "",
 			__func__,
 			__LINE__,
-			data,
+			(unsigned char*)&nstat,
 			MAX_NETSTAT_PKT_SZ,
 			0);
 }
