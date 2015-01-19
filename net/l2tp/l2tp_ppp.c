@@ -754,10 +754,9 @@ static int pppol2tp_connect(struct socket *sock, struct sockaddr *uservaddr,
 	session->deref = pppol2tp_session_sock_put;
 
 	/* If PMTU discovery was enabled, use the MTU that was discovered */
-	dst = sk_dst_get(tunnel->sock);
+	dst = sk_dst_get(sk);
 	if (dst != NULL) {
-		u32 pmtu = dst_mtu(dst);
-
+		u32 pmtu = dst_mtu(__sk_dst_get(sk));
 		if (pmtu != 0)
 			session->mtu = session->mru = pmtu -
 				PPPOL2TP_HEADER_OVERHEAD;
@@ -1366,7 +1365,7 @@ static int pppol2tp_setsockopt(struct socket *sock, int level, int optname,
 	int err;
 
 	if (level != SOL_PPPOL2TP)
-		return -EINVAL;
+		return udp_prot.setsockopt(sk, level, optname, optval, optlen);
 
 	if (optlen < sizeof(int))
 		return -EINVAL;
@@ -1492,7 +1491,7 @@ static int pppol2tp_getsockopt(struct socket *sock, int level, int optname,
 	struct pppol2tp_session *ps;
 
 	if (level != SOL_PPPOL2TP)
-		return -EINVAL;
+		return udp_prot.getsockopt(sk, level, optname, optval, optlen);
 
 	if (get_user(len, optlen))
 		return -EFAULT;

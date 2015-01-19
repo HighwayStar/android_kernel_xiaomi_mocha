@@ -55,9 +55,6 @@ static __u32 vmbus_get_next_version(__u32 current_version)
 	case (VERSION_WIN8):
 		return VERSION_WIN7;
 
-	case (VERSION_WIN8_1):
-		return VERSION_WIN8;
-
 	case (VERSION_WS2008):
 	default:
 		return VERSION_INVAL;
@@ -82,9 +79,6 @@ static int vmbus_negotiate_version(struct vmbus_channel_msginfo *msginfo,
 	msg->monitor_page2 = virt_to_phys(
 			(void *)((unsigned long)vmbus_connection.monitor_pages +
 				 PAGE_SIZE));
-
-	if (version == VERSION_WIN8_1)
-		msg->target_vcpu = hv_context.vp_index[smp_processor_id()];
 
 	/*
 	 * Add to list before we send the request since we may
@@ -304,13 +298,9 @@ static void process_chn_event(u32 relid)
 		 */
 
 		do {
-			if (read_state)
-				hv_begin_read(&channel->inbound);
+			hv_begin_read(&channel->inbound);
 			channel->onchannel_callback(arg);
-			if (read_state)
-				bytes_to_read = hv_end_read(&channel->inbound);
-			else
-				bytes_to_read = 0;
+			bytes_to_read = hv_end_read(&channel->inbound);
 		} while (read_state && (bytes_to_read != 0));
 	} else {
 		pr_err("no channel callback for relid - %u\n", relid);
@@ -393,21 +383,10 @@ int vmbus_post_msg(void *buffer, size_t buflen)
 	 * insufficient resources. Retry the operation a couple of
 	 * times before giving up.
 	 */
-	while (retries < 10) {
-		ret = hv_post_message(conn_id, 1, buffer, buflen);
-
-		switch (ret) {
-		case HV_STATUS_INSUFFICIENT_BUFFERS:
-			ret = -ENOMEM;
-		case -ENOMEM:
-			break;
-		case HV_STATUS_SUCCESS:
+	while (retries < 3) {
+		ret =  hv_post_message(conn_id, 1, buffer, buflen);
+		if (ret != HV_STATUS_INSUFFICIENT_BUFFERS)
 			return ret;
-		default:
-			pr_err("hv_post_msg() failed; error code:%d\n", ret);
-			return -EINVAL;
-		}
-
 		retries++;
 		msleep(100);
 	}

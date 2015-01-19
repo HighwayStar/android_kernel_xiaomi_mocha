@@ -556,8 +556,7 @@ mwifiex_clean_txrx(struct mwifiex_private *priv)
 	mwifiex_wmm_delete_all_ralist(priv);
 	memcpy(tos_to_tid, ac_to_tid, sizeof(tos_to_tid));
 
-	if (priv->adapter->if_ops.clean_pcie_ring &&
-	    !priv->adapter->surprise_removed)
+	if (priv->adapter->if_ops.clean_pcie_ring)
 		priv->adapter->if_ops.clean_pcie_ring(priv->adapter);
 	spin_unlock_irqrestore(&priv->wmm.ra_list_spinlock, flags);
 }

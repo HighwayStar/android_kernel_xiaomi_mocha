@@ -498,11 +498,9 @@ static int ttm_bo_handle_move_mem(struct ttm_buffer_object *bo,
 
 moved:
 	if (bo->evicted) {
-		if (bdev->driver->invalidate_caches) {
-			ret = bdev->driver->invalidate_caches(bdev, bo->mem.placement);
-			if (ret)
-				pr_err("Can not flush read caches\n");
-		}
+		ret = bdev->driver->invalidate_caches(bdev, bo->mem.placement);
+		if (ret)
+			pr_err("Can not flush read caches\n");
 		bo->evicted = false;
 	}
 

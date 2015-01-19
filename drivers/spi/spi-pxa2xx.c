@@ -1324,9 +1324,7 @@ static int pxa2xx_spi_suspend(struct device *dev)
 	if (status != 0)
 		return status;
 	write_SSCR0(0, drv_data->ioaddr);
-
-	if (!pm_runtime_suspended(dev))
-		clk_disable_unprepare(ssp->clk);
+	clk_disable_unprepare(ssp->clk);
 
 	return 0;
 }
@@ -1340,8 +1338,7 @@ static int pxa2xx_spi_resume(struct device *dev)
 	pxa2xx_spi_dma_resume(drv_data);
 
 	/* Enable the SSP clock */
-	if (!pm_runtime_suspended(dev))
-		clk_prepare_enable(ssp->clk);
+	clk_prepare_enable(ssp->clk);
 
 	/* Start the queue running */
 	status = spi_master_resume(drv_data->master);

@@ -133,7 +133,7 @@ static int snd_compr_open(struct inode *inode, struct file *f)
 		kfree(data);
 	}
 	snd_card_unref(compr->card);
-	return ret;
+	return 0;
 }
 
 static int snd_compr_free(struct inode *inode, struct file *f)

@@ -3187,16 +3187,14 @@ free_domains:
 
 static void cleanup_domain(struct protection_domain *domain)
 {
-	struct iommu_dev_data *entry;
+	struct iommu_dev_data *dev_data, *next;
 	unsigned long flags;
 
 	write_lock_irqsave(&amd_iommu_devtable_lock, flags);
 
-	while (!list_empty(&domain->dev_list)) {
-		entry = list_first_entry(&domain->dev_list,
-					 struct iommu_dev_data, list);
-		__detach_device(entry);
-		atomic_set(&entry->bind, 0);
+	list_for_each_entry_safe(dev_data, next, &domain->dev_list, list) {
+		__detach_device(dev_data);
+		atomic_set(&dev_data->bind, 0);
 	}
 
 	write_unlock_irqrestore(&amd_iommu_devtable_lock, flags);
@@ -3961,7 +3959,7 @@ static struct irq_remap_table *get_irq_table(u16 devid, bool ioapic)
 	iommu_flush_dte(iommu, devid);
 	if (devid != alias) {
 		irq_lookup_table[alias] = table;
-		set_dte_irq_entry(alias, table);
+		set_dte_irq_entry(devid, table);
 		iommu_flush_dte(iommu, alias);
 	}
 

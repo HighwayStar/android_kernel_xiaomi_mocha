@@ -69,7 +69,7 @@ static int create_fd(struct fsnotify_group *group,
 
 	pr_debug("%s: group=%p event=%p\n", __func__, group, event);
 
-	client_fd = get_unused_fd_flags(group->fanotify_data.f_flags);
+	client_fd = get_unused_fd();
 	if (client_fd < 0)
 		return client_fd;
 

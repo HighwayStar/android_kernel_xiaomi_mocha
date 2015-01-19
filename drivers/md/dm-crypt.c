@@ -41,7 +41,6 @@ struct convert_context {
 	unsigned int idx_out;
 	sector_t cc_sector;
 	atomic_t cc_pending;
-	struct ablkcipher_request *req;
 };
 
 /*
@@ -96,10 +95,6 @@ struct iv_benbi_private {
  * and encrypts / decrypts at the same time.
  */
 enum flags { DM_CRYPT_SUSPENDED, DM_CRYPT_KEY_VALID };
-
-/*
- * The fields in here must be read only after initialization.
- */
 struct crypt_config {
 	struct dm_dev *dev;
 	sector_t start;
@@ -163,14 +158,6 @@ static struct kmem_cache *_crypt_io_pool;
 static void clone_init(struct dm_crypt_io *, struct bio *);
 static void kcryptd_queue_crypt(struct dm_crypt_io *io);
 static u8 *iv_of_dmreq(struct crypt_config *cc, struct dm_crypt_request *dmreq);
-
-/*
- * Use this to access cipher attributes that are the same for each CPU.
- */
-static struct crypto_ablkcipher *any_tfm(struct crypt_config *cc)
-{
-	return cc->tfms[0];
-}
 
 /*
  * Different IV generation algorithms:
@@ -494,15 +481,13 @@ static void kcryptd_async_done(struct crypto_async_request *async_req,
 static void crypt_alloc_req(struct crypt_config *cc,
 			    struct convert_context *ctx)
 {
-	unsigned key_index = ctx->cc_sector & (cc->tfms_count - 1);
-
-	if (!ctx->req)
-		ctx->req = mempool_alloc(cc->req_pool, GFP_NOIO);
-
-	ablkcipher_request_set_tfm(ctx->req, cc->tfms[key_index]);
-	ablkcipher_request_set_callback(ctx->req,
-	    CRYPTO_TFM_REQ_MAY_BACKLOG | CRYPTO_TFM_REQ_MAY_SLEEP,
-	    kcryptd_async_done, dmreq_of_req(cc, ctx->req));
+	if (!cc->req)
+		cc->req = mempool_alloc(cc->req_pool, GFP_NOIO);
+	ablkcipher_request_set_tfm(cc->req, cc->tfm);
+	ablkcipher_request_set_callback(cc->req, CRYPTO_TFM_REQ_MAY_BACKLOG |
+					CRYPTO_TFM_REQ_MAY_SLEEP,
+					kcryptd_async_done,
+					dmreq_of_req(cc, cc->req));
 }
 
 /*
@@ -522,7 +507,7 @@ static int crypt_convert(struct crypt_config *cc,
 
 		atomic_inc(&ctx->cc_pending);
 
-		r = crypt_convert_block(cc, ctx, ctx->req);
+		r = crypt_convert_block(cc, ctx, cc->req);
 
 		switch (r) {
 		/* async */
@@ -531,7 +516,7 @@ static int crypt_convert(struct crypt_config *cc,
 			INIT_COMPLETION(ctx->restart);
 			/* fall through*/
 		case -EINPROGRESS:
-			ctx->req = NULL;
+			cc->req = NULL;
 			ctx->cc_sector++;
 			continue;
 
@@ -630,7 +615,6 @@ static struct dm_crypt_io *crypt_io_alloc(struct crypt_config *cc,
 	io->sector = sector;
 	io->error = 0;
 	io->base_io = NULL;
-	io->ctx.req = NULL;
 	atomic_set(&io->io_pending, 0);
 
 	return io;
@@ -656,8 +640,6 @@ static void crypt_dec_pending(struct dm_crypt_io *io)
 	if (!atomic_dec_and_test(&io->io_pending))
 		return;
 
-	if (io->ctx.req)
-		mempool_free(io->ctx.req, cc->req_pool);
 	mempool_free(io, cc->io_pool);
 
 	if (likely(!base_io))
@@ -1226,7 +1208,6 @@ static int crypt_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	unsigned int key_size, opt_params;
 	unsigned long long tmpll;
 	int ret;
-	size_t iv_size_padding;
 	struct dm_arg_set as;
 	const char *opt_string;
 	char dummy;
@@ -1268,7 +1249,7 @@ static int crypt_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 			   ~(crypto_tfm_ctx_alignment() - 1);
 
 	cc->req_pool = mempool_create_kmalloc_pool(MIN_IOS, cc->dmreq_start +
-			sizeof(struct dm_crypt_request) + iv_size_padding + cc->iv_size);
+			sizeof(struct dm_crypt_request) + cc->iv_size);
 	if (!cc->req_pool) {
 		ti->error = "Cannot allocate crypt request mempool";
 		goto bad;

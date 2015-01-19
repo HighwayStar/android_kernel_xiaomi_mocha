@@ -61,7 +61,6 @@
 MODULE_AUTHOR("Ville Nuorvala");
 MODULE_DESCRIPTION("IPv6 tunneling device");
 MODULE_LICENSE("GPL");
-MODULE_ALIAS_RTNL_LINK("ip6tnl");
 MODULE_ALIAS_NETDEV("ip6tnl0");
 
 #ifdef IP6_TNL_DEBUG
@@ -1532,7 +1531,7 @@ static int ip6_tnl_validate(struct nlattr *tb[], struct nlattr *data[])
 {
 	u8 proto;
 
-	if (!data || !data[IFLA_IPTUN_PROTO])
+	if (!data)
 		return 0;
 
 	proto = nla_get_u8(data[IFLA_IPTUN_PROTO]);

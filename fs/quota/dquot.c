@@ -637,7 +637,7 @@ int dquot_writeback_dquots(struct super_block *sb, int type)
 			dqstats_inc(DQST_LOOKUPS);
 			err = sb->dq_op->write_dquot(dquot);
 			if (!ret && err)
-				ret = err;
+				err = ret;
 			dqput(dquot);
 			spin_lock(&dq_list_lock);
 		}

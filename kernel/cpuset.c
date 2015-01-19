@@ -1153,13 +1153,7 @@ done:
 
 int current_cpuset_is_being_rebound(void)
 {
-	int ret;
-
-	rcu_read_lock();
-	ret = task_cs(current) == cpuset_being_rebound;
-	rcu_read_unlock();
-
-	return ret;
+	return task_cs(current) == cpuset_being_rebound;
 }
 
 static int update_relax_domain_level(struct cpuset *cs, s64 val)
@@ -2428,9 +2422,9 @@ int __cpuset_node_allowed_softwall(int node, gfp_t gfp_mask)
 
 	task_lock(current);
 	cs = nearest_hardwall_ancestor(task_cs(current));
-	allowed = node_isset(node, cs->mems_allowed);
 	task_unlock(current);
 
+	allowed = node_isset(node, cs->mems_allowed);
 	mutex_unlock(&callback_mutex);
 	return allowed;
 }

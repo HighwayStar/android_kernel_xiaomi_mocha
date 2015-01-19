@@ -2985,8 +2985,10 @@ static int cr8_write_interception(struct vcpu_svm *svm)
 	u8 cr8_prev = kvm_get_cr8(&svm->vcpu);
 	/* instruction emulation calls kvm_set_cr8() */
 	r = cr_interception(svm);
-	if (irqchip_in_kernel(svm->vcpu.kvm))
+	if (irqchip_in_kernel(svm->vcpu.kvm)) {
+		clr_cr_intercept(svm, INTERCEPT_CR8_WRITE);
 		return r;
+	}
 	if (cr8_prev <= kvm_get_cr8(&svm->vcpu))
 		return r;
 	kvm_run->exit_reason = KVM_EXIT_SET_TPR;
@@ -3196,7 +3198,7 @@ static int wrmsr_interception(struct vcpu_svm *svm)
 	msr.host_initiated = false;
 
 	svm->next_rip = kvm_rip_read(&svm->vcpu) + 2;
-	if (kvm_set_msr(&svm->vcpu, &msr)) {
+	if (svm_set_msr(&svm->vcpu, &msr)) {
 		trace_kvm_msr_write_ex(ecx, data);
 		kvm_inject_gp(&svm->vcpu, 0);
 	} else {
@@ -3478,9 +3480,9 @@ static int handle_exit(struct kvm_vcpu *vcpu)
 
 	if (exit_code >= ARRAY_SIZE(svm_exit_handlers)
 	    || !svm_exit_handlers[exit_code]) {
-		WARN_ONCE(1, "vmx: unexpected exit reason 0x%x\n", exit_code);
-		kvm_queue_exception(vcpu, UD_VECTOR);
-		return 1;
+		kvm_run->exit_reason = KVM_EXIT_UNKNOWN;
+		kvm_run->hw.hardware_exit_reason = exit_code;
+		return 0;
 	}
 
 	return svm_exit_handlers[exit_code](svm);
@@ -3547,8 +3549,6 @@ static void update_cr8_intercept(struct kvm_vcpu *vcpu, int tpr, int irr)
 
 	if (is_guest_mode(vcpu) && (vcpu->arch.hflags & HF_VINTR_MASK))
 		return;
-
-	clr_cr_intercept(svm, INTERCEPT_CR8_WRITE);
 
 	if (irr == -1)
 		return;

@@ -63,7 +63,7 @@ sbc_emulate_readcapacity(struct se_cmd *cmd)
 		transport_kunmap_data_sg(cmd);
 	}
 
-	target_complete_cmd_with_length(cmd, GOOD, 8);
+	target_complete_cmd(cmd, GOOD);
 	return 0;
 }
 
@@ -101,7 +101,7 @@ sbc_emulate_readcapacity_16(struct se_cmd *cmd)
 		transport_kunmap_data_sg(cmd);
 	}
 
-	target_complete_cmd_with_length(cmd, GOOD, 32);
+	target_complete_cmd(cmd, GOOD);
 	return 0;
 }
 

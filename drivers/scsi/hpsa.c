@@ -3118,7 +3118,7 @@ static int hpsa_big_passthru_ioctl(struct ctlr_info *h, void __user *argp)
 		}
 		if (ioc->Request.Type.Direction == XFER_WRITE) {
 			if (copy_from_user(buff[sg_used], data_ptr, sz)) {
-				status = -EFAULT;
+				status = -ENOMEM;
 				goto cleanup1;
 			}
 		} else
