@@ -220,6 +220,9 @@ static int acm_write_start(struct acm *acm, int wbn)
 	unsigned long flags;
 	struct acm_wb *wb = &acm->wb[wbn];
 	int rc;
+#ifdef CONFIG_PM
+	struct urb *res;
+#endif
 
 	spin_lock_irqsave(&acm->write_lock, flags);
 	if (!acm->dev) {
@@ -249,6 +252,20 @@ static int acm_write_start(struct acm *acm, int wbn)
 		return 0;	/* A white lie */
 	}
 	usb_mark_last_busy(acm->dev);
+#ifdef CONFIG_PM
+	while ((res = usb_get_from_anchor(&acm->deferred))) {
+		/* decrement ref count*/
+		usb_put_urb(res);
+		rc = usb_submit_urb(res, GFP_ATOMIC);
+		if (rc < 0) {
+			dev_dbg(&acm->data->dev,
+				"usb_submit_urb(pending request) failed: %d",
+				rc);
+			usb_unanchor_urb(res);
+			acm_write_done(acm, res->context);
+		}
+	}
+#endif
 	rc = acm_start_wb(acm, wb);
 	spin_unlock_irqrestore(&acm->write_lock, flags);
 
@@ -1247,6 +1264,7 @@ made_compressed_probe:
 	INIT_LIST_HEAD(&acm->rb_head);
 	acm->rx_buflimit = num_rx_buf;
 	INIT_WORK(&acm->work, acm_softint);
+	init_usb_anchor(&acm->deferred);
 	spin_lock_init(&acm->write_lock);
 	spin_lock_init(&acm->read_lock);
 	mutex_init(&acm->mutex);
@@ -1454,6 +1472,7 @@ static void acm_disconnect(struct usb_interface *intf)
 	struct acm *acm = usb_get_intfdata(intf);
 	struct usb_device *usb_dev = interface_to_usbdev(intf);
 	struct tty_struct *tty;
+	struct urb *res;
 	int i;
 
 	dev_dbg(&intf->dev, "%s\n", __func__);
@@ -1485,6 +1504,9 @@ static void acm_disconnect(struct usb_interface *intf)
 
 	tty_unregister_device(acm_tty_driver, acm->minor);
 
+	/* decrement ref count of anchored urbs */
+	while ((res = usb_get_from_anchor(&acm->deferred)))
+		usb_put_urb(res);
 	usb_free_urb(acm->ctrlurb);
 	for (i = 0; i < ACM_NW; i++)
 		usb_free_urb(acm->wb[i].urb);
@@ -1592,6 +1614,7 @@ static int acm_resume(struct usb_interface *intf)
 		} else {
 			spin_unlock_irq(&acm->write_lock);
 		}
+#endif
 
 		/*
 		 * delayed error checking because we must
