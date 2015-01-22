@@ -8396,3 +8396,30 @@ dhd_get_chipid(dhd_pub_t *dhd)
 	else
 		return 0;
 }
+
+int
+dhd_slpauto_config(dhd_pub_t *dhd, s32 val)
+{
+	dhd_bus_t *bus = dhd->bus;
+	bool enb;
+
+	if (!bus)
+		return BCME_ERROR;
+
+	if (val < 0 || val > 1)
+		return BCME_BADARG;
+
+	enb = (val) ? TRUE : FALSE;
+	if (enb == dhd_slpauto)
+		return BCME_OK;
+
+	if (bus->sleeping) {
+		dhdsdio_bussleep(bus, FALSE);
+		dhd_slpauto = bus->_slpauto = enb;
+		if (enb)
+			dhdsdio_bussleep(bus, TRUE);
+	} else
+		dhd_slpauto = bus->_slpauto = enb;
+
+	return BCME_OK;
+}
