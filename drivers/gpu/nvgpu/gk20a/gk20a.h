@@ -46,6 +46,7 @@ struct sim_gk20a;
 #include "priv_ring_gk20a.h"
 #include "therm_gk20a.h"
 #include "platform_gk20a.h"
+#include "debug_gk20a.h"
 
 extern struct platform_device tegra_gk20a_device;
 
@@ -119,6 +120,8 @@ struct gpu_ops {
 		void (*set_hww_esr_report_mask)(struct gk20a *g);
 		int (*setup_alpha_beta_tables)(struct gk20a *g,
 					      struct gr_gk20a *gr);
+		int (*dump_gr_regs)(struct gk20a *g,
+				struct gk20a_debug_output *o);
 	} gr;
 	const char *name;
 	struct {

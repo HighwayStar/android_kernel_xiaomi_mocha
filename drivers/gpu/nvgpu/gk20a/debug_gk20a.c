@@ -1,7 +1,7 @@
 /*
  * drivers/video/tegra/host/t20/debug_gk20a.c
  *
- * Copyright (C) 2011-2014 NVIDIA Corporation.  All rights reserved.
+ * Copyright (C) 2011-2015 NVIDIA Corporation.  All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -29,12 +29,6 @@
 
 unsigned int gk20a_debug_trace_cmdbuf;
 struct platform_device *gk20a_device;
-
-struct gk20a_debug_output {
-	void (*fn)(void *ctx, const char *str, size_t len);
-	void *ctx;
-	char buf[256];
-};
 
 static const char * const ccsr_chan_status_str[] = {
 	"idle",
@@ -85,7 +79,8 @@ static inline void gk20a_debug_write_to_seqfile(void *ctx, const char *str,
 	seq_write((struct seq_file *)ctx, str, len);
 }
 
-void gk20a_debug_output(struct gk20a_debug_output *o, const char *fmt, ...)
+void gk20a_debug_output(struct gk20a_debug_output *o,
+					const char *fmt, ...)
 {
 	va_list args;
 	int len;
@@ -206,6 +201,50 @@ void gk20a_debug_show_dump(struct platform_device *pdev,
 	gk20a_idle(g->dev);
 }
 
+static int gk20a_gr_dump_regs(struct platform_device *pdev,
+		struct gk20a_debug_output *o)
+{
+	struct gk20a_platform *platform = gk20a_get_platform(pdev);
+	struct gk20a *g = platform->g;
+	int err;
+
+	err = gk20a_busy(g->dev);
+	if (err) {
+		gk20a_err(&pdev->dev, "failed to power on gpu: %d\n", err);
+		return -EINVAL;
+	}
+
+	gr_gk20a_elpg_protected_call(g, g->ops.gr.dump_gr_regs(g, o));
+
+	gk20a_idle(g->dev);
+
+	return 0;
+}
+
+int gk20a_gr_debug_dump(struct platform_device *pdev)
+{
+	struct gk20a_debug_output o = {
+		.fn = gk20a_debug_write_printk
+	};
+
+	gk20a_gr_dump_regs(pdev, &o);
+
+	return 0;
+}
+
+static int gk20a_gr_debug_show(struct seq_file *s, void *unused)
+{
+	struct platform_device *pdev = s->private;
+	struct gk20a_debug_output o = {
+		.fn = gk20a_debug_write_to_seqfile,
+		.ctx = s,
+	};
+
+	gk20a_gr_dump_regs(pdev, &o);
+
+	return 0;
+}
+
 void gk20a_debug_dump(struct platform_device *pdev)
 {
 	struct gk20a_platform *platform = gk20a_get_platform(pdev);
@@ -244,10 +283,22 @@ static int gk20a_debug_show(struct seq_file *s, void *unused)
 	return 0;
 }
 
+static int gk20a_gr_debug_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, gk20a_gr_debug_show, inode->i_private);
+}
+
 static int gk20a_debug_open(struct inode *inode, struct file *file)
 {
 	return single_open(file, gk20a_debug_show, inode->i_private);
 }
+
+static const struct file_operations gk20a_gr_debug_fops = {
+	.open		= gk20a_gr_debug_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
 
 static const struct file_operations gk20a_debug_fops = {
 	.open		= gk20a_debug_open,
@@ -266,9 +317,12 @@ void gk20a_debug_init(struct platform_device *pdev)
 
 	platform->debugfs = debugfs_create_dir(pdev->name, NULL);
 
-#if defined(NVHOST_DEBUG)
 	debugfs_create_file("status", S_IRUGO, platform->debugfs,
 			pdev, &gk20a_debug_fops);
+	debugfs_create_file("gr_status", S_IRUGO, platform->debugfs,
+			pdev, &gk20a_gr_debug_fops);
+
+#if defined(GK20A_DEBUG)
 	debugfs_create_u32("dbg_mask", S_IRUGO|S_IWUSR, platform->debugfs,
 			&gk20a_dbg_mask);
 	debugfs_create_u32("dbg_ftrace", S_IRUGO|S_IWUSR, platform->debugfs,
