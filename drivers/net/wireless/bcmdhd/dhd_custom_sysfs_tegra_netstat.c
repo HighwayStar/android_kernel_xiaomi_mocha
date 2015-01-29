@@ -161,8 +161,7 @@ netstat_tcp_wait_save(char tag, const struct inet_timewait_sock *sp, int bucket)
 void
 tegra_sysfs_histogram_netstat_work_stop(void)
 {
-	cancel_delayed_work(&netstat_work);
-	flush_scheduled_work();
+	cancel_delayed_work_sync(&netstat_work);
 }
 
 
