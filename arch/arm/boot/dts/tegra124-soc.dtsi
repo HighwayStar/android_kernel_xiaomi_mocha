@@ -16,6 +16,7 @@
 		spi3 = &spi3;
 		spi4 = &spi4;
 		spi5 = &spi5;
+		udc0 = &udc;
 	};
 
 	gpio: gpio@6000d000 {
@@ -564,5 +565,19 @@
 		method = "smc";
 		cpu_suspend = <0x84000001>;
 		cpu_on = <0x84000003>;
+	};
+
+	udc: udc@7d000000 {
+	     compatible = "nvidia,tegra124-udc";
+	     reg = <0x0 0x7d000000 0x0 0x4000>;
+	     interrupts = <0 20 0x04>;
+	     status = "disabled";
+	};
+
+	otg: otg@7d000000 {
+	     compatible = "nvidia,tegra124-otg";
+	     reg = <0x0 0x7d000000 0x0 0x4000>;
+	     interrupts = <0 20 0x04>;
+	     status = "disabled";
 	};
 };
