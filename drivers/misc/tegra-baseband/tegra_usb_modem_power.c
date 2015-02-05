@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2011-2015, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,7 +39,6 @@
 #define BOOST_CPU_FREQ_TIMEOUT	5000
 
 #define WAKELOCK_TIMEOUT_FOR_USB_ENUM		(HZ * 10)
-#define WAKELOCK_TIMEOUT_FOR_REMOTE_WAKE	(HZ)
 
 #define MAX_MODEM_EDP_STATES 10
 
@@ -72,7 +71,6 @@ struct tegra_usb_modem {
 	struct notifier_block pm_notifier;	/* pm event notifier */
 	struct notifier_block usb_notifier;	/* usb event notifier */
 	int sysfs_file_created;
-	int short_autosuspend_enabled;
 	struct platform_device *hc;	/* USB host controller */
 	struct mutex hc_lock;
 	struct mutex sysedp_lock;
@@ -136,9 +134,6 @@ static irqreturn_t tegra_usb_modem_wake_thread(int irq, void *data)
 
 	mutex_lock(&modem->lock);
 	if (modem->udev && modem->udev->state != USB_STATE_NOTATTACHED) {
-		wake_lock_timeout(&modem->wake_lock,
-				  WAKELOCK_TIMEOUT_FOR_REMOTE_WAKE);
-
 		dev_info(&modem->pdev->dev, "remote wake (%u)\n",
 			 ++(modem->wake_cnt));
 
@@ -148,14 +143,6 @@ static irqreturn_t tegra_usb_modem_wake_thread(int irq, void *data)
 				usb_autopm_put_interface_async(modem->intf);
 			usb_unlock_device(modem->udev);
 		}
-#ifdef CONFIG_PM
-		if (modem->capability & TEGRA_MODEM_AUTOSUSPEND &&
-		    modem->short_autosuspend_enabled) {
-			pm_runtime_set_autosuspend_delay(&modem->udev->dev,
-					modem->pdata->autosuspend_delay);
-			modem->short_autosuspend_enabled = 0;
-		}
-#endif
 	}
 	mutex_unlock(&modem->lock);
 
@@ -298,7 +285,6 @@ static void device_add_handler(struct tegra_usb_modem *modem,
 		if (modem->capability & TEGRA_MODEM_AUTOSUSPEND) {
 			pm_runtime_set_autosuspend_delay(&udev->dev,
 					modem->pdata->autosuspend_delay);
-			modem->short_autosuspend_enabled = 0;
 			usb_enable_autosuspend(udev);
 			pr_info("enable autosuspend for %s %s\n",
 				udev->manufacturer, udev->product);
@@ -374,15 +360,6 @@ static int mdm_pm_notifier(struct notifier_block *notifier,
 		}
 
 		modem->system_suspend = 1;
-#ifdef CONFIG_PM
-		if (modem->capability & TEGRA_MODEM_AUTOSUSPEND &&
-		    modem->udev &&
-		    modem->udev->state != USB_STATE_NOTATTACHED) {
-			pm_runtime_set_autosuspend_delay(&modem->udev->dev,
-					modem->pdata->short_autosuspend_delay);
-			modem->short_autosuspend_enabled = 1;
-		}
-#endif
 		mutex_unlock(&modem->lock);
 		return NOTIFY_OK;
 	case PM_POST_SUSPEND:
@@ -424,37 +401,6 @@ static int mdm_request_irq(struct tegra_usb_modem *modem,
 	*is_wakeable = (ret) ? false : true;
 
 	return 0;
-}
-
-static void tegra_usb_modem_post_remote_wakeup(void)
-{
-	struct device *dev;
-	struct tegra_usb_modem *modem;
-
-	dev = bus_find_device_by_name(&platform_bus_type, NULL,
-					"MDM");
-	if (!dev) {
-		pr_warn("%s unable to find device name\n", __func__);
-		return;
-	}
-
-	modem = dev_get_drvdata(dev);
-
-	mutex_lock(&modem->lock);
-#ifdef CONFIG_PM
-	if (modem->capability & TEGRA_MODEM_AUTOSUSPEND &&
-	    modem->udev &&
-	    modem->udev->state != USB_STATE_NOTATTACHED &&
-	    modem->short_autosuspend_enabled) {
-		pm_runtime_set_autosuspend_delay(&modem->udev->dev,
-				modem->pdata->autosuspend_delay);
-		modem->short_autosuspend_enabled = 0;
-	}
-#endif
-	wake_lock_timeout(&modem->wake_lock, WAKELOCK_TIMEOUT_FOR_REMOTE_WAKE);
-	mutex_unlock(&modem->lock);
-
-	return;
 }
 
 /* load USB host controller */
@@ -539,10 +485,6 @@ static ssize_t load_unload_usb_host(struct device *dev,
 static DEVICE_ATTR(load_host, S_IRUSR | S_IWUSR, show_usb_host,
 		   load_unload_usb_host);
 
-static struct tegra_usb_phy_platform_ops tegra_usb_modem_platform_ops = {
-	.post_remote_wakeup = tegra_usb_modem_post_remote_wakeup,
-};
-
 static int mdm_init(struct tegra_usb_modem *modem, struct platform_device *pdev)
 {
 	struct tegra_usb_modem_power_platform_data *pdata =
@@ -592,9 +534,6 @@ static int mdm_init(struct tegra_usb_modem *modem, struct platform_device *pdev)
 			dev_err(&pdev->dev, "request wake irq error\n");
 			goto error;
 		}
-	} else {
-		modem->pdata->tegra_ehci_pdata->ops =
-						&tegra_usb_modem_platform_ops;
 	}
 
 	if (gpio_is_valid(pdata->boot_gpio)) {
