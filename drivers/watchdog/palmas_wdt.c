@@ -29,9 +29,9 @@
 #include <linux/irq.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/of.h>
-#include <linux/of_device.h>
 #include <linux/mfd/palmas.h>
+#include <linux/of.h>
+#include <linux/of_platform.h>
 #include <linux/platform_device.h>
 #include <linux/pm.h>
 #include <linux/slab.h>
@@ -46,6 +46,7 @@ struct palmas_wdt {
 	int timeout;
 	int irq;
 	int locked;
+	int watchdog_timer_initial_period;
 };
 
 static irqreturn_t palmas_wdt_irq(int irq, void *data)
@@ -144,8 +145,6 @@ static int palmas_wdt_probe(struct platform_device *pdev)
 	struct palmas_wdt *wdt;
 	struct watchdog_device *wdt_dev;
 	unsigned int regval;
-	u32 pval;
-	int wdt_timer_period = 0;
 	int ret;
 
 	wdt = devm_kzalloc(&pdev->dev, sizeof(*wdt), GFP_KERNEL);
@@ -154,12 +153,15 @@ static int palmas_wdt_probe(struct platform_device *pdev)
 
 	pdata = dev_get_platdata(pdev->dev.parent);
 	if (pdata)
-		wdt_timer_period = pdata->watchdog_timer_initial_period;
-	if (!wdt_timer_period && pdev->dev.of_node) {
+		wdt->watchdog_timer_initial_period =
+				pdata->watchdog_timer_initial_period;
+
+	if (!wdt->watchdog_timer_initial_period && pdev->dev.of_node) {
+		u32 pval = 0;
 		ret = of_property_read_u32(pdev->dev.of_node,
-				"ti,system-watchdog-timer-period", &pval);
+				"ti,watchdog-init-timeout", &pval);
 		if (!ret)
-			wdt_timer_period = pval;
+			wdt->watchdog_timer_initial_period = pval;
 	}
 
 	wdt->dev = &pdev->dev;
@@ -221,8 +223,12 @@ static int palmas_wdt_probe(struct platform_device *pdev)
 		goto scrub;
 	}
 
-	if (wdt_timer_period) {
-		ret = palmas_wdt_set_timeout(wdt_dev, wdt_timer_period);
+	if (wdt->watchdog_timer_initial_period > 0) {
+		dev_info(wdt->dev, "WATCHDOG starting with timeout %d\n",
+				wdt->watchdog_timer_initial_period);
+		ret = palmas_wdt_set_timeout(wdt_dev,
+					wdt->watchdog_timer_initial_period);
+
 		if (ret < 0) {
 			dev_err(wdt->dev, "wdt set timeout failed: %d\n", ret);
 			goto scrub;
@@ -238,6 +244,7 @@ static int palmas_wdt_probe(struct platform_device *pdev)
 	}
 
 	device_set_wakeup_capable(&pdev->dev, 1);
+	device_wakeup_enable(&pdev->dev);
 	return 0;
 scrub:
 	free_irq(wdt->irq, wdt);
@@ -291,18 +298,19 @@ static const struct dev_pm_ops palmas_wdt_pm_ops = {
 	SET_SYSTEM_SLEEP_PM_OPS(palmas_wdt_suspend, palmas_wdt_resume)
 };
 
-static struct of_device_id of_palmas_wdt_match_tbl[] = {
-	{ .compatible = "ti,palmas-watchdog", },
-	{},
+static struct of_device_id of_palmas_wdt[] = {
+        { .compatible = "ti,palmas-wdt", },
+        { .compatible = "ti,palmas-watchdog", },
+        { /* end */ }
 };
-MODULE_DEVICE_TABLE(of, of_palmas_wdt_match_tbl);
+MODULE_DEVICE_TABLE(of, of_palmas_wdt);
 
 static struct platform_driver palmas_wdt_driver = {
 	.driver	= {
 		.name	= "palmas-wdt",
 		.owner	= THIS_MODULE,
 		.pm = &palmas_wdt_pm_ops,
-		.of_match_table = of_palmas_wdt_match_tbl,
+		.of_match_table = of_palmas_wdt,
 	},
 	.probe	= palmas_wdt_probe,
 	.remove	= palmas_wdt_remove,
