@@ -1648,7 +1648,7 @@ static int hub_probe(struct usb_interface *intf, const struct usb_device_id *id)
 	desc = intf->cur_altsetting;
 	hdev = interface_to_usbdev(intf);
 
-	pm_runtime_set_autosuspend_delay(&hdev->dev, 200);
+	pm_runtime_set_autosuspend_delay(&hdev->dev, 500);
 
 	/* Hubs have proper suspend/resume support. */
 	usb_enable_autosuspend(hdev);
