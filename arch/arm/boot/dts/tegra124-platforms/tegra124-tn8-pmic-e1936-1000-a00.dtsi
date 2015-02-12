@@ -87,8 +87,8 @@
 
 			watchdog {
 				compatible = "ti,palmas-watchdog";
-				ti,system-watchdog-timer-period = <64>;
-				status = "disabled";
+				ti,watchdog-init-timeout = <120>;
+				status = "okay";
 			};
 
 			power_pm {
