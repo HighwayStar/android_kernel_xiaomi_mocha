@@ -1080,7 +1080,7 @@ wl_validate_wps_ie(char *wps_ie, s32 wps_ie_len, bool *pbc)
 static chanspec_t wl_cfg80211_get_shared_freq(struct wiphy *wiphy)
 {
 	chanspec_t chspec;
-	int err = 0;
+	int cur_band, err = 0;
 	struct wl_priv *wl = wiphy_priv(wiphy);
 	struct net_device *dev = wl_to_prmry_ndev(wl);
 	struct ether_addr bssid;
@@ -1092,7 +1092,15 @@ static chanspec_t wl_cfg80211_get_shared_freq(struct wiphy *wiphy)
 		 * via set_channel (cfg80211 API).
 		 */
 		WL_DBG(("Not associated. Return a temp channel. \n"));
-		return wl_ch_host_to_driver(WL_P2P_TEMP_CHAN);
+		err = wldev_ioctl(dev, WLC_GET_BAND, &cur_band, sizeof(int), false);
+		if (unlikely(err)) {
+			WL_ERR(("Get band failed\n"));
+			return wl_ch_host_to_driver(WL_P2P_TEMP_CHAN);
+		}
+		if (cur_band == WLC_BAND_5G)
+			return wl_ch_host_to_driver(WL_P2P_TEMP_CHAN_5G);
+		else
+			return wl_ch_host_to_driver(WL_P2P_TEMP_CHAN);
 	}
 
 

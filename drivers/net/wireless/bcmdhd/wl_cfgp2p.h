@@ -373,6 +373,7 @@ wl_cfgp2p_del_p2p_disc_if(struct wireless_dev *wdev);
 #define WL_P2P_WILDCARD_SSID_LEN 7
 #define WL_P2P_INTERFACE_PREFIX "p2p"
 #define WL_P2P_TEMP_CHAN 11
+#define WL_P2P_TEMP_CHAN_5G 36
 
 /* If the provision discovery is for JOIN operations,
  * or the device discoverablity frame is destined to GO
