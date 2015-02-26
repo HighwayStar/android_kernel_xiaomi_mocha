@@ -44,6 +44,7 @@ struct quadd_callchain {
 
 	unsigned long curr_sp;
 	unsigned long curr_fp;
+	unsigned long curr_fp_thumb;
 	unsigned long curr_pc;
 
 	struct quadd_hrt_ctx *hrt;
