@@ -3,7 +3,7 @@
  *
  * GK20A Graphics
  *
- * Copyright (c) 2011-2014, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2011-2015, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -554,7 +554,7 @@ void gk20a_enable(struct gk20a *g, u32 units);
 void gk20a_reset(struct gk20a *g, u32 units);
 int gk20a_get_client(struct gk20a *g);
 void gk20a_put_client(struct gk20a *g);
-int __gk20a_do_idle(struct platform_device *pdev);
+int __gk20a_do_idle(struct platform_device *pdev, bool force_reset);
 int __gk20a_do_unidle(struct platform_device *pdev);
 
 const struct firmware *
