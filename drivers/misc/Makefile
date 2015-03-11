@@ -80,3 +80,4 @@ obj-$(CONFIG_TEGRA_PROFILER)    += tegra-profiler/
 obj-$(CONFIG_MTK_GPS)		+= gps/
 obj-y		+= tegra-fuse/
 obj-$(CONFIG_MODS) 		+= mods/
+obj-$(CONFIG_UID_CPUTIME) += uid_cputime.o

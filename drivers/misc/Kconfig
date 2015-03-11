@@ -654,6 +654,12 @@ config SENSORS_AK09911
 	  If you say yes here you get support for Asahi Kasei's
 	  orientation sensor AK09911.
 
+config UID_CPUTIME
+	tristate "Per-UID cpu time statistics"
+	depends on PROFILING
+	help
+	  Per UID based cpu time statistics exported to /proc/uid_cputime
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
