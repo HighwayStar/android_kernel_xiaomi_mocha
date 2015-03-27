@@ -297,6 +297,7 @@ struct smmu_device {
 	unsigned long	iovmm_base;	/* remappable base address */
 	unsigned long	page_count;	/* total remappable size */
 	spinlock_t	lock;
+	spinlock_t	ptc_lock;
 	char		*name;
 	struct device	*dev;
 	u64		swgids;		/* memory client ID bitmap */
@@ -548,12 +549,14 @@ static void __smmu_flush_ptc(struct smmu_device *smmu, u32 *pte,
 			     struct page *page)
 {
 	u32 val;
+	ulong flags;
 
 	if (!pte) {
 		smmu_write(smmu, SMMU_PTC_FLUSH_TYPE_ALL, SMMU_PTC_FLUSH);
 		return;
 	}
 
+	spin_lock_irqsave(&smmu->ptc_lock, flags);
 	if ((IS_ENABLED(CONFIG_ARCH_TEGRA_12x_SOC) &&
 		(tegra_get_chipid() == TEGRA_CHIPID_TEGRA12)) ||
 		(IS_ENABLED(CONFIG_ARCH_TEGRA_13x_SOC) &&
@@ -564,6 +567,7 @@ static void __smmu_flush_ptc(struct smmu_device *smmu, u32 *pte,
 
 	val = SMMU_PTC_FLUSH_TYPE_ADR | VA_PAGE_TO_PA(pte, page);
 	smmu_write(smmu, val, SMMU_PTC_FLUSH);
+	spin_unlock_irqrestore(&smmu->ptc_lock, flags);
 }
 
 static void smmu_flush_ptc(struct smmu_device *smmu, u32 *pte,
@@ -1816,6 +1820,7 @@ static int tegra_smmu_probe(struct platform_device *pdev)
 		INIT_LIST_HEAD(&as->client);
 	}
 	spin_lock_init(&smmu->lock);
+	spin_lock_init(&smmu->ptc_lock);
 	smmu_setup_regs(smmu);
 	platform_set_drvdata(pdev, smmu);
 
