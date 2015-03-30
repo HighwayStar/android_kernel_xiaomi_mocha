@@ -7810,9 +7810,10 @@ dhdsdio_download_nvram(struct dhd_bus *bus)
 	char *bufp;
 	char *pnv_path;
 	bool nvram_file_exists;
+#ifdef TEGRA_REGION_BASED_NVRAM
 	char country_code[COUNTRY_CODE_LEN];
 	char *nvram_code;
-
+#endif
 	pnv_path = bus->nv_path;
 
 	nvram_file_exists = ((pnv_path != NULL) && (pnv_path[0] != '\0'));
@@ -7894,10 +7895,10 @@ err:
 
 	if (image)
 		dhd_os_close_image(image);
-
+#ifdef TEGRA_REGION_BASED_NVRAM
 	if (nvram_code)
 		kfree(nvram_code);
-
+#endif
 	return bcmerror;
 }
 
