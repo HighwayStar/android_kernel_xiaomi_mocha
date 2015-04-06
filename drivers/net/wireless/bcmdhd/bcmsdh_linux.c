@@ -81,6 +81,8 @@ static bcmsdh_hc_t *sdhcinfo = NULL;
 
 struct device *pm_dev;
 
+int bcmdhd_irq_number;
+
 /* driver info, initialized when bcmsdh_register is called */
 static bcmsdh_driver_t drvinfo = {NULL, NULL};
 
@@ -669,8 +671,9 @@ int bcmsdh_register_oob_intr(void * dhdp)
 			"bcmsdh_sdmmc", NULL);
 		if (error)
 			return -ENODEV;
+		bcmdhd_irq_number = (int)sdhcinfo->oob_irq;
 
-			error = enable_irq_wake(sdhcinfo->oob_irq);
+		error = enable_irq_wake(sdhcinfo->oob_irq);
 		if (error)
 			SDLX_MSG(("%s enable_irq_wake error=%d \n", __FUNCTION__, error));
 		sdhcinfo->oob_irq_registered = TRUE;

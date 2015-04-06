@@ -74,6 +74,8 @@ int dhd_msg_level = DHD_ERROR_VAL;
 
 #include <wl_iw.h>
 
+#include "dhd_custom_sysfs_tegra.h"
+
 char fw_path[MOD_PARAM_PATHLEN];
 char nv_path[MOD_PARAM_PATHLEN];
 
@@ -304,6 +306,9 @@ dhd_wl_ioctl(dhd_pub_t *dhd_pub, int ifindex, wl_ioctl_t *ioc, void *buf, int le
 	{
 
 		ret = dhd_prot_ioctl(dhd_pub, ifindex, ioc, buf, len);
+#ifdef CONFIG_BCMDHD_CUSTOM_SYSFS_TEGRA
+		tegra_sysfs_control_pkt(ioc->cmd);
+#endif
 		if ((ret) && (dhd_pub->up))
 			/* Send hang event only if dhd_open() was success */
 			dhd_os_check_hang(dhd_pub, ifindex, ret);

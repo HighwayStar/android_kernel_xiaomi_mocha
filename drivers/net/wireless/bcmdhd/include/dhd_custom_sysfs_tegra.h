@@ -228,4 +228,15 @@ void
 netstat_tcp_wait_save(char tag,
 	const struct inet_timewait_sock *sp, int bucket);
 
+void
+tegra_sysfs_resume_capture(void);
+
+void
+tegra_sysfs_suspend_capture(void);
+
+void
+tegra_sysfs_control_pkt(int number);
+
+void
+tegra_sysfs_dpc_pkt(void);
 #endif  /* _dhd_custom_sysfs_tegra_h_ */
