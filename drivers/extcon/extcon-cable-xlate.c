@@ -25,8 +25,10 @@
 #include <linux/slab.h>
 #include <linux/extcon.h>
 #include <linux/spinlock.h>
+#include <linux/wakelock.h>
 
 #define DEFAULT_CABLE_WAITTIME_MS		500
+#define EXTCON_XLATE_WAKEUP_TIME		(HZ)
 
 struct ecx_io_cable_states {
 	int in_state;
@@ -75,6 +77,7 @@ struct extcon_cable_xlate {
 	int timer_to_work_jiffies;
 	spinlock_t lock;
 	struct mutex cable_lock;
+	struct wake_lock wake_lock;
 	bool extcon_init_done;
 	int last_cable_in_state;
 	int last_cable_out_state;
@@ -232,6 +235,10 @@ static int ecx_extcon_notifier(struct notifier_block *self,
 					struct ecx_in_cables, nb);
 	struct extcon_cable_xlate *ecx = cable->ecx;
 	unsigned long flags;
+
+	/*Hold wakelock to complete cable detection */
+	if (!wake_lock_active(&ecx->wake_lock))
+		wake_lock_timeout(&ecx->wake_lock, EXTCON_XLATE_WAKEUP_TIME);
 
 	spin_lock_irqsave(&ecx->lock, flags);
 	mod_timer(&ecx->timer, jiffies + ecx->debounce_jiffies);
@@ -407,6 +414,9 @@ static int ecx_probe(struct platform_device *pdev)
 	ecx->timer_to_work_jiffies = msecs_to_jiffies(100);
 	ecx->edev.supported_cable = pdata->out_cable_names;
 	ecx->pdata = pdata;
+
+	wake_lock_init(&ecx->wake_lock, WAKE_LOCK_SUSPEND,
+						"extcon-suspend-lock");
 
 	ret = extcon_dev_register(&ecx->edev);
 	if (ret < 0) {
