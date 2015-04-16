@@ -200,6 +200,42 @@ dhd_custom_get_mac_address(unsigned char *buf)
 /* Customized Locale table : OPTIONAL feature */
 const struct cntry_locales_custom translate_custom_table[] = {
 /* Table should be filled out based on custom platform regulatory requirement */
+#if defined(CUSTOM_COUNTRY_LOCALE)
+	{"XV", "XV", 994}, /* Universal if Country code is unknown or empty */
+	{"US", "Q2", 87},  /* input ISO "US" to : Q2 regrev 87 */
+	{"CA", "CA", 996}, /* input ISO "CA" to : CA regrev 996 */
+	{"IN", "Q2", 87},  /* input ISO "IN" to : Q2 regrev 87 */
+	{"SG", "SG", 998}, /* input ISO "SG" to : SG regrev 998 */
+	{"JP", "JP", 993}, /* input ISO "JP" to : JP regrev 993 */
+	{"KR", "KR", 993}, /* input ISO "KR" to : KR regrev 993 */
+	{"RU", "RU", 995}, /* input ISO "RU" to : RU regrev 995 */
+	{"TW", "TW", 999}, /* input ISO "TW" to : TW regrev 999 */
+	{"AU", "AU", 995}, /* input ISO "AU" to : AU regrev 995 */
+	{"NZ", "NZ", 999}, /* input ISO "NZ" to : NZ regrev 999 */
+	{"EU", "E0", 988}, /* European union countries to : E0 regrev 988 */
+	{"E0", "E0", 988},
+	{"AT", "E0", 988},
+	{"BE", "E0", 988},
+	{"BG", "E0", 988},
+	{"HR", "E0", 988},
+	{"CZ", "E0", 988},
+	{"DK", "E0", 988},
+	{"FR", "E0", 988},
+	{"DE", "E0", 988},
+	{"GR", "E0", 988},
+	{"HU", "E0", 988},
+	{"IT", "E0", 988},
+	{"NL", "E0", 988},
+	{"NO", "E0", 988},
+	{"PL", "E0", 988},
+	{"PT", "E0", 988},
+	{"RO", "E0", 988},
+	{"SK", "E0", 988},
+	{"ES", "E0", 988},
+	{"SE", "E0", 988},
+	{"CH", "E0", 988},
+	{"GB", "E0", 988},
+#endif /* CUSTOM_COUNTRY_LOCALE */
 #ifdef EXAMPLE_TABLE
 	{"",   "XY", 4},  /* Universal if Country code is unknown or empty */
 	{"US", "US", 69}, /* input ISO "US" to : US regrev 69 */
@@ -253,7 +289,7 @@ const struct cntry_locales_custom translate_custom_table[] = {
 */
 void get_customized_country_code(char *country_iso_code, wl_country_t *cspec)
 {
-#if defined(CUSTOMER_HW2) && (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 39))
+#if !defined(CUSTOM_COUNTRY_LOCALE) && (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 39))
 
 	struct cntry_locales_custom *cloc_ptr;
 
@@ -285,11 +321,9 @@ void get_customized_country_code(char *country_iso_code, wl_country_t *cspec)
 			return;
 		}
 	}
-#ifdef EXAMPLE_TABLE
 	/* if no country code matched return first universal code from translate_custom_table */
 	memcpy(cspec->ccode, translate_custom_table[0].custom_locale, WLC_CNTRY_BUF_SZ);
 	cspec->rev = translate_custom_table[0].custom_locale_rev;
-#endif /* EXMAPLE_TABLE */
 	return;
 #endif /* defined(CUSTOMER_HW2) && (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)) */
 }
