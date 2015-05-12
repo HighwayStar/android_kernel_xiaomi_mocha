@@ -47,17 +47,12 @@ static DEVICE_ATTR(tcpdump, S_IRUGO | S_IWUGO,
 	tegra_sysfs_histogram_tcpdump_show,
 	tegra_sysfs_histogram_tcpdump_store);
 
-static DEVICE_ATTR(netstat, S_IRUGO | S_IWUGO,
-	tegra_sysfs_histogram_netstat_show,
-	tegra_sysfs_histogram_netstat_store);
-
 static struct attribute *tegra_sysfs_entries_histogram[] = {
 	&dev_attr_ping.attr,
 	&dev_attr_rssi.attr,
 	&dev_attr_scan.attr,
 	&dev_attr_stat.attr,
 	&dev_attr_tcpdump.attr,
-	&dev_attr_netstat.attr,
 	NULL,
 };
 
@@ -103,7 +98,6 @@ tegra_sysfs_register(struct device *dev)
 	tegra_sysfs_histogram_scan_work_start();
 	tegra_sysfs_histogram_stat_work_start();
 	tegra_sysfs_histogram_tcpdump_work_start();
-	tegra_sysfs_histogram_netstat_work_start();
 #endif
 
 	return 0;
@@ -115,7 +109,6 @@ tegra_sysfs_unregister(struct device *dev)
 	pr_info("%s\n", __func__);
 
 	/* stop sysfs work */
-	tegra_sysfs_histogram_netstat_work_stop();
 	tegra_sysfs_histogram_tcpdump_work_stop();
 	tegra_sysfs_histogram_stat_work_stop();
 	tegra_sysfs_histogram_scan_work_stop();
@@ -148,7 +141,6 @@ tegra_sysfs_on(void)
 	tegra_sysfs_histogram_scan_work_start();
 	tegra_sysfs_histogram_stat_work_start();
 	tegra_sysfs_histogram_tcpdump_work_start();
-	tegra_sysfs_histogram_netstat_work_start();
 
 }
 
@@ -160,7 +152,6 @@ tegra_sysfs_off(void)
 	tegra_sysfs_wifi_on = 0;
 
 	/* suspend (stop) sysfs work */
-	tegra_sysfs_histogram_netstat_work_stop();
 	tegra_sysfs_histogram_tcpdump_work_stop();
 	tegra_sysfs_histogram_stat_work_stop();
 	tegra_sysfs_histogram_scan_work_stop();
@@ -179,7 +170,6 @@ tegra_sysfs_suspend(void)
 		return;
 
 	/* suspend (stop) sysfs work */
-	tegra_sysfs_histogram_netstat_work_stop();
 	tegra_sysfs_histogram_tcpdump_work_stop();
 	tegra_sysfs_histogram_stat_work_stop();
 	tegra_sysfs_histogram_scan_work_stop();
@@ -203,7 +193,6 @@ tegra_sysfs_resume(void)
 	tegra_sysfs_histogram_scan_work_start();
 	tegra_sysfs_histogram_stat_work_start();
 	tegra_sysfs_histogram_tcpdump_work_start();
-	tegra_sysfs_histogram_netstat_work_start();
 
 }
 

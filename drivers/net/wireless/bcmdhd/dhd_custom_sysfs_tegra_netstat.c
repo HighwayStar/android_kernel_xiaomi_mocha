@@ -192,10 +192,10 @@ tegra_sysfs_histogram_netstat_store(struct device *dev,
 
 	if (strncmp(buf, "enable", 6) == 0) {
 		pr_info("%s: starting netstat delayed work...\n", __func__);
-		tegra_sysfs_histogram_netstat_work_start();
+//		tegra_sysfs_histogram_netstat_work_start();
 	} else if (strncmp(buf, "disable", 7) == 0) {
 		pr_info("%s: stopping netstat delayed work...\n", __func__);
-		tegra_sysfs_histogram_netstat_work_stop();
+//		tegra_sysfs_histogram_netstat_work_stop();
 	} else if (strncmp(buf, "rate ", 5) == 0) {
 		err = kstrtouint(buf + 5, 0, &uint);
 		if (err < 0) {

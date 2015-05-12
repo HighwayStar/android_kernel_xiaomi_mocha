@@ -2795,15 +2795,12 @@ static int tcp4_seq_show(struct seq_file *seq, void *v)
 	case TCP_SEQ_STATE_LISTENING:
 	case TCP_SEQ_STATE_ESTABLISHED:
 		get_tcp4_sock(v, seq, st->num, &len);
-		TCP_NETSTAT(v, st->num);
 		break;
 	case TCP_SEQ_STATE_OPENREQ:
 		get_openreq4(st->syn_wait_sk, v, seq, st->num, st->uid, &len);
-		TCP_NETSTAT1(st->syn_wait_sk, v, st->num);
 		break;
 	case TCP_SEQ_STATE_TIME_WAIT:
 		get_timewait4_sock(v, seq, st->num, &len);
-		TCP_NETSTAT2(v, st->num);
 		break;
 	}
 	seq_printf(seq, "\n");
