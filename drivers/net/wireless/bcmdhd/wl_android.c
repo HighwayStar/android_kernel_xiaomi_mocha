@@ -1826,7 +1826,7 @@ static int wifi_probe(struct platform_device *pdev)
 		wifi_irqres = get_wifi_irqres_from_of(pdev);
 	wifi_control_data = wifi_ctrl;
 	wifi_control_data->sysedpc = sysedp_create_consumer("wifi", "wifi");
-	err = wifi_set_power(1, 200);	/* Power On */
+	err = wifi_set_power(1, WIFI_TURNON_DELAY);	/* Power On */
 	if (unlikely(err)) {
 		DHD_ERROR(("%s: set_power failed. err=%d\n", __FUNCTION__, err));
 		wifi_set_power(0, WIFI_TURNOFF_DELAY);

@@ -144,7 +144,7 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 			bcm_wlan_power_on(2);
 #endif /* CUSTOMER_HW */
 #if defined(CUSTOMER_HW2)
-			wifi_set_power(1, 200);
+			wifi_set_power(1, WIFI_TURNON_DELAY);
 #endif
 			WL_ERROR(("=========== WLAN going back to live  ========\n"));
 		break;
