@@ -28,14 +28,6 @@
 		};
 	};
 
-	i2c@7000d000 {
-		tps65913 {
-			extcon {
-				/delete-property/ti,wakeup;
-			};
-		};
-	};
-
 	usb-devices {
 		maxim-charger {
 			maxim,max-board-vbus-voltage-uv = <12000000>;
