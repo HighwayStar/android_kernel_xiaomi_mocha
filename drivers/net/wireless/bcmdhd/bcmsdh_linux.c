@@ -81,7 +81,7 @@ static bcmsdh_hc_t *sdhcinfo = NULL;
 
 struct device *pm_dev;
 
-int bcmdhd_irq_number;
+extern int bcmdhd_irq_number;
 
 /* driver info, initialized when bcmsdh_register is called */
 static bcmsdh_driver_t drvinfo = {NULL, NULL};
