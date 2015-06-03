@@ -1,7 +1,7 @@
 /*
  * tegra_rt5639.c - Tegra machine ASoC driver for boards using ALC5639 codec.
  *
- * Copyright (c) 2013-2014, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2013-2015, NVIDIA CORPORATION. All rights reserved.
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -60,6 +60,8 @@
 #define DAI_LINK_BT_VOICE_CALL	4
 #define NUM_DAI_LINKS		5
 
+#define DELAY_AFTR_LDO1_EN_UP   450
+#define DELAY_BFR_LDO1_EN_DOWN  250
 extern int g_is_call_mode;
 
 const char *tegra_rt5639_i2s_dai_name[TEGRA30_NR_I2S_IFC] = {
@@ -1345,7 +1347,7 @@ static int tegra_rt5639_driver_probe(struct platform_device *pdev)
 			if (ret)
 				dev_err(&pdev->dev, "Fail gpio_direction AUDIO_LDO1\n");
 		}
-		msleep(200);
+		msleep(DELAY_AFTR_LDO1_EN_UP);
 	}
 
 	machine->pdata = pdata;
@@ -1489,6 +1491,11 @@ static int tegra_rt5639_driver_probe(struct platform_device *pdev)
 err_unregister_card:
 	snd_soc_unregister_card(card);
 err_unregister_switch:
+	msleep(DELAY_BFR_LDO1_EN_DOWN);
+	if (gpio_is_valid(pdata->gpio_ldo1_en)) {
+		gpio_set_value(pdata->gpio_ldo1_en, 0);
+		gpio_free(pdata->gpio_ldo1_en);
+	}
 #ifdef CONFIG_SWITCH
 	tegra_asoc_switch_unregister(&tegra_rt5639_headset_switch);
 err_fini_utils:
@@ -1527,6 +1534,13 @@ static int tegra_rt5639_driver_remove(struct platform_device *pdev)
 	struct tegra_asoc_platform_data *pdata = machine->pdata;
 	struct device_node *np = pdev->dev.of_node;
 
+	snd_soc_unregister_card(card);
+
+	msleep(DELAY_BFR_LDO1_EN_DOWN);
+	if (gpio_is_valid(pdata->gpio_ldo1_en)) {
+		gpio_set_value(pdata->gpio_ldo1_en, 0);
+		gpio_free(pdata->gpio_ldo1_en);
+	}
 	if (machine->gpio_requested & GPIO_HP_DET)
 		snd_soc_jack_free_gpios(&tegra_rt5639_hp_jack,
 					1,
@@ -1550,12 +1564,6 @@ static int tegra_rt5639_driver_remove(struct platform_device *pdev)
 		regulator_put(machine->codec_reg);
 	}
 
-	if (gpio_is_valid(pdata->gpio_ldo1_en)) {
-		gpio_set_value(pdata->gpio_ldo1_en, 0);
-		gpio_free(pdata->gpio_ldo1_en);
-	}
-
-	snd_soc_unregister_card(card);
 
 	tegra_asoc_utils_fini(&machine->util_data);
 
