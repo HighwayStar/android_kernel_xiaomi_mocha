@@ -3,7 +3,7 @@
  *
  * MC error code common to T3x and T11x. T20 has been left alone.
  *
- * Copyright (c) 2010-2014, NVIDIA Corporation. All rights reserved.
+ * Copyright (c) 2010-2015, NVIDIA Corporation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -218,12 +218,12 @@ static irqreturn_t tegra_mc_error_isr(int irq, void *data)
 	 * is interrupts with an interrupt status register equal to 0.
 	 * Not much we can do other than keep a count of them.
 	 */
+	intr &= MC_INT_EN_MASK;
 	if (!intr) {
 		spurious_intrs++;
 		goto out;
 	}
 
-	intr &= MC_INT_EN_MASK;
 	if (intr & MC_INT_ARBITRATION_EMEM) {
 		arb_intr();
 		if (intr == MC_INT_ARBITRATION_EMEM)
@@ -235,9 +235,8 @@ static irqreturn_t tegra_mc_error_isr(int irq, void *data)
 	count = ++error_count;
 	spin_unlock(&mc_lock);
 
-	fault = chip_specific.mcerr_info(intr & MC_INT_EN_MASK);
-	if (WARN(!fault, "[mcerr] Unknown error! intr sig: 0x%08x\n",
-		 intr & MC_INT_EN_MASK))
+	fault = chip_specific.mcerr_info(intr);
+	if (WARN(!fault, "[mcerr] Unknown error! intr sig: 0x%08x\n", intr))
 		goto out;
 
 	if (fault->flags & E_NO_STATUS) {
