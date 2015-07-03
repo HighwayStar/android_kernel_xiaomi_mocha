@@ -63,4 +63,8 @@
 		nvidia,turn-off-vbus-in-lp0;
 		nvidia,dcp-current-limit-ma = <3000>;
 	};
+
+	otg@7d000000 {
+		nvidia,turn-off-vbus-in-lp0;
+	};
 };
