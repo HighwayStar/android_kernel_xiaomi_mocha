@@ -59,7 +59,6 @@ static struct pm_qos_request cpufreq_max_req;
 static struct pm_qos_request cpufreq_min_req;
 
 static bool force_policy_max;
-static bool hotplug_boost;
 
 static int force_policy_max_set(const char *arg, const struct kernel_param *kp)
 {
@@ -733,20 +732,12 @@ unsigned long tegra_cpu_highest_speed(void) {
 	unsigned long rate = 0;
 	int i;
 
-	if (hotplug_boost)
-		policy_max = 0;
-
 	for_each_online_cpu(i) {
-		if (hotplug_boost)
-			policy_max = max(policy_max, policy_max_speed[i]);
-		else if (force_policy_max)
+		if (force_policy_max)
 			policy_max = min(policy_max, policy_max_speed[i]);
 		rate = max(rate, target_cpu_speed[i]);
 	}
-	if (hotplug_boost)
-		rate = max(rate, policy_max);
-	else
-		rate = min(rate, policy_max);
+	rate = min(rate, policy_max);
 	return rate;
 }
 
@@ -892,32 +883,6 @@ static struct notifier_block tegra_cpu_pm_notifier = {
 	.notifier_call = tegra_pm_notify,
 };
 
-static int tegra_hotplug_boost(struct notifier_block *nb, unsigned long event,
-				void *hcpu)
-{
-	int ret = 0;
-
-	switch (event) {
-	case CPU_DOWN_PREPARE:
-		mutex_lock(&tegra_cpu_lock);
-		hotplug_boost = true;
-		tegra_cpu_set_speed_cap_locked(NULL);
-		mutex_unlock(&tegra_cpu_lock);
-		break;
-	case CPU_DOWN_FAILED:
-	case CPU_DEAD:
-		mutex_lock(&tegra_cpu_lock);
-		hotplug_boost = false;
-		tegra_cpu_set_speed_cap_locked(NULL);
-		mutex_unlock(&tegra_cpu_lock);
-		break;
-	}
-	return notifier_from_errno(ret);
-}
-
-static struct notifier_block tegra_hotplug_boost_notifier = {
-	.notifier_call = tegra_hotplug_boost,
-};
 static int tegra_cpu_init(struct cpufreq_policy *policy)
 {
 	int idx, ret;
@@ -1057,9 +1022,6 @@ static int __init tegra_cpufreq_init(void)
 	ret = cpufreq_register_notifier(
 		&tegra_cpufreq_policy_nb, CPUFREQ_POLICY_NOTIFIER);
 
-	if (ret)
-		return ret;
-	ret = register_hotcpu_notifier(&tegra_hotplug_boost_notifier);
 	if (ret)
 		return ret;
 
