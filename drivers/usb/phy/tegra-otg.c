@@ -912,10 +912,12 @@ static struct tegra_usb_platform_data tegra12x_ehci_utmi_pdata = {
 	.phy_intf = TEGRA_USB_PHY_INTF_UTMI,
 	.op_mode = TEGRA_USB_OPMODE_HOST,
 	.u_data.host = {
+		.vbus_gpio = -1,
 		.hot_plug = false,
 		.remote_wakeup_supported = false,
-		.power_off_on_suspend = false,
+		.power_off_on_suspend = true,
 		.turn_off_vbus_on_lp0 = true,
+		.skip_resume = false,
 	},
 	.u_cfg.utmi = {
 		.hssync_start_delay = 0,
