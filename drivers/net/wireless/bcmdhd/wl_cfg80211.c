@@ -7371,10 +7371,10 @@ wl_notify_connect_status(struct wl_priv *wl, bcm_struct_cfgdev *cfgdev,
 						WL_ERR(("WLC_DISASSOC error %d\n", err));
 						err = 0;
 					}
-					cfg80211_disconnected(ndev, reason, NULL, 0, GFP_KERNEL);
-					wl_link_down(wl);
-					wl_init_prof(wl, ndev);
 				}
+				cfg80211_disconnected(ndev, reason, NULL, 0, GFP_KERNEL);
+				wl_link_down(wl);
+				wl_init_prof(wl, ndev);
 			}
 			else if (wl_get_drv_status(wl, CONNECTING, ndev)) {
 
