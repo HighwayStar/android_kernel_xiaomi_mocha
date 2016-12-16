@@ -40,9 +40,6 @@
 #include <linux/swap.h>
 #include <linux/rcupdate.h>
 #include <linux/notifier.h>
-#ifdef CONFIG_TEGRA_NVMAP
-#include <linux/nvmap.h>
-#endif
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/lowmemorykiller.h>
@@ -102,13 +99,7 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 	int selected_tasksize = 0;
 	short selected_oom_score_adj;
 	int array_size = ARRAY_SIZE(lowmem_adj);
-	int other_free = global_page_state(NR_FREE_PAGES) -
-			 global_page_state(NR_FREE_CMA_PAGES) -
-			 totalreserve_pages
-#ifdef CONFIG_TEGRA_NVMAP
-			 + nvmap_page_pool_get_unused_pages()
-#endif
-			 ;
+	int other_free = global_page_state(NR_FREE_PAGES) - totalreserve_pages;
 	int other_file = global_page_state(NR_FILE_PAGES) -
 						global_page_state(NR_SHMEM) -
 						total_swapcache_pages();

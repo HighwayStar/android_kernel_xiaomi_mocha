@@ -132,8 +132,20 @@ static void palmas_power_off(void *drv_data)
 	palmas_write(palmas, PALMAS_PMU_CONTROL_BASE,
 				PALMAS_SWOFF_COLDRST, 0x0);
 
+	palmas_update_bits(palmas, PALMAS_PMU_CONTROL_BASE,
+				PALMAS_LONG_PRESS_KEY,
+				PALMAS_LONG_PRESS_KEY_PWRON_DEBOUNCE_MASK,
+				PALMAS_LONG_PRESS_KEY_PWRON_DEBOUNCE_TIME_500MS);
+				
 	dev_info(palmas_pm->dev, "Powering off the device\n");
 
+	/* Lock LONG PRESS KEY bits */
+	palmas_update_bits(palmas, PALMAS_PMU_CONTROL_BASE,
+			PALMAS_LONG_PRESS_KEY,
+			PALMAS_LONG_PRESS_KEY_LPK_LOCK,
+			PALMAS_LONG_PRESS_KEY_LPK_LOCK);
+
+	
 	/* Lock LONG PRESS KEY bits */
 	palmas_update_bits(palmas, PALMAS_PMU_CONTROL_BASE,
 			PALMAS_LONG_PRESS_KEY,
@@ -176,6 +188,15 @@ static void palmas_power_reset(void *drv_data)
 	/* SW-WAR for ES Version 2.1, 2.0 and 1.0 */
 	if (palmas_is_es_version_or_less(palmas, 2, 1)) {
 		dev_info(palmas_pm->dev, "Resetting Palmas through RTC\n");
+		ret = palmas_update_bits(palmas, PALMAS_PMU_CONTROL_BASE,
+		PALMAS_SWOFF_COLDRST, PALMAS_SWOFF_COLDRST_SW_RST,
+					PALMAS_SWOFF_COLDRST_SW_RST);
+		if (ret < 0) {
+			dev_err(palmas_pm->dev,
+				"SWOFF_COLDRST update failed: %d\n", ret);
+			goto reset_direct;
+		}
+
 		ret = palmas_update_bits(palmas, PALMAS_PMU_CONTROL_BASE,
 				PALMAS_DEV_CTRL, PALMAS_DEV_CTRL_SW_RST, 0);
 		if (ret < 0) {
@@ -238,6 +259,9 @@ reset_direct:
 			PALMAS_SWOFF_COLDRST_SW_RST);
 	while (num_of_retries--) {
 		ret = palmas_update_bits(palmas, PALMAS_PMU_CONTROL_BASE,
+		PALMAS_SWOFF_COLDRST, PALMAS_SWOFF_COLDRST_SW_RST,
+			PALMAS_SWOFF_COLDRST_SW_RST);
+	palmas_update_bits(palmas, PALMAS_PMU_CONTROL_BASE,
 				PALMAS_DEV_CTRL, 0x2, 0x2);
 		if (ret < 0)
 			dev_err(palmas_pm->dev, "PALMAS_DEV_CTRL update failed: %d ...retrying %d\n",

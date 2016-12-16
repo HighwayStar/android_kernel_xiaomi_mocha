@@ -649,6 +649,13 @@ int tegra_update_cpu_speed(unsigned long rate)
 			       " frequency %u kHz\n", freqs.new);
 			return ret;
 		}
+		
+		ret = clk_set_rate(emc_clk, tegra_emc_to_cpu_ratio(freqs.new));
+		if (ret) {
+			pr_err("cpu-tegra: Failed to scale emc for cpu"
+			       " frequency %u kHz\n", freqs.new);
+			return ret;
+		}
 
 		if (emc_clk) {
 			ret = clk_set_rate(emc_clk,

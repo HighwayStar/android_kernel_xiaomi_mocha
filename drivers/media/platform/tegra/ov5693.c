@@ -384,6 +384,11 @@ static const struct ov5693_reg ov5693_2592x1944_i2c[] = {
 	{0x5849, 0x0c},
 	{0x5e00, 0x00},
 	{0x5e10, 0x0c},
+
+	{0x3011, 0x11},
+	{0x3015, 0x28},
+	{0x380C, 0x15},
+	{0x380D, 0x00},
 	{OV5693_TABLE_END, 0x0000}
 };
 
@@ -631,6 +636,9 @@ static const struct ov5693_reg ov5693_1296x972_i2c[] = {
 	{0x5849, 0x0c},
 	{0x5e00, 0x00},
 	{0x5e10, 0x0c},
+
+	{0x3011, 0x11},
+	{0x3015, 0x28},
 	{OV5693_TABLE_END, 0x0000}
 };
 
@@ -878,12 +886,18 @@ static const struct ov5693_reg ov5693_1920x1080_i2c[] = {
 	{0x5849, 0x0c},
 	{0x5e00, 0x00},
 	{0x5e10, 0x0c},
+
+	{0x3011, 0x11},
+	{0x3015, 0x28},
+	{0x380C, 0x0f},
+	{0x380D, 0xc0},
 	{OV5693_TABLE_END, 0x0000}
 };
 
 
-static const struct ov5693_reg ov5693_1280x720_120fps_i2c[] = {
+static const struct ov5693_reg ov5693_1280x720_60fps_i2c[] = {
 	{OV5693_TABLE_RESET, 0},/* Including sw reset */
+	{0x0103, 0x01},
 	{0x3001, 0x0a},
 	{0x3002, 0x80},
 	{0x3006, 0x00},
@@ -1126,6 +1140,11 @@ static const struct ov5693_reg ov5693_1280x720_120fps_i2c[] = {
 	{0x5849, 0x0c},
 	{0x5e00, 0x00},
 	{0x5e10, 0x0c},
+
+	{0x3011, 0x11},
+	{0x3015, 0x28},
+	{0x380C, 0x15},
+	{0x380D, 0x00},
 	{OV5693_TABLE_END, 0x0000}
 };
 
@@ -2125,7 +2144,7 @@ enum {
 	OV5693_MODE_2592x1944 = 0,
 	OV5693_MODE_1920x1080,
 	OV5693_MODE_1296x972,
-	OV5693_MODE_1280x720_120FPS,
+	OV5693_MODE_1280x720_60FPS,
 	OV5693_MODE_2592x1944_HDR,
 	OV5693_MODE_1920x1080_HDR,
 	OV5693_MODE_1296x972_HDR,
@@ -2136,7 +2155,7 @@ static const struct ov5693_reg *mode_table[] = {
 	[OV5693_MODE_2592x1944]		= ov5693_2592x1944_i2c,
 	[OV5693_MODE_1920x1080]		= ov5693_1920x1080_i2c,
 	[OV5693_MODE_1296x972]		= ov5693_1296x972_i2c,
-	[OV5693_MODE_1280x720_120FPS]	= ov5693_1280x720_120fps_i2c,
+	[OV5693_MODE_1280x720_60FPS]	= ov5693_1280x720_60fps_i2c,
 	[OV5693_MODE_2592x1944_HDR]	= ov5693_2592x1944_HDR_24fps_i2c,
 	[OV5693_MODE_1920x1080_HDR]	= ov5693_1920x1080_HDR_30fps_i2c,
 	[OV5693_MODE_1296x972_HDR]	= ov5693_1296x972_HDR_30fps_i2c,
@@ -2641,6 +2660,7 @@ static void ov5693_regulator_get(struct ov5693_info *info,
 		dev_err(&info->i2c_client->dev, "%s %s ERR: %d\n",
 			__func__, vreg_name, (int)reg);
 		err = PTR_ERR(reg);
+		reg = NULL;
 	} else {
 		dev_dbg(&info->i2c_client->dev, "%s: %s\n",
 			__func__, vreg_name);
@@ -2655,12 +2675,11 @@ static void ov5693_pm_init(struct ov5693_info *info)
 
 	ov5693_gpio_init(info);
 
-	ov5693_regulator_get(info, &pw->avdd, info->pdata->regulators.avdd);
+	ov5693_regulator_get(info, &pw->dvdd, "dvdd");
 
-	ov5693_regulator_get(info, &pw->dvdd, info->pdata->regulators.dvdd);
+	ov5693_regulator_get(info, &pw->avdd, "avdd_ov5693");
 
-	ov5693_regulator_get(info, &pw->dovdd, info->pdata->regulators.dovdd);
-
+	ov5693_regulator_get(info, &pw->dovdd, "dovdd");
 	info->power_on = false;
 }
 
@@ -2710,6 +2729,8 @@ static int ov5693_set_mode(struct ov5693_info *info,
 {
 	u32 mode_index = 0;
 	int err = 0;
+	pr_info("%s: mode->res_x = %d\n", __func__, mode->res_x);
+	pr_info("%s: mode->res_y = %d\n", __func__, mode->res_y);
 
 	if (!mode->res_x && !mode->res_y) {
 		if (mode->frame_length || mode->coarse_time || mode->gain) {
@@ -2740,7 +2761,7 @@ static int ov5693_set_mode(struct ov5693_info *info,
 		else if (mode->res_x == 1920 && mode->res_y == 1080)
 			mode_index = OV5693_MODE_1920x1080;
 		else if (mode->res_x == 1280 && mode->res_y == 720)
-			mode_index = OV5693_MODE_1280x720_120FPS;
+			mode_index = OV5693_MODE_1280x720_60FPS;
 	}
 
 	/* request highest edp state */
@@ -2934,32 +2955,6 @@ static long ov5693_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	int err;
 
 	switch (_IOC_NR(cmd)) {
-	case _IOC_NR(OV5693_IOCTL_SET_POWER):
-	{
-		u32 powerlevel = (u32) arg;
-
-		if (!info->pdata)
-			break;
-		if (powerlevel > NVC_PWR_ON) {
-			dev_err(&info->i2c_client->dev,
-				"%s:Invalid power level.\n",
-			__func__);
-			return -EFAULT;
-		}
-
-		err = ov5693_pm_wr(info, powerlevel);
-		return err;
-	}
-	case _IOC_NR(OV5693_IOCTL_GET_CAPS):
-		if (copy_to_user((void __user *)arg,
-				 info->pdata->cap,
-				 sizeof(struct nvc_imager_cap))) {
-			dev_err(&info->i2c_client->dev,
-				"%s copy_to_user err line %d\n",
-				__func__, __LINE__);
-			return -EFAULT;
-		}
-		return 0;
 	case _IOC_NR(OV5693_IOCTL_SET_MODE):
 	{
 		struct ov5693_mode mode;
@@ -3076,9 +3071,6 @@ static long ov5693_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 	case _IOC_NR(OV5693_IOCTL_GET_EEPROM_DATA):
 		{
-			if (!info->pdata->has_eeprom)
-				return -EFAULT;
-
 			ov5693_read_eeprom(info,
 				0,
 				OV5693_EEPROM_SIZE,
@@ -3097,9 +3089,6 @@ static long ov5693_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case _IOC_NR(OV5693_IOCTL_SET_EEPROM_DATA):
 		{
 			int i;
-
-			if (!info->pdata->has_eeprom)
-				return -EFAULT;
 
 			if (copy_from_user(info->eeprom_buf,
 				(const void __user *)arg, OV5693_EEPROM_SIZE)) {
@@ -3155,7 +3144,7 @@ static int ov5693_open(struct inode *inode, struct file *file)
 	return err;
 }
 
-static int ov5693_release(struct inode *inode, struct file *file)
+int ov5693_release(struct inode *inode, struct file *file)
 {
 	struct ov5693_info *info = file->private_data;
 
@@ -3189,8 +3178,7 @@ static int ov5693_remove(struct i2c_client *client)
 	dev_dbg(&info->i2c_client->dev, "%s\n", __func__);
 	misc_deregister(&info->miscdev);
 	sysedp_free_consumer(info->sysedpc);
-	if (info->pdata->has_eeprom)
-		ov5693_eeprom_device_release(info);
+	ov5693_eeprom_device_release(info);
 	ov5693_del(info);
 	return 0;
 }
@@ -3382,13 +3370,11 @@ static int ov5693_probe(
 		return err;
 	}
 
-	if (info->pdata->has_eeprom) {
-		err = ov5693_eeprom_device_init(info);
-		if (err) {
-			dev_err(&client->dev,
+	err = ov5693_eeprom_device_init(info);
+	if (err) {
+		dev_err(&client->dev,
 			"Failed to allocate eeprom register map: %d\n", err);
-			return err;
-		}
+	return err;
 	}
 
 	mclk_name = info->pdata->mclk_name ?
@@ -3402,8 +3388,8 @@ static int ov5693_probe(
 
 	i2c_set_clientdata(client, info);
 	ov5693_pm_init(info);
-	if (IS_ERR(info->regulators.avdd) || IS_ERR(info->regulators.dovdd))
-			return -EFAULT;
+	if (!info->regulators.avdd || !info->regulators.dovdd)
+		return -EFAULT;
 
 	ov5693_sdata_init(info);
 	if (info->pdata->cfg & (NVC_CFG_NODEV | NVC_CFG_BOOT_INIT)) {
@@ -3445,7 +3431,6 @@ static int ov5693_probe(
 
 static const struct i2c_device_id ov5693_id[] = {
 	{ "ov5693", 0 },
-	{ "ov5693.1", 0 },
 	{ },
 };
 

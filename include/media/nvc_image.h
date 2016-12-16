@@ -206,7 +206,7 @@ struct nvc_imager_cap {
 	__u32 cap_version;
 	__u8 flash_control_enabled;
 	__u8 adjustable_flash_timing;
-	__u8 is_hdr;
+	__u8 align4;
 	__u8 align5;
 } __packed;
 

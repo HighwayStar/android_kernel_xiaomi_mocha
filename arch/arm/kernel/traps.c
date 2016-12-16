@@ -44,6 +44,7 @@ static const char *handler[]= {
 };
 
 void *vectors_page;
+extern u32 tegra_emc_cur_rate;
 
 #ifdef CONFIG_DEBUG_USER
 unsigned int user_debug;
@@ -236,6 +237,7 @@ static int __die(const char *str, int err, struct pt_regs *regs)
 	static int die_counter;
 	int ret;
 
+	printk(KERN_EMERG "emc : %d\n", tegra_emc_cur_rate);
 	printk(KERN_EMERG "Internal error: %s: %x [#%d]" S_PREEMPT S_SMP
 	       S_ISA "\n", str, err, ++die_counter);
 

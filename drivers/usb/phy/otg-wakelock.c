@@ -93,11 +93,11 @@ static void otgwl_handle_event(unsigned long event)
 	switch (event) {
 	case USB_EVENT_VBUS:
 	case USB_EVENT_ENUMERATED:
+	case USB_EVENT_ID:
 		otgwl_hold(&vbus_lock);
 		break;
 
 	case USB_EVENT_NONE:
-	case USB_EVENT_ID:
 	case USB_EVENT_CHARGER:
 		otgwl_temporary_hold(&vbus_lock);
 		break;
@@ -156,6 +156,7 @@ static int __init otg_wakelock_init(void)
 		       vbus_lock.name);
 
 	otgwl_nb.notifier_call = otgwl_otg_notifications;
+	ATOMIC_INIT_NOTIFIER_HEAD(&otgwl_xceiv->notifier);
 	ret = usb_register_notifier(otgwl_xceiv, &otgwl_nb);
 
 	if (ret) {

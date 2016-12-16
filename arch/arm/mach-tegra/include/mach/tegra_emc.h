@@ -45,6 +45,7 @@ enum emc_user_id {
 	EMC_USER_VI2,
 	EMC_USER_ISP1,
 	EMC_USER_ISP2,
+	EMC_USER_AUDIO,
 	EMC_USER_NUM,
 };
 

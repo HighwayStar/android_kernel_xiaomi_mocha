@@ -1302,6 +1302,42 @@ int tegra_pinctrl_pg_set_func(const struct tegra_pingroup_config *config)
 }
 EXPORT_SYMBOL(tegra_pinctrl_pg_set_func);
 
+static int tegra_pinctrl_pg_set_func_dt(const struct tegra_pingroup_config *config)
+{
+	int ret;
+	int pg = config->pingroup;
+	const struct tegra_pingroup *g;
+	int func_dt = config->func;
+
+	if (!pmx) {
+		pr_err("Pingroup not registered yet\n");
+		return -EPROBE_DEFER;
+	}
+
+	if (pg < 0 || pg >=  pmx->soc->ngroups)
+		return -ERANGE;
+
+	g = &pmx->soc->groups[pg];
+
+	if (g->mux_reg < 0)
+		return -EINVAL;
+
+	ret = tegra_pinctrl_enable(pmx->pctl, func_dt, pg);
+	if (ret < 0) {
+		pr_err("Not able to set function %s for pin group %s\n",
+			tegra_pinctrl_function_name(func_dt), g->name);
+		return ret;
+	}
+
+	ret = tegra_pinctrl_pg_set_io(pg, config->io);
+	if (ret < 0) {
+		pr_err("Not able to set io %s for pin group %s\n",
+			tegra_pinctrl_io_name(config->io), g->name);
+		return ret;
+	}
+	return 0;
+}
+
 int tegra_pinctrl_pg_get_func(int pg)
 {
 	int mux;
@@ -1909,7 +1945,7 @@ static int dbg_pinmux_show(struct seq_file *s, void *unused)
 
 		seq_printf(s, "\t{%s", pmx->soc->groups[i].name);
 		len = strlen(pmx->soc->groups[i].name);
-		dbg_pad_field(s, 15 - len);
+		dbg_pad_field(s, 22 - len);
 
 		if (pmx->soc->groups[i].mux_reg < 0) {
 			seq_puts(s, "TEGRA_MUX_NONE");
@@ -1961,6 +1997,7 @@ static int dbg_pinmux_show(struct seq_file *s, void *unused)
 
 		if (pmx->soc->groups[i].tri_reg < 0) {
 			seq_puts(s, "TEGRA_TRI_NORMAL");
+			len = strlen("NORMAL");
 		} else {
 			reg = pmx_readl(pmx, pmx->soc->groups[i].tri_bank,
 					pmx->soc->groups[i].tri_reg);
@@ -1968,6 +2005,20 @@ static int dbg_pinmux_show(struct seq_file *s, void *unused)
 
 			seq_printf(s, "TEGRA_TRI_%s",
 					tegra_pinctrl_tri_name(tri));
+			len = strlen(tegra_pinctrl_tri_name(tri));
+		}
+		dbg_pad_field(s, 8 - len);
+
+		if (pmx->soc->groups[i].odrain_reg < 0) {
+			seq_puts(s, "TEGRA_OD_DEFAULT");
+		} else {
+			unsigned long od;
+			reg = pmx_readl(pmx, pmx->soc->groups[i].odrain_bank,
+					pmx->soc->groups[i].odrain_reg);
+			od = (reg >> pmx->soc->groups[i].odrain_bit) & 0x1;
+
+			seq_printf(s, "TEGRA_%s",
+					tegra_pinctrl_od_name(od + 1));
 		}
 		seq_puts(s, "},\n");
 	}
@@ -1982,25 +2033,20 @@ static int dbg_pinmux_open(struct inode *inode, struct file *file)
 /*
  * Changing pinmux configuration at runtime
  *
- * Usage: Feed "<PINGROUP> <FUNCTION> <E_INPUT> <PUPD> <TRISTATE>"
+ * Usage: Feed "<PINGROUP> <FUNCTION> <E_INPUT> <PUPD> <TRISTATE> <OD>"
  *	to tegra_pinmux
- * ex) # echo "HDMI_CEC CEC OUTPUT NORMAL TRISTATE" > /d/tegra_pinmux
+ * ex) # echo "HDMI_CEC CEC OUTPUT NORMAL TRISTATE ENABLE" > /d/tegra_pinmux
  */
+#define DELIMITER " \n"
 #define FIELD_DELIMITER	" "
 #define LINE_DELIMITER	"\n"
-static ssize_t dbg_pinmux_write(struct file *file,
-	const char __user *userbuf, size_t count, loff_t *ppos)
+
+int do_pinmux_setting(char *buf)
 {
-	char buf[80];
 	char *pbuf = &buf[0];
 	char *token;
 	struct tegra_pingroup_config pg_config;
 	int i;
-
-	if (sizeof(buf) <= count)
-		return -EINVAL;
-	if (copy_from_user(buf, userbuf, count))
-		return -EFAULT;
 
 	pr_debug("%s buf: %s\n", __func__, buf);
 
@@ -2057,12 +2103,41 @@ static ssize_t dbg_pinmux_write(struct file *file,
 	}
 	pg_config.tristate = i;
 
-	pr_debug("pingroup=%d, func=%d, io=%d, pupd=%d, tristate=%d\n",
+	/* open drain by name */
+	token = strsep(&pbuf, DELIMITER);
+	i = !strcmp(token, "DEFAULT") ? TEGRA_PIN_OD_DEFAULT :
+		!strcmp(token, "DISABLE") ? TEGRA_PIN_OD_DISABLE :
+		!strcmp(token, "ENABLE") ? TEGRA_PIN_OD_ENABLE : -1;
+	if (i == -1) { /* no OD matched with name */
+		pr_err("no OD matched with name\n");
+		return -EINVAL;
+	}
+	pg_config.od = i;
+
+	pr_debug("pingroup=%d, func=%d, io=%d, pupd=%d, tristate=%d, od=%d\n",
 			pg_config.pingroup, pg_config.func, pg_config.io,
-			pg_config.pupd, pg_config.tristate);
-	tegra_pinctrl_pg_set_func(&pg_config);
+			pg_config.pupd, pg_config.tristate, pg_config.od);
+	tegra_pinctrl_pg_set_func_dt(&pg_config);
 	tegra_pinctrl_pg_set_pullupdown(pg_config.pingroup, pg_config.pupd);
 	tegra_pinctrl_pg_set_tristate(pg_config.pingroup, pg_config.tristate);
+	tegra_pinctrl_pg_set_od(pg_config.pingroup, pg_config.od);
+
+	return 0;
+}
+EXPORT_SYMBOL(do_pinmux_setting);
+
+static ssize_t dbg_pinmux_write(struct file *file,
+	const char __user *userbuf, size_t count, loff_t *ppos)
+{
+	char buf[80];
+
+	if (sizeof(buf) <= count)
+		return -EINVAL;
+	if (copy_from_user(buf, userbuf, count))
+		return -EFAULT;
+
+	if (do_pinmux_setting(buf) != 0)
+		pr_err("Failed to do pinmux setting!\n");
 
 	return count;
 }

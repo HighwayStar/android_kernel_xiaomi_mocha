@@ -1656,6 +1656,7 @@ static int tegra_vbus_session(struct usb_gadget *gadget, int is_active)
 		udc->ep0_state = WAIT_FOR_SETUP;
 		udc->ep0_dir = 0;
 		udc->vbus_active = 1;
+		gadget->usb_sys_state = GADGET_STATE_IDLE;
 		tegra_detect_cable_type(udc);
 		/* start the controller if USB host detected */
 		if ((udc->connect_type == CONNECT_TYPE_SDP) ||
@@ -2055,7 +2056,34 @@ static void setup_received_irq(struct tegra_udc *udc,
 	u16 wValue = le16_to_cpu(setup->wValue);
 	u16 wIndex = le16_to_cpu(setup->wIndex);
 	u16 wLength = le16_to_cpu(setup->wLength);
+	u8 *sys_state = &(udc->gadget.usb_sys_state);
 
+	if (!GADGET_STATE_DONE(*sys_state)) {
+		switch (GADGET_STATE_PROCESS(*sys_state)) {
+		case GADGET_STATE_PROCESS_GET:
+			if (setup->bRequest == USB_REQ_SET_CONFIGURATION) {
+				*sys_state = GADGET_STATE_PROCESS_SET;
+			} else if (setup->bRequest == USB_REQ_CLEAR_FEATURE) {
+				pr_info("[%s]host system may be windows", __func__);
+				*sys_state = GADGET_STATE_DONE_RESET;
+			}
+			break;
+		case GADGET_STATE_PROCESS_SET:
+			if (setup->bRequest == USB_REQ_CLEAR_FEATURE) {
+				pr_info("[%s]host system may be windows", __func__);
+				*sys_state = GADGET_STATE_DONE_RESET;
+			} else {
+				pr_info("[%s]host system may be mac os or linux", __func__);
+				*sys_state = GADGET_STATE_DONE_SET;
+			}
+			break;
+		default:
+			if (setup->bRequest == USB_REQ_GET_DESCRIPTOR)
+				*sys_state = GADGET_STATE_PROCESS_GET;
+			break;
+		}
+	}
+	
 	udc_reset_ep_queue(udc, 0);
 
 	/* We process some stardard setup requests here */
@@ -2699,6 +2727,7 @@ static int tegra_udc_start(struct usb_gadget *g,
 	spin_lock_irqsave(&udc->lock, flags);
 
 	driver->driver.bus = NULL;
+	udc->gadget.usb_sys_state = GADGET_STATE_IDLE;
 	/* hook up the driver */
 	udc->driver = driver;
 	spin_unlock_irqrestore(&udc->lock, flags);

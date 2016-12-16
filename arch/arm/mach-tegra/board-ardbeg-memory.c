@@ -18,13 +18,25 @@
 
 #include <linux/kernel.h>
 #include <linux/init.h>
+#include <linux/io.h>
 #include <linux/platform_data/tegra_emc_pdata.h>
 
 #include "board.h"
+#include "iomap.h"
 #include "board-ardbeg.h"
 #include "tegra-board-id.h"
 #include "tegra12_emc.h"
 #include "devices.h"
+#include "E1922_Hynix_pop_2GB_H9CKNNNBKTMTDR-NUH_DVFS.h"
+#include "E1922_Samsung_pop_3GB_K3QF6F60MM_DVFS.h"
+#include "E1922_Hynix_pop_2GB_H9CKNNNBKTMTDR-NUH_DVFS_derating.h"
+#include "E1922_Samsung_pop_3GB_K3QF6F60MM_DVFS_derating.h"
+#include "E1922_Samsung_pop_2GB_DVFS.h"
+#include "E1922_Samsung_pop_2GB_DVFS_derating.h"
+
+#define MOCHA_EMC_DVFS_USE_OF 0
+#define NV_ADDRESS_MAP_PMC_BASE         0x7000E400
+#define APBDEV_PMC_STRAPPING_OPT_A_0    0x464
 
 static struct tegra12_emc_table ardbeg_ddr3_emc_table_pm358[] = {
 	{
@@ -14837,12 +14849,34 @@ static struct tegra12_emc_pdata ardbeg_lpddr3_emc_pdata_E1781 = {
 	.num_tables = ARRAY_SIZE(ardbeg_lpddr3_emc_table_E1781),
 };
 
+static struct tegra12_emc_pdata mocha_emc_pdata_samsung_3gb = {
+	.description = "mocha_emc_tables",
+	.tables = mocha_samsung_3gb,
+	.tables_derated = mocha_samsung_3gb_derated,
+	.num_tables = ARRAY_SIZE(mocha_samsung_3gb),
+};
+
+static struct tegra12_emc_pdata mocha_emc_pdata_samsung_2gb = {
+	.description = "mocha_emc_tables",
+	.tables = mocha_samsung_2gb,
+	.tables_derated = mocha_samsung_2gb_derated,
+	.num_tables = ARRAY_SIZE(mocha_samsung_2gb),
+};
+
+static struct tegra12_emc_pdata mocha_emc_pdata_hynix_2gb = {
+	.description = "mocha_emc_tables",
+	.tables = mocha_hynix_2gb,
+	.tables_derated = mocha_hynix_2gb_derated,
+	.num_tables = ARRAY_SIZE(mocha_hynix_2gb),
+};
+
 /*
  * Also handles Ardbeg init.
  */
 int __init ardbeg_emc_init(void)
 {
 	struct board_info bi;
+	u32 reg;
 
 	/*
 	 * If the EMC table is successfully read from the NCT partition,
@@ -14875,6 +14909,26 @@ int __init ardbeg_emc_init(void)
 					&ardbeg_ddr3_emc_pdata_pm359;
 			break;
 		case BOARD_E1780:
+#if !MOCHA_EMC_DVFS_USE_OF
+			reg = readl(IO_ADDRESS(NV_ADDRESS_MAP_PMC_BASE+APBDEV_PMC_STRAPPING_OPT_A_0));
+			reg = (reg & 0x000000F0) >> 4;
+			pr_info("memory id = %d\n", reg);
+			switch (reg) {
+			case 3:
+				tegra_emc_device.dev.platform_data = &mocha_emc_pdata_samsung_2gb;
+				break;
+			case 2:
+				tegra_emc_device.dev.platform_data = &mocha_emc_pdata_samsung_3gb;
+				break;
+			case 0:
+				pr_info("unknown memory id\n");
+			default:
+				tegra_emc_device.dev.platform_data = &mocha_emc_pdata_hynix_2gb;
+				break;
+			}
+
+			break;
+#endif
 		case BOARD_E1782:
 			if (tegra_get_memory_type()) {
 				pr_info("Loading Ardbeg 4GB EMC tables.\n");

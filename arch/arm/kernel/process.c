@@ -33,6 +33,9 @@
 #include <linux/cpuidle.h>
 #include <linux/leds.h>
 #include <linux/console.h>
+#ifdef CONFIG_MACH_ARDBEG
+#include <linux/power_supply.h>
+#endif
 
 #include <asm/cacheflush.h>
 #include <asm/idmap.h>
@@ -272,6 +275,12 @@ void machine_halt(void)
  */
 void machine_power_off(void)
 {
+#ifdef CONFIG_MACH_ARDBEG
+	extern bool vbus_is_valid;
+
+	if (vbus_is_valid || power_supply_is_system_supplied())
+		machine_restart("usb_chg");
+#endif
 	local_irq_disable();
 	preempt_disable();
 	smp_send_stop();
@@ -442,6 +451,9 @@ void __show_regs(struct pt_regs *regs)
 	}
 #endif
 
+	show_extra_register_data(regs, 128);
+	flush_cache_all();
+	printk("dump extra register after flush cache:\n");
 	show_extra_register_data(regs, 128);
 }
 

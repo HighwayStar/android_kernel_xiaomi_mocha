@@ -231,6 +231,7 @@ static struct tegra_dsi_out dsi_s_wqxga_10_1_pdata = {
 	.bl_name = "pwm-backlight",
 	.lp00_pre_panel_wakeup = true,
 	.ulpm_not_supported = true,
+	.no_pkt_seq_hbp = true,
 };
 
 static int dalmore_dsi_regulator_get(struct device *dev)

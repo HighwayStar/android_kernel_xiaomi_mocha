@@ -419,6 +419,7 @@ static int ramoops_probe(struct platform_device *pdev)
 	cxt->ftrace_size = pdata->ftrace_size;
 	cxt->dump_oops = pdata->dump_oops;
 	cxt->ecc_info = pdata->ecc_info;
+	ramoops_console_size = pdata->console_size;
 
 	paddr = cxt->phys_addr;
 

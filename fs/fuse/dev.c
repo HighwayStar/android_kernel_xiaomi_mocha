@@ -20,7 +20,6 @@
 #include <linux/swap.h>
 #include <linux/splice.h>
 #include <linux/aio.h>
-#include <linux/freezer.h>
 
 MODULE_ALIAS_MISCDEV(FUSE_MINOR);
 MODULE_ALIAS("devname:fuse");
@@ -466,9 +465,7 @@ __acquires(fc->lock)
 	 */
 	spin_unlock(&fc->lock);
 
-	while (req->state != FUSE_REQ_FINISHED)
-		wait_event_freezable(req->waitq,
-				     req->state == FUSE_REQ_FINISHED);
+	wait_event(req->waitq, req->state == FUSE_REQ_FINISHED);
 	spin_lock(&fc->lock);
 
 	if (!req->aborted)
@@ -671,15 +668,15 @@ static void fuse_copy_finish(struct fuse_copy_state *cs)
 		struct pipe_buffer *buf = cs->currbuf;
 
 		if (!cs->write) {
-			buf->ops->unmap(cs->pipe, buf, cs->mapaddr);
+			kunmap_atomic(cs->mapaddr);
 		} else {
-			kunmap(buf->page);
+			kunmap_atomic(cs->mapaddr);
 			buf->len = PAGE_SIZE - cs->len;
 		}
 		cs->currbuf = NULL;
 		cs->mapaddr = NULL;
 	} else if (cs->mapaddr) {
-		kunmap(cs->pg);
+		kunmap_atomic(cs->mapaddr);
 		if (cs->write) {
 			flush_dcache_page(cs->pg);
 			set_page_dirty_lock(cs->pg);
@@ -710,7 +707,7 @@ static int fuse_copy_fill(struct fuse_copy_state *cs)
 
 			BUG_ON(!cs->nr_segs);
 			cs->currbuf = buf;
-			cs->mapaddr = buf->ops->map(cs->pipe, buf, 0);
+			cs->mapaddr = kmap_atomic(buf->page);
 			cs->len = buf->len;
 			cs->buf = cs->mapaddr + buf->offset;
 			cs->pipebufs++;
@@ -730,7 +727,7 @@ static int fuse_copy_fill(struct fuse_copy_state *cs)
 			buf->len = 0;
 
 			cs->currbuf = buf;
-			cs->mapaddr = kmap(page);
+			cs->mapaddr = kmap_atomic(page);
 			cs->buf = cs->mapaddr;
 			cs->len = PAGE_SIZE;
 			cs->pipebufs++;
@@ -749,7 +746,7 @@ static int fuse_copy_fill(struct fuse_copy_state *cs)
 			return err;
 		BUG_ON(err != 1);
 		offset = cs->addr % PAGE_SIZE;
-		cs->mapaddr = kmap(cs->pg);
+		cs->mapaddr = kmap_atomic(cs->pg);
 		cs->buf = cs->mapaddr + offset;
 		cs->len = min(PAGE_SIZE - offset, cs->seglen);
 		cs->seglen -= cs->len;
@@ -878,7 +875,7 @@ static int fuse_try_move_page(struct fuse_copy_state *cs, struct page **pagep)
 out_fallback_unlock:
 	unlock_page(newpage);
 out_fallback:
-	cs->mapaddr = buf->ops->map(cs->pipe, buf, 1);
+	cs->mapaddr = kmap_atomic(buf->page);
 	cs->buf = cs->mapaddr + buf->offset;
 
 	err = lock_request(cs->fc, cs->req);

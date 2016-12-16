@@ -44,11 +44,13 @@
 #include <linux/alarmtimer.h>
 #include <linux/power/battery-charger-gauge-comm.h>
 #include <linux/workqueue.h>
+#include <linux/power_supply.h>
 
 #define MAX_STR_PRINT 50
 
 #define bq_chg_err(bq, fmt, ...)			\
 		dev_err(bq->dev, "Charging Fault: " fmt, ##__VA_ARGS__)
+extern int tps6591x_gpio7_enable(bool enable);
 
 #define BQ2419X_INPUT_VINDPM_OFFSET	3880
 #define BQ2419X_CHARGE_ICHG_OFFSET	512
@@ -121,6 +123,7 @@ struct bq2419x_chip {
 	struct bq2419x_vbus_platform_data *vbus_pdata;
 	struct bq2419x_charger_platform_data *charger_pdata;
 	int				last_input_voltage;
+	struct power_supply		*batt_psy;
 };
 
 static int current_to_reg(const unsigned int *tbl,
@@ -538,7 +541,7 @@ static int bq2419x_set_charging_current(struct regulator_dev *rdev,
 
 	old_current_limit = bq2419x->in_current_limit;
 	bq2419x->last_charging_current = max_uA;
-	if ((val & BQ2419x_VBUS_STAT) == BQ2419x_VBUS_UNKNOWN) {
+	if (((val & BQ2419x_VBUS_STAT) == BQ2419x_VBUS_UNKNOWN) && (max_uA == 0)) {
 		battery_charging_restart_cancel(bq2419x->bc_dev);
 		in_current_limit = 500;
 		bq2419x->cable_connected = 0;
@@ -565,6 +568,11 @@ static int bq2419x_set_charging_current(struct regulator_dev *rdev,
 	ret = bq2419x_configure_charging_current(bq2419x, in_current_limit);
 	if (ret < 0)
 		goto error;
+
+	if (max_uA > 0)
+		tps6591x_gpio7_enable(0);
+	else
+		tps6591x_gpio7_enable(1);
 
 	battery_charging_status_update(bq2419x->bc_dev, bq2419x->chg_status);
 	if (bq2419x->disable_suspend_during_charging) {
@@ -620,7 +628,6 @@ static int bq2419x_reset_wdt(struct bq2419x_chip *bq2419x, const char *from)
 {
 	int ret = 0;
 	unsigned int reg01;
-	int timeout;
 
 	mutex_lock(&bq2419x->mutex);
 	dev_dbg(bq2419x->dev, "%s() from %s()\n", __func__, from);
@@ -663,8 +670,9 @@ static int bq2419x_reset_wdt(struct bq2419x_chip *bq2419x, const char *from)
 scrub:
 	mutex_unlock(&bq2419x->mutex);
 
-	timeout = bq2419x->wdt_refresh_timeout ? : 100;
-	schedule_delayed_work(&bq2419x->wdt_restart_wq, timeout * HZ);
+	if (bq2419x->wdt_refresh_timeout != 0)
+		schedule_delayed_work(&bq2419x->wdt_restart_wq,
+			bq2419x->wdt_refresh_timeout * HZ);
 	return ret;
 }
 
@@ -863,7 +871,7 @@ static irqreturn_t bq2419x_irq(int irq, void *data)
 		return ret;
 	}
 
-	dev_info(bq2419x->dev, "%s() Irq %d status 0x%02x\n",
+	dev_info(bq2419x->dev, "%s() Irq %d fault 0x%02x\n",
 		__func__, irq, val);
 
 	if ((val & BQ2419x_CHARGING_FAULT_MASK) &&
@@ -932,6 +940,9 @@ static irqreturn_t bq2419x_irq(int irq, void *data)
 		dev_err(bq2419x->dev, "SYS_STAT_REG read failed %d\n", ret);
 		return ret;
 	}
+
+	dev_info(bq2419x->dev, "%s() Irq %d status 0x%02x\n",
+		__func__, irq, val);
 
 	if ((val & BQ2419x_CHRG_STATE_MASK) == BQ2419x_CHRG_STATE_CHARGE_DONE) {
 		dev_info(bq2419x->dev, "Charging completed\n");
@@ -1169,12 +1180,14 @@ static ssize_t bq2419x_show_charging_state(struct device *dev,
 		return snprintf(buf, MAX_STR_PRINT, "disabled\n");
 }
 
+extern void power_supply_exton_set_online(int);
 static ssize_t bq2419x_set_charging_state(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bq2419x_chip *bq2419x = i2c_get_clientdata(client);
 	bool enabled;
+	static bool work_canceled;
 	int ret;
 
 	if ((*buf == 'E') || (*buf == 'e'))
@@ -1184,12 +1197,33 @@ static ssize_t bq2419x_set_charging_state(struct device *dev,
 	else
 		return -EINVAL;
 
-	if (enabled)
+	if (enabled) {
 		ret = regmap_update_bits(bq2419x->regmap, BQ2419X_PWR_ON_REG,
 			BQ2419X_ENABLE_CHARGE_MASK, BQ2419X_ENABLE_CHARGE);
-	else
+	    ret = regmap_update_bits(bq2419x->regmap, BQ2419X_INPUT_SRC_REG,
+			BQ2419X_EN_HIZ, 0);
+
+		if (work_canceled == true) {
+			bq2419x_reset_wdt(bq2419x, NULL);
+			work_canceled = false;
+		}
+		power_supply_exton_set_online(true);
+		battery_charging_status_update(bq2419x->bc_dev,
+					BATTERY_CHARGING);
+	} else {
+		ret = regmap_update_bits(bq2419x->regmap, BQ2419X_INPUT_SRC_REG,
+			BQ2419X_EN_HIZ, BQ2419X_EN_HIZ);
 		ret = regmap_update_bits(bq2419x->regmap, BQ2419X_PWR_ON_REG,
 			 BQ2419X_ENABLE_CHARGE_MASK, BQ2419X_DISABLE_CHARGE);
+		if (work_canceled == false &&
+			delayed_work_pending(&bq2419x->wdt_restart_wq)) {
+			cancel_delayed_work_sync(&bq2419x->wdt_restart_wq);
+			work_canceled = true;
+		}
+		power_supply_exton_set_online(false);
+		battery_charging_status_update(bq2419x->bc_dev,
+					BATTERY_DISCHARGING);
+	}
 	if (ret < 0) {
 		dev_err(bq2419x->dev, "register update failed, %d\n", ret);
 		return ret;
@@ -1452,22 +1486,66 @@ static int bq2419x_charger_thermal_configure(
 static int bq2419x_charging_restart(struct battery_charger_dev *bc_dev)
 {
 	struct bq2419x_chip *bq2419x = battery_charger_get_drvdata(bc_dev);
-	int ret;
+	unsigned int val;
+	static int count;
+	int voltage;
+	union power_supply_propval ret = {0,};
 
 	if (!bq2419x->cable_connected)
-		return 0;
+		goto out;
 
-	dev_info(bq2419x->dev, "Restarting the charging\n");
-	ret = bq2419x_set_charging_current(bq2419x->chg_rdev,
-			bq2419x->last_charging_current,
-			bq2419x->last_charging_current);
-	if (ret < 0) {
-		dev_err(bq2419x->dev,
-			"Restarting of charging failed: %d\n", ret);
-		battery_charging_restart(bq2419x->bc_dev,
-				bq2419x->chg_restart_time);
+	if (regmap_read(bq2419x->regmap, BQ2419X_SYS_STAT_REG, &val) < 0) {
+		dev_err(bq2419x->dev, "SYS_STAT_REG read failed\n");
+		goto out;
 	}
-	return ret;
+	
+	if ((val & BQ2419x_CHRG_STATE_MASK) == BQ2419x_CHRG_STATE_POST_CHARGE) {
+		dev_info(bq2419x->dev, "charging already restarted %x\n", val);
+		battery_charger_thermal_start_monitoring(bq2419x->bc_dev);
+		goto out;
+	}
+
+	if (!bq2419x->batt_psy)
+		bq2419x->batt_psy = power_supply_get_by_name("battery");
+	if (!bq2419x->batt_psy) {
+		dev_err(bq2419x->dev, "batt_psy is NULL\n");
+		goto out;
+	}
+
+	bq2419x->batt_psy->get_property(bq2419x->batt_psy,
+				POWER_SUPPLY_PROP_VOLTAGE_NOW, &ret);
+	voltage = ret.intval / 1000;
+
+	dev_info(bq2419x->dev, "stat %x v %d cnt %d\n", val, voltage, count);
+
+	if (voltage > 0 && voltage <= 4290)
+		count++;
+	else
+		count = 0;
+
+	/* The voltage is consecutively below the threshold  during 3 tries */
+	if (count >= 3) {
+		dev_info(bq2419x->dev, "Restarting the charging\n");
+
+		/* Enable HIZ */
+		regmap_update_bits(bq2419x->regmap, BQ2419X_INPUT_SRC_REG,
+				0x80, 0x80);
+		msleep(100);
+		/* Disable HIZ */
+		regmap_update_bits(bq2419x->regmap, BQ2419X_INPUT_SRC_REG,
+				0x80, 0x00);
+
+		battery_charger_thermal_start_monitoring(bq2419x->bc_dev);
+		goto out;
+	}
+
+	battery_charging_restart(bq2419x->bc_dev, bq2419x->chg_restart_time);
+
+	return 0;
+
+out:
+	count = 0;
+	return 0;
 }
 
 static struct battery_charging_ops bq2419x_charger_bci_ops = {
@@ -1935,9 +2013,11 @@ skip_bcharger_init:
 	/* enable charging */
 	ret = bq2419x_charger_enable(bq2419x);
 	if (ret < 0)
-		goto scrub_wq;
+		goto scrub_vbus_reg;
 
 	return 0;
+scrub_vbus_reg:
+	regulator_unregister(bq2419x->vbus_rdev);
 scrub_wq:
 	if (pdata->bcharger_pdata) {
 		cancel_delayed_work(&bq2419x->wdt_restart_wq);
@@ -1957,6 +2037,7 @@ static int bq2419x_remove(struct i2c_client *client)
 		battery_charger_unregister(bq2419x->bc_dev);
 		cancel_delayed_work(&bq2419x->wdt_restart_wq);
 	}
+	regulator_unregister(bq2419x->vbus_rdev);
 	mutex_destroy(&bq2419x->mutex);
 	mutex_destroy(&bq2419x->otg_mutex);
 	cancel_delayed_work_sync(&bq2419x->otg_reset_work);
@@ -2018,8 +2099,6 @@ static int bq2419x_suspend(struct device *dev)
 
 	if (!bq2419x->battery_presense)
 		return 0;
-
-	battery_charging_restart_cancel(bq2419x->bc_dev);
 
 	if (!bq2419x->cable_connected)
 		goto end;

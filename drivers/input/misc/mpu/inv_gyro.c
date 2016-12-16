@@ -121,6 +121,29 @@ static const struct inv_hw_s hw_info[INV_NUM_PARTS] = {
 	{128, "MPU6515"},
 };
 
+/* TEMPERATURE SENSOR from 3.4 Electrical Specifications, p.13 */
+static const int temp_offset[INV_NUM_PARTS] = {
+	-521,
+	-13200,		/* MPU3050 */
+	-521,
+	-521,
+	0,		/* MPU6500 */
+	-521,
+	-521,
+	-521,
+};
+
+static const int temp_scale[INV_NUM_PARTS] = {
+	340,
+	280,		/* MPU3050 */
+	340,
+	340,
+	334,		/* round-up from 333.87	MPU6500 */
+	340,
+	340,
+	340,
+};
+
 static unsigned long nvi_lpf_us_tbl[] = {
 	0, /* WAR: disabled 3906, 256Hz */
 	5319,	/* 188Hz */
@@ -3115,10 +3138,7 @@ static ssize_t inv_temp_scale_show(struct device *dev,
 {
 	struct inv_gyro_state_s *st = dev_get_drvdata(dev);
 
-	if (INV_MPU3050 == st->chip_type)
-		return sprintf(buf, "280\n");
-	else
-		return sprintf(buf, "340\n");
+	return sprintf(buf, "%d\n", temp_scale[st->chip_type]);
 }
 
 /**
@@ -3129,10 +3149,7 @@ static ssize_t inv_temp_offset_show(struct device *dev,
 {
 	struct inv_gyro_state_s *st = dev_get_drvdata(dev);
 
-	if (INV_MPU3050 == st->chip_type)
-		return sprintf(buf, "-13200\n");
-	else
-		return sprintf(buf, "-521\n");
+	return sprintf(buf, "%d\n", temp_offset[st->chip_type]);
 }
 
 static ssize_t inv_temperature_show(struct device *dev,

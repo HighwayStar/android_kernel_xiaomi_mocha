@@ -45,6 +45,7 @@
 #endif
 #include <linux/of_irq.h>
 #include <linux/of_address.h>
+#include <linux/uaccess.h>
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/display.h>

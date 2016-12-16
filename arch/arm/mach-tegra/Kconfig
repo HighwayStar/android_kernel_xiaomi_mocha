@@ -765,6 +765,13 @@ config TEGRA_WDT_RECOVERY
 	  Enables watchdog recovery mechanism to protect against
 	  suspend/resume hangs.
 
+config TRACE_WARMBOOT
+	bool "Log the warmboot trace and dump the trace number during kernel initializing"
+	depends on TEGRA_WDT_RECOVERY
+	default n
+	help
+	  Log the warmboot trace and dump the trace number during kernel initializing.
+	  
 config TEGRA_LP2_CPU_TIMER
 	bool
 

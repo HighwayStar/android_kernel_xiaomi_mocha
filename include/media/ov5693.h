@@ -41,8 +41,6 @@
 						struct ov5693_cal_data)
 #define OV5693_IOCTL_GET_EEPROM_DATA        _IOR('o', 20, __u8 *)
 #define OV5693_IOCTL_SET_EEPROM_DATA        _IOW('o', 21, __u8 *)
-#define OV5693_IOCTL_GET_CAPS               _IOR('o', 22, struct nvc_imager_cap)
-#define OV5693_IOCTL_SET_POWER              _IOW('o', 23, __u32)
 
 #define OV5693_INVALID_COARSE_TIME  -1
 
@@ -115,12 +113,6 @@ struct ov5693_power_rail {
 	struct regulator *dovdd;
 };
 
-struct ov5693_regulators {
-	char *avdd;
-	char *dvdd;
-	char *dovdd;
-};
-
 struct ov5693_platform_data {
 	unsigned cfg;
 	unsigned num;
@@ -137,9 +129,6 @@ struct ov5693_platform_data {
 	int (*power_on)(struct ov5693_power_rail *);
 	int (*power_off)(struct ov5693_power_rail *);
 	const char *mclk_name;
-	struct nvc_imager_cap *cap;
-	struct ov5693_regulators regulators;
-	bool has_eeprom;
 };
 
 #endif  /* __OV5693_H__ */

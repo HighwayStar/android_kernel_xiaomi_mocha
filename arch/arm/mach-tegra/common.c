@@ -93,6 +93,11 @@
 
 #define   RECOVERY_MODE	BIT(31)
 #define   BOOTLOADER_MODE	BIT(30)
+#define   KPANIC_RS_REASON   BIT(29)
+#define   NORMAL_RS_REASON  BIT(28)
+#define   OTHER_RS_REASON  BIT(27)
+#define   WDOG_RS_REASON    BIT(26)
+#define   CHARGEONLY_MODE   BIT(5)
 #define   FORCED_RECOVERY_MODE	BIT(1)
 
 #define AHB_GIZMO_USB		0x1c
@@ -182,6 +187,8 @@ static u8 power_config;
 static u8 display_config;
 
 static int tegra_split_mem_set;
+
+static int in_panic;
 
 struct device tegra_generic_cma_dev;
 struct device tegra_vpr_cma_dev;
@@ -295,22 +302,22 @@ void tegra_assert_system_reset(char mode, const char *cmd)
 
 	reg = readl_relaxed(reset + PMC_SCRATCH0);
 	/* Writing recovery kernel or Bootloader mode in SCRATCH0 31:30:1 */
-	if (cmd) {
+	if (in_panic) {
+		reg = KPANIC_RS_REASON;
+	} else if (cmd) {
 		if (!strcmp(cmd, "recovery"))
-			reg |= RECOVERY_MODE;
+			reg = RECOVERY_MODE;
 		else if (!strcmp(cmd, "bootloader"))
-			reg |= BOOTLOADER_MODE;
+			reg = BOOTLOADER_MODE;
 		else if (!strcmp(cmd, "forced-recovery"))
-			reg |= FORCED_RECOVERY_MODE;
-		else {
-			reg &= ~(BOOTLOADER_MODE | RECOVERY_MODE | FORCED_RECOVERY_MODE);
-			empty_command = true;
-		}
-	}
-	else {
-		/* Clearing SCRATCH0 31:30:1 on default reboot */
-		reg &= ~(BOOTLOADER_MODE | RECOVERY_MODE | FORCED_RECOVERY_MODE);
-	}
+			reg = FORCED_RECOVERY_MODE;
+		else if (!strcmp(cmd, "usb_chg"))
+			reg = CHARGEONLY_MODE;
+		else
+			reg = NORMAL_RS_REASON;
+	} else
+		reg = NORMAL_RS_REASON;
+
 	writel_relaxed(reg, reset + PMC_SCRATCH0);
 	if ((!cmd || empty_command) && pm_power_reset) {
 		pm_power_reset();
@@ -2326,7 +2333,7 @@ int __init tegra_soc_device_init(const char *machine)
 	soc_dev = soc_device_register(soc_dev_attr);
 	if (IS_ERR_OR_NULL(soc_dev)) {
 		kfree(soc_dev_attr);
-		return -1;
+		return -EPERM;
 	}
 
 	return 0;
@@ -2605,3 +2612,36 @@ static int __init tegra_get_last_reset_reason(void)
 	return 0;
 }
 late_initcall(tegra_get_last_reset_reason);
+
+extern void watchdog_enable(void);
+extern void watchdog_disable(void);
+static int panic_prep_restart(struct notifier_block *this,
+			unsigned long event, void *ptr)
+{
+	in_panic = 1;
+	printk(KERN_INFO "Stack trace dump:\n");
+	watchdog_disable();
+	show_state_filter(0);
+	watchdog_enable();
+
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block panic_blk = {
+	.notifier_call	= panic_prep_restart,
+};
+
+static int __init tegra_system_reset_init(void)
+{
+	void __iomem *reset = IO_ADDRESS(TEGRA_PMC_BASE + 0);
+	u32 reg;
+
+	atomic_notifier_chain_register(&panic_notifier_list, &panic_blk);
+
+	printk("reboot reason bit is 0x%x\n", readl_relaxed(reset + PMC_SCRATCH0));
+	reg = OTHER_RS_REASON;
+	writel_relaxed(reg, reset + PMC_SCRATCH0);
+
+	return 0;
+}
+early_initcall(tegra_system_reset_init);
