@@ -35,16 +35,16 @@
 #define AD5823_ACTUATOR_RANGE	1023
 #define AD5823_POS_LOW_DEFAULT	(0)
 #define AD5823_POS_HIGH_DEFAULT	(1023)
-#define AD5823_FOCUS_MACRO	(568)
-#define AD5823_FOCUS_INFINITY	(146)
+#define AD5823_FOCUS_MACRO	(640)
+#define AD5823_FOCUS_INFINITY	(140)
 
 #define SETTLETIME_MS	(15)
 /* define FOCAL_LENGTH/MAX_APERTURE/FNUMBER as integer with granularity of 10000
    instead of previous float type -- bug 1519258 */
-#define FOCAL_LENGTH	(29500)
+#define FOCAL_LENGTH	(0x4060A3D7)
 #define MAX_APERTURE	(25261)	/* in APEX unit = 2 * log2(fnumber) */
-#define FNUMBER		(24000)
-#define	AD5823_MOVE_TIME_VALUE	(0x43)
+#define FNUMBER	(0x40000000)
+#define	AD5823_MOVE_TIME_VALUE	(0x5F)
 
 #define AD5823_MAX_RETRIES (3)
 

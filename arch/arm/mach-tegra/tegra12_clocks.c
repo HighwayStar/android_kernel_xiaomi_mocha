@@ -8413,6 +8413,7 @@ struct clk tegra_list_clks[] = {
 	SHARED_SCLK("sbc6.sclk", "tegra12-spi.5",	"sclk", &tegra_clk_apb,        NULL, 0, 0),
 
 	SHARED_EMC_CLK("avp.emc",	"tegra-avp",	"emc",	&tegra_clk_emc, NULL, 0, 0, 0),
+	SHARED_EMC_CLK("cpu.emc",       "cpu",          "emc",  &tegra_clk_emc, NULL, 0, 0, 0),
 	SHARED_EMC_CLK("mon_cpu.emc",	"tegra_mon", "cpu_emc",	&tegra_clk_emc, NULL, 0, 0, 0),
 	SHARED_EMC_CLK("cpu.emc",	"tegra-cpu", "cpu_emc",	&tegra_clk_emc, NULL, 0, 0, 0),
 	SHARED_EMC_CLK("disp1.emc",	"tegradc.0",	"emc",	&tegra_clk_emc, NULL, 0, SHARED_ISO_BW, BIT(EMC_USER_DC1)),
@@ -8437,6 +8438,7 @@ struct clk tegra_list_clks[] = {
 	SHARED_EMC_CLK("vib.emc",	"tegra_vi.1",	"emc",	&tegra_clk_emc, NULL, 0, SHARED_ISO_BW,	BIT(EMC_USER_VI2)),
 	SHARED_EMC_CLK("ispa.emc",	"tegra_isp.0",	"emc",	&tegra_clk_emc, NULL, 0, SHARED_ISO_BW,	BIT(EMC_USER_ISP1)),
 	SHARED_EMC_CLK("ispb.emc",	"tegra_isp.1",	"emc",	&tegra_clk_emc, NULL, 0, SHARED_ISO_BW,	BIT(EMC_USER_ISP2)),
+	SHARED_EMC_CLK("audio.emc",	"audio",	"emc",	&tegra_clk_emc, NULL, 0, SHARED_ISO_BW, BIT(EMC_USER_AUDIO)),
 	SHARED_EMC_CLK("iso.emc",	"iso",		"emc",	&tegra_clk_emc, NULL, 0, 0, 0),
 	SHARED_EMC_CLK("override.emc", "override.emc",	NULL,	&tegra_clk_emc, NULL, 0, SHARED_OVERRIDE, 0),
 	SHARED_EMC_CLK("vic.emc",	"tegra_vic03.0",	"emc",  &tegra_clk_emc, NULL, 0, 0, 0),
@@ -8923,7 +8925,6 @@ static bool tegra12_is_dyn_ramp(
 	return false;
 }
 
-/* DFLL late init called with CPU clock lock taken */
 static void __init tegra12_dfll_cpu_late_init(struct clk *c)
 {
 #ifdef CONFIG_ARCH_TEGRA_HAS_CL_DVFS
@@ -8936,19 +8937,13 @@ static void __init tegra12_dfll_cpu_late_init(struct clk *c)
 	}
 	tegra_dvfs_set_dfll_tune_trimmers(cpu->dvfs, tune_cpu_trimmers);
 
-	/* release dfll clock source reset, init cl_dvfs control logic, and
-	   move dfll to initialized state, so it can be used as CPU source */
 	tegra_periph_reset_deassert(c);
 	ret = tegra_init_cl_dvfs();
 	if (!ret) {
 		c->state = OFF;
-		if (tegra_platform_is_silicon()) {
+		c->u.dfll.cl_dvfs = platform_get_drvdata(&tegra_cl_dvfs_device);
+		if (tegra_platform_is_silicon())
 			use_dfll = CONFIG_TEGRA_USE_DFLL_RANGE;
-#ifdef CONFIG_ARCH_TEGRA_13x_SOC
-			if (tegra_cpu_speedo_id() == 0)
-				use_dfll = 0;
-#endif
-		}
 		tegra_dvfs_set_dfll_range(cpu->dvfs, use_dfll);
 		tegra_cl_dvfs_debug_init(c);
 		pr_info("Tegra CPU DFLL is initialized with use_dfll = %d\n",

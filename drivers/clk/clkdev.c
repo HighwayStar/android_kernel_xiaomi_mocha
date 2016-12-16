@@ -327,3 +327,52 @@ int clk_register_clkdevs(struct clk *clk, struct clk_lookup *cl, size_t num)
 	return 0;
 }
 EXPORT_SYMBOL(clk_register_clkdevs);
+
+#ifdef CONFIG_DEBUG_FS
+#include <linux/debugfs.h>
+
+const char *__clk_get_name(struct clk *clk);
+
+static int clkdev_show(struct seq_file *s, void *data)
+{
+	struct clk_lookup *cl;
+
+	seq_printf(s, "clock               device              connection          \n");
+	seq_printf(s, "------------------------------------------------------------\n");
+
+	mutex_lock(&clocks_mutex);
+	list_for_each_entry(cl, &clocks, node) {
+		const char *clk_id = __clk_get_name(cl->clk);
+		seq_printf(s, "%-20s%-20s%-20s\n", clk_id, cl->dev_id, cl->con_id);
+	}
+	mutex_unlock(&clocks_mutex);
+	return 0;
+}
+
+
+static int clkdev_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, clkdev_show, inode->i_private);
+}
+
+static const struct file_operations clkdev_fops = {
+	.open		= clkdev_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
+
+static int __init clkdev_debug_init(void)
+{
+	struct dentry *d;
+
+	d = debugfs_create_file("clkdev", S_IRUGO, NULL, NULL,
+				&clkdev_fops);
+	if (!d)
+		return -ENOMEM;
+
+	return 0;
+}
+
+late_initcall(clkdev_debug_init);
+#endif

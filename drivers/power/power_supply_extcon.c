@@ -153,9 +153,29 @@ static struct power_supply_cables psy_cables[] = {
 	},
 };
 
+struct power_supply_extcon *the_psy_extcon;
+
 static enum power_supply_property power_supply_extcon_props[] = {
 	POWER_SUPPLY_PROP_ONLINE,
 };
+
+/* Disable charging used by the charging driver */
+void power_supply_exton_set_online(bool online)
+{
+	if (the_psy_extcon == NULL)
+		return;
+
+	if (online) {
+		the_psy_extcon->usb_online = 1;
+		the_psy_extcon->ac_online = 1;
+	} else {
+		the_psy_extcon->usb_online = 0;
+		the_psy_extcon->ac_online = 0;
+	}
+
+	power_supply_changed(&the_psy_extcon->usb);
+	power_supply_changed(&the_psy_extcon->ac);
+}
 
 static int power_supply_extcon_get_property(struct power_supply *psy,
 		enum power_supply_property psp, union power_supply_propval *val)

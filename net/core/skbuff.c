@@ -1476,7 +1476,7 @@ unsigned char *__pskb_pull_tail(struct sk_buff *skb, int delta)
 				/* Eaten partially. */
 
 				if (skb_shared(list)) {
-					/* Sucks! We need to fork list. :-( */
+					/* Sucks! We need to fork list. :-(*/
 					clone = skb_clone(list, GFP_ATOMIC);
 					if (!clone)
 						return NULL;

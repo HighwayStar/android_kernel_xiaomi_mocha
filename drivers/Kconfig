@@ -176,6 +176,8 @@ source "drivers/ipack/Kconfig"
 
 source "drivers/reset/Kconfig"
 
+source "drivers/tspdrv/Kconfig"
+
 source "drivers/gpu/nvgpu/Kconfig"
 
 endmenu

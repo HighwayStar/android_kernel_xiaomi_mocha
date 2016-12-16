@@ -1817,6 +1817,14 @@ static int palmas_suspend(struct device *dev)
 			if (pmic->desc[id].ops->disable)
 				pmic->desc[id].ops->disable(pmic->rdev[id]);
 		}
+		/* FIXME
+		 * Enable NSLEEP control pin of SMPS10
+		 */
+		if (id == PALMAS_REG_SMPS10_OUT2) {
+			palmas_ext_power_req_config(palmas,
+				palmas_regs_info[id].sleep_id,
+				PALMAS_EXT_CONTROL_NSLEEP, true);
+		}
 	}
 	return 0;
 }
@@ -1840,6 +1848,14 @@ static int palmas_resume(struct device *dev)
 			PALMAS_REGULATOR_CONFIG_SUSPEND_FORCE_OFF) {
 			if (pmic->desc[id].ops->enable)
 				pmic->desc[id].ops->enable(pmic->rdev[id]);
+		}
+		/* FIXME
+		 * Disable NSLEEP control pin of SMPS10
+		 */
+		if (id == PALMAS_REG_SMPS10_OUT2) {
+			palmas_ext_power_req_config(palmas,
+				palmas_regs_info[id].sleep_id,
+				PALMAS_EXT_CONTROL_NSLEEP, false);
 		}
 	}
 	return 0;

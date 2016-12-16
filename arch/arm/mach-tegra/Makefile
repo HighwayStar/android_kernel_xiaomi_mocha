@@ -1,7 +1,7 @@
 GCOV_PROFILE := y
 
 asflags-y				+= -march=armv7-a
-subdir-ccflags-y := -Werror
+//subdir-ccflags-y := -Werror
 
 obj-y                                   += ahb.o
 obj-y                                   += common.o
@@ -243,6 +243,8 @@ obj-${CONFIG_MACH_ARDBEG}               += panel-i-edp-1080p-11-6.o
 obj-${CONFIG_MACH_ARDBEG}               += panel-s-edp-uhdtv-15-6.o
 obj-${CONFIG_MACH_ARDBEG}               += panel-c-lvds-1366-14.o
 obj-${CONFIG_MACH_ARDBEG}               += panel-s-edp-wqxgap-15-6.o
+obj-${CONFIG_MACH_ARDBEG}               += panel-s-wqxga-7-9-x6.o
+obj-${CONFIG_MACH_ARDBEG}               += panel-a-wqxga-7-9-x6.o
 obj-${CONFIG_MACH_ARDBEG}               += panel-a-1200-1920-8-0.o
 obj-${CONFIG_MACH_ARDBEG}               += panel-a-1200-800-8-0.o
 ifeq ($(CONFIG_MACH_ARDBEG),y)

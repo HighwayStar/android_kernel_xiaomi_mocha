@@ -234,13 +234,8 @@ static unsigned int calc_avail_budget(void)
 
 	pbat = calc_pbat(ocv, ibat_max, esr);
 
-	pr_debug("capacity : %u\n", capacity);
-	pr_debug("ocv      : %lld\n", ocv);
-	pr_debug("esr      : %d\n", esr);
-	pr_debug("ibat_esr : %lld\n", ibat_esr);
-	pr_debug("ibat     : %lld\n", ibat);
-	pr_debug("ibat_max : %lld\n", ibat_max);
-	pr_debug("pbat     : %lld\n", pbat);
+	pr_info("sysedp: %u %lld %d %lld %lld %lld %lld\n",
+			capacity, ocv, esr, ibat_esr, ibat, ibat_max, pbat);
 
 	return pbat;
 }

@@ -101,6 +101,12 @@ static LIST_HEAD(clocks);
 static unsigned long osc_freq;
 
 #ifndef CONFIG_COMMON_CLK
+const char *__clk_get_name(struct clk *clk)
+{
+	return !clk ? NULL : clk->name;
+}
+EXPORT_SYMBOL_GPL(__clk_get_name);
+
 struct clk *tegra_get_clock_by_name(const char *name)
 {
 	struct clk *c;

@@ -15,8 +15,12 @@
 #include <asm/delay.h>
 
 #include <clocksource/arm_arch_timer.h>
-
 static unsigned long arch_timer_read_counter_long(void)
+{
+	return arch_timer_read_counter();
+}
+
+static u32 notrace arch_timer_read_counter_u32(void)
 {
 	return arch_timer_read_counter();
 }

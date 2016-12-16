@@ -59,6 +59,7 @@ static int pasr_enable;
 #endif
 
 u8 tegra_emc_bw_efficiency = 80;
+u32 tegra_emc_cur_rate = 924000;
 
 static u32 bw_calc_freqs[] = {
 	5, 10, 20, 30, 40, 60, 80, 100, 120, 140, 160, 180
@@ -111,6 +112,10 @@ static struct emc_iso_usage tegra12_emc_iso_usage[] = {
 	},
 	{
 		BIT(EMC_USER_DC1) | BIT(EMC_USER_DC2) | BIT(EMC_USER_VI),
+		50, iso_share_calc_t124_general
+	},
+	{
+		BIT(EMC_USER_AUDIO),
 		50, iso_share_calc_t124_general
 	},
 };
@@ -1102,6 +1107,7 @@ int tegra_emc_set_rate(unsigned long rate)
 	spin_unlock_irqrestore(&emc_access_lock, flags);
 
 	emc_last_stats_update(i);
+	tegra_emc_cur_rate = rate;
 
 	pr_debug("%s: rate %lu setting 0x%x\n", __func__, rate, clk_setting);
 
