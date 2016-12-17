@@ -543,7 +543,7 @@ static struct tegra_dc_platform_data ardbeg_disp2_pdata = {
 #endif
 };
 
-static struct platform_device ardbeg_disp2_device = {
+static struct platform_device __maybe_unused ardbeg_disp2_device = {
 	.name		= "tegradc",
 #ifndef CONFIG_TEGRA_HDMI_PRIMARY
 	.id		= 1,
@@ -691,6 +691,14 @@ static struct tegra_dp_out dp_settings = {
 	.tx_pu_disable = true,
 };
 
+u8 x6_panel_id = 0;
+static int __init setup_panel_id(char *str)
+{
+	x6_panel_id = simple_strtoul(str, NULL, 0);
+	return 1;
+}
+__setup("panel_id=", setup_panel_id);
+
 #ifndef CONFIG_TEGRA_HDMI_PRIMARY
 /* can be called multiple times */
 static struct tegra_panel *ardbeg_panel_configure(struct board_info *board_out,
@@ -773,9 +781,21 @@ static struct tegra_panel *ardbeg_panel_configure(struct board_info *board_out,
 		tegra_io_dpd_enable(&dsid_io);
 		break;
 	default:
-		panel = &dsi_p_wuxga_10_1;
-		tegra_io_dpd_enable(&dsic_io);
-		tegra_io_dpd_enable(&dsid_io);
+#if 0
+ 		panel = &dsi_p_wuxga_10_1;
+ 		tegra_io_dpd_enable(&dsic_io);
+ 		tegra_io_dpd_enable(&dsid_io);
+#else
+		if ((x6_panel_id & 0xF0) == 0x20) {
+			panel = &dsi_s_wqxga_7_9_x6;
+			dsi_instance = DSI_INSTANCE_0;
+		} else if ((x6_panel_id & 0xF0) == 0x10) {
+			panel = &dsi_a_wqxga_7_9_x6;
+			dsi_instance = DSI_INSTANCE_0;
+		} else {
+			pr_err("!!! --- panel: error panel id 0x%x --- !!!", x6_panel_id);
+		}
+#endif
 		break;
 	}
 	if (dsi_instance_out)
