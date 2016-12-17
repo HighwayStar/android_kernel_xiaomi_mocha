@@ -394,7 +394,6 @@ struct tegra_panel dsi_a_wqxga_7_9_x6 = {
 	.init_dc_out = dsi_a_wqxga_7_9_dc_out_init,
 	.init_fb_data = dsi_a_wqxga_7_9_fb_data_init,
 	.set_disp_device = dsi_a_wqxga_7_9_set_disp_device,
-	.set_dispparam = dsi_a_wqxga_7_9_set_dispparam,
 };
 EXPORT_SYMBOL(dsi_a_wqxga_7_9_x6);
 
