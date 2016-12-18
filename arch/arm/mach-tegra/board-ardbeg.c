@@ -1247,6 +1247,8 @@ static void __init tegra_ardbeg_early_init(void)
 		tegra_soc_device_init("laguna");
 	else if (of_machine_is_compatible("nvidia,tn8"))
 		tegra_soc_device_init("tn8");
+	else if (of_machine_is_compatible("nvidia,mocha"))
+		tegra_soc_device_init("mocha");
 	else if (of_machine_is_compatible("nvidia,ardbeg_sata"))
 		tegra_soc_device_init("ardbeg_sata");
 	else if (of_machine_is_compatible("nvidia,norrin"))
@@ -1340,7 +1342,6 @@ static void __init tegra_ardbeg_late_init(void)
 		loki_regulator_init();
 	else
 		ardbeg_regulator_init();
-	ardbeg_dtv_init();
 	ardbeg_suspend_init();
 
 	if (board_info.board_id == BOARD_PM374)
@@ -1446,6 +1447,11 @@ static const char * const tn8_dt_board_compat[] = {
 	NULL
 };
 
+static const char * const mocha_dt_board_compat[] = {
+	"nvidia,mocha",
+	NULL
+};
+
 static const char * const ardbeg_sata_dt_board_compat[] = {
 	"nvidia,ardbeg_sata",
 	NULL
@@ -1507,6 +1513,20 @@ DT_MACHINE_START(TN8, "tn8")
 	.init_machine	= tegra_ardbeg_dt_init,
 	.restart	= tegra_assert_system_reset,
 	.dt_compat	= tn8_dt_board_compat,
+	.init_late      = tegra_init_late
+MACHINE_END
+
+DT_MACHINE_START(MOCHA, "mocha")
+	.atag_offset	= 0x100,
+	.smp		= smp_ops(tegra_smp_ops),
+	.map_io		= tegra_map_common_io,
+	.reserve	= tegra_ardbeg_reserve,
+	.init_early	= tegra_ardbeg_init_early,
+	.init_irq	= irqchip_init,
+	.init_time	= clocksource_of_init,
+	.init_machine	= tegra_ardbeg_dt_init,
+	.restart	= tegra_assert_system_reset,
+	.dt_compat	= mocha_dt_board_compat,
 	.init_late      = tegra_init_late
 MACHINE_END
 
