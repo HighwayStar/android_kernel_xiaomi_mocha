@@ -47,4 +47,13 @@
 		reg = <0x0 0x60005100 0x0 0x20	/* WDT0 registers */
 		0x0 0x60005070 0x0 0x8>;	/* TMR7 registers */
 	};
+	
+	pwm: pwm {
+			compatible = "nvidia,tegra124-pwm";
+			reg = <0x0 0x7000a000 0x0 0x100>;
+			#pwm-cells = <2>;
+			clocks = <&tegra_car 17>;
+			status = "okay";
+	};
+	
 };
