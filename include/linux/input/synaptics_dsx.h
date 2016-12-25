@@ -5,6 +5,7 @@
  *
  * Copyright (C) 2012 Alexandra Chin <alexandra.chin@tw.synaptics.com>
  * Copyright (C) 2012 Scott Lin <scott.lin@tw.synaptics.com>
+ * Copyright (C) 2016 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,19 +32,22 @@
  */
 struct synaptics_dsx_cap_button_map {
 	unsigned char nbuttons;
-	unsigned char *map;
+	unsigned int *map;
 };
 
 /*
  * struct synaptics_dsx_board_data - dsx board data
  * @x_flip: x flip flag
  * @y_flip: y flip flag
+ * @swap_axes: swap axes flag
  * @irq_gpio: attention interrupt gpio
+ * @irq_on_state: attention interrupt active state
  * @power_gpio: power switch gpio
  * @power_on_state: power switch active state
  * @reset_gpio: reset gpio
  * @reset_on_state: reset active state
  * @irq_flags: irq flags
+ * @device_descriptor_addr: HID device descriptor address
  * @panel_x: x-axis resolution of display panel
  * @panel_y: y-axis resolution of display panel
  * @power_delay_ms: delay time to wait after power-on
@@ -51,7 +55,8 @@ struct synaptics_dsx_cap_button_map {
  * @reset_active_ms: reset active time
  * @byte_delay_us: delay time between two bytes of SPI data
  * @block_delay_us: delay time between two SPI transfers
- * @regulator_name: pointer to name of regulator
+ * @pwr_reg_name: pointer to name of regulator for power control
+ * @bus_reg_name: pointer to name of regulator for bus pullup control
  * @gpio_config: pointer to gpio configuration function
  * @cap_button_map: pointer to 0d button map
  */
@@ -60,11 +65,16 @@ struct synaptics_dsx_board_data {
 	bool y_flip;
 	bool swap_axes;
 	int irq_gpio;
+	int irq_on_state;
 	int power_gpio;
+	int dcdc_gpio;
 	int power_on_state;
 	int reset_gpio;
 	int reset_on_state;
 	unsigned long irq_flags;
+	const char *fw_name;
+	const char *self_test_name;
+	unsigned short device_descriptor_addr;
 	unsigned int panel_x;
 	unsigned int panel_y;
 	unsigned int power_delay_ms;
@@ -73,7 +83,13 @@ struct synaptics_dsx_board_data {
 	unsigned int byte_delay_us;
 	unsigned int block_delay_us;
 	unsigned char *regulator_name;
+	u32 power_gpio_flags;
+	u32 dcdc_gpio_flags;
+	u32 reset_gpio_flags;
+	u32 irq_gpio_flags;
 	int (*gpio_config)(int gpio, bool configure, int dir, int state);
+	const char *pwr_reg_name;
+	const char *bus_reg_name;
 	struct synaptics_dsx_cap_button_map *cap_button_map;
 };
 

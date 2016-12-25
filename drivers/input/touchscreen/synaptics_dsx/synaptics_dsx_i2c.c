@@ -185,6 +185,29 @@ static void synaptics_rmi4_i2c_dev_release(struct device *dev)
 	return;
 }
 
+static void synaptics_rmi4_para_dump(struct device *dev,
+				struct synaptics_dsx_board_data *bdata)
+{
+	int i;
+
+	dev_info(dev, " power_gpio = %d\n", bdata->power_gpio);
+	dev_info(dev, " reset_gpio = %d\n", bdata->reset_gpio);
+	dev_info(dev, " irq_gpio = %d\n", bdata->irq_gpio);
+	dev_info(dev, " x_flip = %d\n", (int)bdata->x_flip);
+	dev_info(dev, " y_flip = %d\n", (int)bdata->y_flip);
+	dev_info(dev, "swap_axes = %d\n", (int)bdata->swap_axes);
+	dev_info(dev, "power_on_state = %d\n", (int)bdata->power_on_state);
+	dev_info(dev, "reset_on_state = %d\n", (int)bdata->reset_on_state);
+	dev_info(dev, "panel_x = %d\n", (int)bdata->panel_x);
+	dev_info(dev, "panel_y = %d\n", (int)bdata->panel_y);
+	dev_info(dev, "power_delay_ms = %d\n", (int)bdata->power_delay_ms);
+	dev_info(dev, "reset_delay_ms = %d\n", (int)bdata->reset_delay_ms);
+	dev_info(dev, "reset_active_ms = %d\n", (int)bdata->reset_active_ms);
+
+	for (i = 0; i < bdata->cap_button_map->nbuttons; i++)
+		dev_info(dev, "key[%d] = %d\n", i, bdata->cap_button_map->map[i]);
+}
+
 static int synaptics_rmi4_i2c_probe(struct i2c_client *client,
 		const struct i2c_device_id *dev_id)
 {
@@ -210,6 +233,8 @@ static int synaptics_rmi4_i2c_probe(struct i2c_client *client,
 
 	hw_if.board_data = client->dev.platform_data;
 	hw_if.bus_access = &bus_access;
+
+	synaptics_rmi4_para_dump(&client->dev, hw_if.board_data);
 
 	synaptics_dsx_i2c_device->name = PLATFORM_DRIVER_NAME;
 	synaptics_dsx_i2c_device->id = 0;
@@ -248,7 +273,7 @@ static struct i2c_driver synaptics_rmi4_i2c_driver = {
 		.owner = THIS_MODULE,
 	},
 	.probe = synaptics_rmi4_i2c_probe,
-	.remove = __devexit_p(synaptics_rmi4_i2c_remove),
+	.remove = synaptics_rmi4_i2c_remove,
 	.id_table = synaptics_rmi4_id_table,
 };
 
