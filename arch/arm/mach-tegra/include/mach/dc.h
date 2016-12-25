@@ -100,6 +100,17 @@ enum {
 	TEGRA_DSI_LINK0,
 	TEGRA_DSI_LINK1,
 };
+
+enum {
+	TEGRA_DSI_LEFT_RIGHT_NORMAL,
+	TEGRA_DSI_LEFT_RIGHT_FLIPPED,
+};
+
+enum {
+	TEGRA_DSI_EVEN_ODD_NORMAL,
+	TEGRA_DSI_EVEN_ODD_FLIPPED,
+};
+
 struct tegra_dsi_cmd {
 	u8	cmd_type;
 	u8	data_id;
@@ -325,6 +336,8 @@ struct tegra_dsi_out {
 	u8		video_clock_mode;
 	u8		video_burst_mode;
 	u8		ganged_type;
+	u8		left_right_align;
+	u8		even_odd_align;
 
 	u8		suspend_aggr;
 
