@@ -532,6 +532,7 @@ struct mxt_data {
 	unsigned int max_y;
 	struct bin_attribute mem_access_attr;
 	int debug_enabled;
+	bool disable_keys;
 	bool driver_paused;
 	u8 bootloader_addr;
 	u8 actv_cycle_time;
@@ -1574,6 +1575,11 @@ static void mxt_proc_t15_messages(struct mxt_data *data, u8 *msg)
 
 	if (!input_dev || data->driver_paused)
 		return;
+
+        if(data->disable_keys) {
+        dev_err(&data->client->dev, "keyarray is disabled\n");
+        return;
+        }
 
 	for (key = 0; key < pdata->config_array[index].key_num; key++) {
 		curr_state = test_bit(key, &data->keystatus);
@@ -3398,6 +3404,35 @@ static ssize_t mxt_debug_enable_store(struct device *dev,
 	}
 }
 
+static ssize_t mxt_disable_keys_show(struct device *dev,
+	struct device_attribute *attr, char *buf)
+{
+	struct mxt_data *data = dev_get_drvdata(dev);
+	int count;
+	char c;
+
+	c = data->disable_keys ? '1' : '0';
+	count = sprintf(buf, "%c\n", c);
+
+	return count;
+}
+
+static ssize_t mxt_disable_keys_store(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct mxt_data *data = dev_get_drvdata(dev);
+	int i;
+
+	if (sscanf(buf, "%u", &i) == 1 && i < 2) {
+		data->disable_keys = (i == 1);
+
+		dev_dbg(dev, "%s\n", i ? "keys are disabled" : "keys are enabled");
+		return count;
+	} else {
+		dev_dbg(dev, "disable_keys write error\n");
+		return -EINVAL;
+	}
+}
 static int mxt_check_mem_access_params(struct mxt_data *data, loff_t off,
 				       size_t *count)
 {
@@ -4012,6 +4047,8 @@ static ssize_t mxt_mem_access_write(struct file *filp, struct kobject *kobj,
 static DEVICE_ATTR(update_fw, S_IWUSR | S_IRUSR, mxt_update_fw_show, mxt_update_fw_store);
 static DEVICE_ATTR(debug_enable, S_IWUSR | S_IRUSR, mxt_debug_enable_show,
 			mxt_debug_enable_store);
+static DEVICE_ATTR(disable_keys, S_IWUSR | S_IRUSR, mxt_disable_keys_show,
+			mxt_disable_keys_store);
 static DEVICE_ATTR(pause_driver, S_IWUSR | S_IRUSR, mxt_pause_show,
 			mxt_pause_store);
 static DEVICE_ATTR(version, S_IRUGO, mxt_version_show, NULL);
@@ -4031,6 +4068,7 @@ static DEVICE_ATTR(wakeup_mode, S_IWUSR | S_IRUSR, mxt_wakeup_mode_show, mxt_wak
 static struct attribute *mxt_attrs[] = {
 	&dev_attr_update_fw.attr,
 	&dev_attr_debug_enable.attr,
+	&dev_attr_disable_keys.attr,
 	&dev_attr_pause_driver.attr,
 	&dev_attr_version.attr,
 	&dev_attr_build.attr,
