@@ -581,7 +581,6 @@ static void drv2604_write_reg_val(const unsigned char *data, unsigned int size)
 
 	while (i < size) {
 		/* From Xiaomi start */
-		pr_debug("drv2604 write 0x%02x, 0x%02x \n", data[i], data[i + 1]);
 		/* From Xiaomi end */
 		i2c_smbus_write_byte_data(g_pTheClient, data[i], data[i + 1]);
 		i += 2;
@@ -620,8 +619,6 @@ static unsigned char drv2604_read_reg(unsigned char reg)
 	msgs[1].len = 1;
 
 	res = i2c_transfer(i2c_adap, msgs, 2);
-	pr_debug("drv2604 read addr:0x%x reg:0x%x data:0x%x res:%d",
-		address, reg, data, res);
 
 	return data;
 /* From Xiaomi end */
