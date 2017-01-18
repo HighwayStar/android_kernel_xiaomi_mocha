@@ -24,6 +24,7 @@
 #include <linux/input.h>
 #include <linux/module.h>
 #include <linux/pm_qos.h>
+#include <linux/pm_runtime.h>
 #include <linux/sched/rt.h>
 
 #define CREATE_TRACE_POINTS
@@ -51,7 +52,7 @@ MODULE_DESCRIPTION("Input event CPU frequency booster");
 MODULE_LICENSE("GPL v2");
 
 
-static struct pm_qos_request freq_req, core_req;
+static struct pm_qos_request freq_req, core_req, emc_req, gpu_req;
 static struct dev_pm_qos_request gpu_wakeup_req;
 static unsigned int boost_freq; /* kHz */
 static int boost_freq_set(const char *arg, const struct kernel_param *kp)
@@ -72,12 +73,20 @@ static struct kernel_param_ops boost_freq_ops = {
 	.get = boost_freq_get,
 };
 module_param_cb(boost_freq, &boost_freq_ops, &boost_freq, 0644);
+static unsigned int boost_emc; /* kHz */
+module_param(boost_emc, uint, 0644);
 static unsigned long boost_time = 500; /* ms */
 module_param(boost_time, ulong, 0644);
+static unsigned long boost_cpus;
+module_param(boost_cpus, ulong, 0644);
 static bool gpu_wakeup = 1; /* 1 = enabled */
 module_param(gpu_wakeup, bool, 0644);
+static unsigned int boost_gpu; /* kHz */
 static struct device *gpu_device;
+module_param(boost_gpu, uint, 0644);
 static DEFINE_MUTEX(gpu_device_lock);
+
+static unsigned long last_boost_jiffies;
 
 int cfb_add_device(struct device *dev)
 {
@@ -108,16 +117,28 @@ void cfb_remove_device(struct device *dev)
 
 static void cfb_boost(struct kthread_work *w)
 {
-	trace_input_cfboost_params("boost_params", boost_freq, boost_time);
-	pm_qos_update_request_timeout(&core_req, 1, boost_time * 1000);
+	trace_input_cfboost_params("boost_params", boost_freq, boost_emc,
+			boost_gpu, boost_cpus, boost_time);
+	if (boost_cpus > 0)
+		pm_qos_update_request_timeout(&core_req, boost_cpus,
+				boost_time * 1000);
 
 	if (boost_freq > 0)
 		pm_qos_update_request_timeout(&freq_req, boost_freq,
 				boost_time * 1000);
+	if (boost_emc > 0)
+		pm_qos_update_request_timeout(&emc_req, boost_emc,
+				boost_time * 1000);
 
-	if (gpu_wakeup && gpu_device)
+	if (gpu_wakeup && gpu_device) {
 		dev_pm_qos_update_request_timeout(&gpu_wakeup_req,
 				PM_QOS_FLAG_NO_POWER_OFF, boost_time);
+		pm_runtime_get(gpu_device);
+		pm_runtime_put_autosuspend(gpu_device);
+		}
+	if (boost_gpu > 0)
+		pm_qos_update_request_timeout(&gpu_req, boost_gpu,
+			boost_time * 1000);
 }
 
 static struct task_struct *boost_kthread;
@@ -128,7 +149,11 @@ static void cfb_input_event(struct input_handle *handle, unsigned int type,
 			    unsigned int code, int value)
 {
 	trace_input_cfboost_event("event", type, code, value);
-	queue_kthread_work(&boost_worker, &boost_work);
+	if (jiffies < last_boost_jiffies ||
+		jiffies > last_boost_jiffies + msecs_to_jiffies(boost_time/2)) {
+		queue_kthread_work(&boost_worker, &boost_work);
+		last_boost_jiffies = jiffies;
+	}
 }
 
 static int cfb_input_connect(struct input_handler *handler,
@@ -288,7 +313,11 @@ static int __init cfboost_init(void)
 			   PM_QOS_DEFAULT_VALUE);
 	pm_qos_add_request(&freq_req, PM_QOS_CPU_FREQ_MIN,
 			   PM_QOS_DEFAULT_VALUE);
-
+	pm_qos_add_request(&emc_req, PM_QOS_EMC_FREQ_MIN,
+			   PM_QOS_DEFAULT_VALUE);
+	pm_qos_add_request(&gpu_req, PM_QOS_GPU_FREQ_MIN,
+			   PM_QOS_DEFAULT_VALUE);
+			   
 	return 0;
 }
 
@@ -297,6 +326,8 @@ static void __exit cfboost_exit(void)
 	/* stop input events */
 	input_unregister_handler(&cfb_input_handler);
 	kthread_stop(boost_kthread);
+	pm_qos_remove_request(&gpu_req);
+	pm_qos_remove_request(&emc_req);
 	pm_qos_remove_request(&freq_req);
 	pm_qos_remove_request(&core_req);
 }
