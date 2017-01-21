@@ -3,14 +3,13 @@
  *   target serial buses like USB, SDIO, SPI, etc.
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
- *
+ * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
  * available at http://www.broadcom.com/licenses/GPLv2.php, with the
  * following added to such license:
- *
+ * 
  *      As a special exception, the copyright holders of this software give you
  * permission to link this software with independent modules, and to copy and
  * distribute the resulting executable under terms of your choice, provided that
@@ -18,7 +17,7 @@
  * the license of that module.  An independent module is a module which is not
  * derived from this software.  The special exception does not apply to any
  * modifications of the software.
- *
+ * 
  *      Notwithstanding the above, under no circumstances may you combine this
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
@@ -108,8 +107,8 @@ enum dbus_pnp_state {
 };
 
 enum dbus_file {
-	DBUS_FIRMWARE,
-	DBUS_NVFILE
+    DBUS_FIRMWARE,
+    DBUS_NVFILE
 };
 
 typedef enum _DEVICE_SPEED {
@@ -268,7 +267,7 @@ typedef struct dbus_pub {
 	int ntxq, nrxq, rxsize;
 	void *bus;
 	struct shared_info *sh;
-	void *dev_info;
+    void *dev_info;
 } dbus_pub_t;
 
 #define BUS_INFO(bus, type) (((type *) bus)->pub->bus)
@@ -314,10 +313,10 @@ extern int dbus_get_attrib(dbus_pub_t *pub, dbus_attrib_t *attrib);
 extern int dbus_get_device_speed(dbus_pub_t *pub);
 extern int dbus_set_config(dbus_pub_t *pub, dbus_config_t *config);
 extern int dbus_get_config(dbus_pub_t *pub, dbus_config_t *config);
-extern void *dbus_get_devinfo(dbus_pub_t *pub);
+extern void * dbus_get_devinfo(dbus_pub_t *pub);
 
 extern void *dbus_pktget(dbus_pub_t *pub, int len);
-extern void dbus_pktfree(dbus_pub_t *pub, void *pkt);
+extern void dbus_pktfree(dbus_pub_t *pub, void* pkt);
 
 extern int dbus_set_errmask(dbus_pub_t *pub, uint32 mask);
 extern int dbus_pnp_sleep(dbus_pub_t *pub);
@@ -511,8 +510,8 @@ struct ehci_qh {
 	volatile uint32_t	ow_next;
 	volatile uint32_t	ow_altnext;
 	volatile uint32_t	ow_status;
-	volatile uint32_t	ow_buffer[EHCI_QTD_NBUFFERS];
-	volatile uint32_t	ow_buffer_hi[EHCI_QTD_NBUFFERS];
+	volatile uint32_t	ow_buffer [EHCI_QTD_NBUFFERS];
+	volatile uint32_t	ow_buffer_hi [EHCI_QTD_NBUFFERS];
 
 	/* Extension (should match the kernel layout) */
 	dma_addr_t		unused0;

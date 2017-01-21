@@ -2,7 +2,6 @@
  * Byte order utilities
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -53,18 +52,18 @@
 /* Reverse the bytes in a 64-bit value */
 #define BCMSWAP64(val) \
 	((uint64)((((uint64)(val) & 0x00000000000000ffULL) << 56) | \
-		(((uint64)(val) & 0x000000000000ff00ULL) << 40) | \
-		(((uint64)(val) & 0x0000000000ff0000ULL) << 24) | \
-		(((uint64)(val) & 0x00000000ff000000ULL) <<  8) | \
-		(((uint64)(val) & 0x000000ff00000000ULL) >>  8) | \
-		(((uint64)(val) & 0x0000ff0000000000ULL) >> 24) | \
-		(((uint64)(val) & 0x00ff000000000000ULL) >> 40) | \
-		(((uint64)(val) & 0xff00000000000000ULL) >> 56)))
+	          (((uint64)(val) & 0x000000000000ff00ULL) << 40) | \
+	          (((uint64)(val) & 0x0000000000ff0000ULL) << 24) | \
+	          (((uint64)(val) & 0x00000000ff000000ULL) <<  8) | \
+	          (((uint64)(val) & 0x000000ff00000000ULL) >>  8) | \
+	          (((uint64)(val) & 0x0000ff0000000000ULL) >> 24) | \
+	          (((uint64)(val) & 0x00ff000000000000ULL) >> 40) | \
+	          (((uint64)(val) & 0xff00000000000000ULL) >> 56)))
 
 /* Reverse the two 32-bit halves of a 64-bit value */
 #define BCMSWAP64BY32(val) \
 	((uint64)((((uint64)(val) & 0x00000000ffffffffULL) << 32) | \
-		(((uint64)(val) & 0xffffffff00000000ULL) >> 32)))
+	          (((uint64)(val) & 0xffffffff00000000ULL) >> 32)))
 
 
 /* Byte swapping macros

@@ -2,14 +2,13 @@
  * Linux DHD Bus Module for PCIE
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
- *
+ * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
  * available at http://www.broadcom.com/licenses/GPLv2.php, with the
  * following added to such license:
- *
+ * 
  *      As a special exception, the copyright holders of this software give you
  * permission to link this software with independent modules, and to copy and
  * distribute the resulting executable under terms of your choice, provided that
@@ -17,7 +16,7 @@
  * the license of that module.  An independent module is a module which is not
  * derived from this software.  The special exception does not apply to any
  * modifications of the software.
- *
+ * 
  *      Notwithstanding the above, under no circumstances may you combine this
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
@@ -70,14 +69,15 @@ do { \
 
 typedef struct dhd_pc_res {
 	uint32 bar0_size;
-	void *bar0_addr;
+	void* bar0_addr;
 	uint32 bar1_size;
-	void *bar1_addr;
+	void* bar1_addr;
 } pci_config_res, *pPci_config_res;
 
 typedef bool (*dhdpcie_cb_fn_t)(void *);
 
-typedef struct dhdpcie_info {
+typedef struct dhdpcie_info
+{
 	dhd_bus_t	*bus;
 	osl_t 			*osh;
 	struct pci_dev  *dev;		/* pci device handle */
@@ -277,7 +277,7 @@ dhdpcie_request_irq(dhdpcie_info_t *dhdpcie_info)
 
 	if (request_irq(pdev->irq, dhdpcie_isr, IRQF_SHARED, "dhdpcie", bus) < 0) {
 			DHD_ERROR(("%s: request_irq() failed\n", __FUNCTION__));
-			return -EPERM;
+			return -1;
 		}
 
 	return 0; /* SUCCESS */
@@ -348,7 +348,7 @@ int dhdpcie_get_resource(dhdpcie_info_t *dhdpcie_info)
 		return 0; /* SUCCESS  */
 	} while (0);
 err:
-	return -EPERM;  /* FAILURE */
+	return -1;  /* FAILURE */
 }
 
 int dhdpcie_scan_resource(dhdpcie_info_t *dhdpcie_info)
@@ -371,7 +371,7 @@ int dhdpcie_scan_resource(dhdpcie_info_t *dhdpcie_info)
 
 	DHD_TRACE(("%s:Exit - FAILURE \n", __FUNCTION__));
 
-	return -EPERM; /* FAILURE */
+	return -1; /* FAILURE */
 
 }
 
@@ -455,7 +455,7 @@ int dhdpcie_init(struct pci_dev *pdev)
 
 	DHD_TRACE(("%s:Exit - FAILURE \n", __FUNCTION__));
 
-	return -EPERM; /* return FAILURE  */
+	return -1; /* return FAILURE  */
 }
 
 /* Free Linux irq */
@@ -495,7 +495,7 @@ disable interrupt and queue DPC if mail box interrupts are raised.
 irqreturn_t
 dhdpcie_isr(int irq, void *arg)
 {
-	dhd_bus_t *bus = (dhd_bus_t *)arg;
+	dhd_bus_t *bus = (dhd_bus_t*)arg;
 	if (dhdpcie_bus_isr(bus))
 		return TRUE;
 	else

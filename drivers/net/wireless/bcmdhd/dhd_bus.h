@@ -5,7 +5,6 @@
  * DHD OS, bus, and protocol modules.
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -145,11 +144,11 @@ enum {
 	MAX_HOST_RXBUFS
 };
 typedef void (*dhd_mb_ring_t) (struct dhd_bus *, uint32);
-extern void dhd_bus_cmn_writeshared(struct dhd_bus *bus, void *data, uint32 len, uint8 type);
+extern void dhd_bus_cmn_writeshared(struct dhd_bus *bus, void * data, uint32 len, uint8 type);
 extern void dhd_bus_ringbell(struct dhd_bus *bus, uint32 value);
-extern void dhd_bus_cmn_readshared(struct dhd_bus *bus, void *data, uint8 type);
+extern void dhd_bus_cmn_readshared(struct dhd_bus *bus, void* data, uint8 type);
 extern uint32 dhd_bus_get_sharedflags(struct dhd_bus *bus);
-extern void dhd_bus_rx_frame(struct dhd_bus *bus, void *pkt, int ifidx, uint pkt_count);
+extern void dhd_bus_rx_frame(struct dhd_bus *bus, void* pkt, int ifidx, uint pkt_count);
 extern void dhd_bus_start_queue(struct dhd_bus *bus);
 extern void dhd_bus_stop_queue(struct dhd_bus *bus);
 extern void dhd_bus_update_retlen(struct dhd_bus *bus, uint32 retlen, uint32 cmd_id, uint32 status,

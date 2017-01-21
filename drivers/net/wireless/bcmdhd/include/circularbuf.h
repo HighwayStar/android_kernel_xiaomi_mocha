@@ -2,14 +2,13 @@
  * Initialization and support routines for self-booting compressed image.
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
- *
+ * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
  * available at http://www.broadcom.com/licenses/GPLv2.php, with the
  * following added to such license:
- *
+ * 
  *      As a special exception, the copyright holders of this software give you
  * permission to link this software with independent modules, and to copy and
  * distribute the resulting executable under terms of your choice, provided that
@@ -17,7 +16,7 @@
  * the license of that module.  An independent module is a module which is not
  * derived from this software.  The special exception does not apply to any
  * modifications of the software.
- *
+ * 
  *      Notwithstanding the above, under no circumstances may you combine this
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
@@ -39,7 +38,8 @@ typedef enum {
 } circularbuf_ret_t;
 
 /* Core circularbuf circular buffer structure */
-typedef struct circularbuf_s {
+typedef struct circularbuf_s
+{
 	uint16 depth;	/* Depth of circular buffer */
 	uint16 r_ptr;	/* Read Ptr */
 	uint16 w_ptr;	/* Write Ptr */
@@ -58,9 +58,9 @@ typedef struct circularbuf_s {
 
 extern int cbuf_msg_level;
 
-#define CBUF_ERROR(args)         do {if (cbuf_msg_level & CBUF_ERROR_VAL) printf args; } while (0)
-#define CBUF_TRACE(args)         do {if (cbuf_msg_level & CBUF_TRACE_VAL) printf args; } while (0)
-#define CBUF_INFO(args)          do {if (cbuf_msg_level & CBUF_INFORM_VAL) printf args; } while (0)
+#define CBUF_ERROR(args)         do {if (cbuf_msg_level & CBUF_ERROR_VAL) printf args;} while (0)
+#define CBUF_TRACE(args)         do {if (cbuf_msg_level & CBUF_TRACE_VAL) printf args;} while (0)
+#define CBUF_INFO(args)          do {if (cbuf_msg_level & CBUF_INFORM_VAL) printf args;} while (0)
 
 #define     CIRCULARBUF_START(x)     ((x)->buf_addr)
 #define     CIRCULARBUF_WRITE_PTR(x) ((x)->w_ptr)

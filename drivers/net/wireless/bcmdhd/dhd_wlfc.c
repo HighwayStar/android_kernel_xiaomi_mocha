@@ -2,7 +2,6 @@
  * DHD PROP_TXSTATUS Module.
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -69,7 +68,7 @@
 
 
 static uint16
-_dhd_wlfc_adjusted_seq(void *p, uint8 current_seq)
+_dhd_wlfc_adjusted_seq(void* p, uint8 current_seq)
 {
 	uint16 seq;
 
@@ -87,7 +86,7 @@ _dhd_wlfc_adjusted_seq(void *p, uint8 current_seq)
 }
 
 static void
-_dhd_wlfc_prec_enque(struct pktq *pq, int prec, void *p, bool qHead,
+_dhd_wlfc_prec_enque(struct pktq *pq, int prec, void* p, bool qHead,
 	uint8 current_seq, bool reOrder)
 {
 	struct pktq_prec *q;
@@ -117,7 +116,7 @@ _dhd_wlfc_prec_enque(struct pktq *pq, int prec, void *p, bool qHead,
 			p2 = qHead ? q->head : q->tail;
 			seq2 = _dhd_wlfc_adjusted_seq(p2, current_seq);
 
-			if ((qHead && ((seq+1) > seq2)) || (!qHead && ((seq2+1) > seq))) {
+			if ((qHead &&((seq+1) > seq2)) || (!qHead && ((seq2+1) > seq))) {
 				/* need reorder */
 				p2 = q->head;
 				p2_prev = NULL;
@@ -194,7 +193,7 @@ _dhd_wlfc_hanger_create(osl_t *osh, int max_items)
 }
 
 static int
-_dhd_wlfc_hanger_delete(osl_t *osh, void *hanger)
+_dhd_wlfc_hanger_delete(osl_t *osh, void* hanger)
 {
 	wlfc_hanger_t* h = (wlfc_hanger_t*)hanger;
 
@@ -206,7 +205,7 @@ _dhd_wlfc_hanger_delete(osl_t *osh, void *hanger)
 }
 
 static uint16
-_dhd_wlfc_hanger_get_free_slot(void *hanger)
+_dhd_wlfc_hanger_get_free_slot(void* hanger)
 {
 	uint32 i;
 	wlfc_hanger_t* h = (wlfc_hanger_t*)hanger;
@@ -231,7 +230,7 @@ _dhd_wlfc_hanger_get_free_slot(void *hanger)
 }
 
 static int
-_dhd_wlfc_hanger_get_genbit(void *hanger, void *pkt, uint32 slot_id, int *gen)
+_dhd_wlfc_hanger_get_genbit(void* hanger, void* pkt, uint32 slot_id, int* gen)
 {
 	int rc = BCME_OK;
 	wlfc_hanger_t* h = (wlfc_hanger_t*)hanger;
@@ -246,16 +245,18 @@ _dhd_wlfc_hanger_get_genbit(void *hanger, void *pkt, uint32 slot_id, int *gen)
 		if ((h->items[slot_id].state == WLFC_HANGER_ITEM_STATE_INUSE) ||
 			(h->items[slot_id].state == WLFC_HANGER_ITEM_STATE_INUSE_SUPPRESSED)) {
 			*gen = h->items[slot_id].gen;
-		} else
+		}
+		else {
 			rc = BCME_NOTFOUND;
-
-	} else
+		}
+	}
+	else
 		rc = BCME_BADARG;
 	return rc;
 }
 
 static int
-_dhd_wlfc_hanger_pushpkt(void *hanger, void *pkt, uint32 slot_id)
+_dhd_wlfc_hanger_pushpkt(void* hanger, void* pkt, uint32 slot_id)
 {
 	int rc = BCME_OK;
 	wlfc_hanger_t* h = (wlfc_hanger_t*)hanger;
@@ -265,7 +266,8 @@ _dhd_wlfc_hanger_pushpkt(void *hanger, void *pkt, uint32 slot_id)
 			h->items[slot_id].state = WLFC_HANGER_ITEM_STATE_INUSE;
 			h->items[slot_id].pkt = pkt;
 			h->pushed++;
-		} else {
+		}
+		else {
 			h->failed_to_push++;
 			rc = BCME_NOTFOUND;
 		}
@@ -276,7 +278,7 @@ _dhd_wlfc_hanger_pushpkt(void *hanger, void *pkt, uint32 slot_id)
 }
 
 static int
-_dhd_wlfc_hanger_poppkt(void *hanger, uint32 slot_id, void **pktout, int remove_from_hanger)
+_dhd_wlfc_hanger_poppkt(void* hanger, uint32 slot_id, void** pktout, int remove_from_hanger)
 {
 	int rc = BCME_OK;
 	wlfc_hanger_t* h = (wlfc_hanger_t*)hanger;
@@ -296,17 +298,19 @@ _dhd_wlfc_hanger_poppkt(void *hanger, uint32 slot_id, void **pktout, int remove_
 				h->items[slot_id].identifier = 0;
 				h->popped++;
 			}
-		} else {
+		}
+		else {
 			h->failed_to_pop++;
 			rc = BCME_NOTFOUND;
 		}
-	} else
+	}
+	else
 		rc = BCME_BADARG;
 	return rc;
 }
 
 static int
-_dhd_wlfc_hanger_mark_suppressed(void *hanger, uint32 slot_id, uint8 gen)
+_dhd_wlfc_hanger_mark_suppressed(void* hanger, uint32 slot_id, uint8 gen)
 {
 	int rc = BCME_OK;
 	wlfc_hanger_t* h = (wlfc_hanger_t*)hanger;
@@ -316,11 +320,13 @@ _dhd_wlfc_hanger_mark_suppressed(void *hanger, uint32 slot_id, uint8 gen)
 		return BCME_NOTFOUND;
 	if (h) {
 		h->items[slot_id].gen = gen;
-		if (h->items[slot_id].state == WLFC_HANGER_ITEM_STATE_INUSE)
+		if (h->items[slot_id].state == WLFC_HANGER_ITEM_STATE_INUSE) {
 			h->items[slot_id].state = WLFC_HANGER_ITEM_STATE_INUSE_SUPPRESSED;
+		}
 		else
 			rc = BCME_BADARG;
-	} else
+	}
+	else
 		rc = BCME_BADARG;
 
 	return rc;
@@ -328,9 +334,9 @@ _dhd_wlfc_hanger_mark_suppressed(void *hanger, uint32 slot_id, uint8 gen)
 
 /* return true if the slot is only waiting for clean */
 static bool
-_dhd_wlfc_hanger_wait_clean(void *hanger, uint32 hslot)
+_dhd_wlfc_hanger_wait_clean(void* hanger, uint32 hslot)
 {
-	wlfc_hanger_t *h = (wlfc_hanger_t *)hanger;
+	wlfc_hanger_t* h = (wlfc_hanger_t*)hanger;
 
 	if ((hslot < (uint32) h->max_items) &&
 		(h->items[hslot].state == WLFC_HANGER_ITEM_STATE_WAIT_CLEAN)) {
@@ -347,12 +353,13 @@ _dhd_wlfc_hanger_wait_clean(void *hanger, uint32 hslot)
 
 /* remove reference of specific packet in hanger */
 static bool
-_dhd_wlfc_hanger_remove_reference(wlfc_hanger_t *h, void *pkt)
+_dhd_wlfc_hanger_remove_reference(wlfc_hanger_t* h, void* pkt)
 {
 	int i;
 
-	if (!h || !pkt)
+	if (!h || !pkt) {
 		return FALSE;
+	}
 
 	for (i = 0; i < h->max_items; i++) {
 		if (pkt == h->items[i].pkt) {
@@ -372,9 +379,9 @@ _dhd_wlfc_hanger_remove_reference(wlfc_hanger_t *h, void *pkt)
 
 
 static int
-_dhd_wlfc_enque_afq(athost_wl_status_info_t *ctx, void *p)
+_dhd_wlfc_enque_afq(athost_wl_status_info_t* ctx, void *p)
 {
-	wlfc_mac_descriptor_t *entry;
+	wlfc_mac_descriptor_t* entry;
 	uint16 entry_idx = WL_TXSTATUS_GET_HSLOT(DHD_PKTTAG_H2DTAG(PKTTAG(p)));
 	uint8 prec = DHD_PKTTAG_FIFO(PKTTAG(p));
 
@@ -391,7 +398,7 @@ _dhd_wlfc_enque_afq(athost_wl_status_info_t *ctx, void *p)
 }
 
 static int
-_dhd_wlfc_deque_afq(athost_wl_status_info_t *ctx, uint16 hslot, uint8 hcnt, uint8 prec,
+_dhd_wlfc_deque_afq(athost_wl_status_info_t* ctx, uint16 hslot, uint8 hcnt, uint8 prec,
 	void **pktout)
 {
 	wlfc_mac_descriptor_t *entry;
@@ -404,8 +411,9 @@ _dhd_wlfc_deque_afq(athost_wl_status_info_t *ctx, uint16 hslot, uint8 hcnt, uint
 		return BCME_BADARG;
 	}
 
-	if (pktout)
+	if (pktout) {
 		*pktout = NULL;
+	}
 
 	ASSERT(hslot < (WLFC_MAC_DESC_TABLE_SIZE + WLFC_MAX_IFNUM + 1));
 
@@ -425,17 +433,19 @@ _dhd_wlfc_deque_afq(athost_wl_status_info_t *ctx, uint16 hslot, uint8 hcnt, uint
 	b = NULL;
 	p = q->head;
 
-	while (p && (hcnt != WL_TXSTATUS_GET_FREERUNCTR(DHD_PKTTAG_H2DTAG(PKTTAG(p))))) {
+	while (p && (hcnt != WL_TXSTATUS_GET_FREERUNCTR(DHD_PKTTAG_H2DTAG(PKTTAG(p)))))
+	{
 		b = p;
 		p = PKTLINK(p);
 	}
 
 	if (p == NULL) {
 		/* none is matched */
-		if (b)
+		if (b) {
 			DHD_ERROR(("%s: can't find matching seq(%d)\n", __FUNCTION__, hcnt));
-		else
+		} else {
 			DHD_ERROR(("%s: queue is empty\n", __FUNCTION__));
+		}
 
 		return BCME_ERROR;
 	}
@@ -461,18 +471,19 @@ _dhd_wlfc_deque_afq(athost_wl_status_info_t *ctx, uint16 hslot, uint8 hcnt, uint
 
 	PKTSETLINK(p, NULL);
 
-	if (pktout)
+	if (pktout) {
 		*pktout = p;
+	}
 
 	return BCME_OK;
 }
 
 static int
-_dhd_wlfc_pushheader(athost_wl_status_info_t *ctx, void *p, bool tim_signal,
+_dhd_wlfc_pushheader(athost_wl_status_info_t* ctx, void* p, bool tim_signal,
 	uint8 tim_bmp, uint8 mac_handle, uint32 htodtag, uint16 htodseq, bool skip_wlfc_hdr)
 {
 	uint32 wl_pktinfo = 0;
-	uint8 *wlh;
+	uint8* wlh;
 	uint8 dataOffset = 0;
 	uint8 fillers;
 	uint8 tim_signal_len = 0;
@@ -497,7 +508,7 @@ _dhd_wlfc_pushheader(athost_wl_status_info_t *ctx, void *p, bool tim_signal,
 	dataOffset += fillers;
 
 	PKTPUSH(ctx->osh, p, dataOffset);
-	wlh = (uint8 *) PKTDATA(ctx->osh, p);
+	wlh = (uint8*) PKTDATA(ctx->osh, p);
 
 	wl_pktinfo = htol32(htodtag);
 
@@ -513,7 +524,7 @@ _dhd_wlfc_pushheader(athost_wl_status_info_t *ctx, void *p, bool tim_signal,
 	}
 
 	if (tim_signal_len) {
-		wlh[dataOffset - fillers - tim_signal_len] =
+		wlh[dataOffset - fillers - tim_signal_len ] =
 			WLFC_CTL_TYPE_PENDING_TRAFFIC_BMP;
 		wlh[dataOffset - fillers - tim_signal_len + 1] =
 			WLFC_CTL_VALUE_LEN_PENDING_TRAFFIC_BMP;
@@ -572,7 +583,7 @@ _dhd_wlfc_find_table_entry(athost_wl_status_info_t* ctx, void* p)
 	wlfc_mac_descriptor_t* table = ctx->destination_entries.nodes;
 	uint8 ifid = DHD_PKTTAG_IF(PKTTAG(p));
 	uint8* dstn = DHD_PKTTAG_DSTN(PKTTAG(p));
-	wlfc_mac_descriptor_t *entry = DHD_PKTTAG_ENTRY(PKTTAG(p));
+	wlfc_mac_descriptor_t* entry = DHD_PKTTAG_ENTRY(PKTTAG(p));
 	int iftype = ctx->destination_entries.interfaces[ifid].iftype;
 
 	/* saved one exists, return it */
@@ -614,15 +625,15 @@ _dhd_wlfc_find_table_entry(athost_wl_status_info_t* ctx, void* p)
 }
 
 static int
-_dhd_wlfc_prec_drop(dhd_pub_t *dhdp, int prec, void *p, bool bPktInQ)
+_dhd_wlfc_prec_drop(dhd_pub_t *dhdp, int prec, void* p, bool bPktInQ)
 {
-	athost_wl_status_info_t *ctx;
+	athost_wl_status_info_t* ctx;
 	void *pout = NULL;
 
 	ASSERT(dhdp && p);
 	ASSERT(prec >= 0 && prec <= WLFC_PSQ_PREC_COUNT);
 
-	ctx = (athost_wl_status_info_t *)dhdp->wlfc_state;
+	ctx = (athost_wl_status_info_t*)dhdp->wlfc_state;
 
 	if (!WLFC_GET_AFQ(dhdp->wlfc_mode) && (prec & 1)) {
 		/* suppressed queue, need pop from hanger */
@@ -675,18 +686,19 @@ _dhd_wlfc_prec_enq_with_drop(dhd_pub_t *dhdp, struct pktq *pq, void *pkt, int pr
 {
 	void *p = NULL;
 	int eprec = -1;		/* precedence to evict from */
-	athost_wl_status_info_t *ctx;
+	athost_wl_status_info_t* ctx;
 
 	ASSERT(dhdp && pq && pkt);
 	ASSERT(prec >= 0 && prec < pq->num_prec);
 
-	ctx = (athost_wl_status_info_t *)dhdp->wlfc_state;
+	ctx = (athost_wl_status_info_t*)dhdp->wlfc_state;
 
 	/* Fast case, precedence queue is not full and we are also not
 	 * exceeding total queue length
 	 */
-	if (!pktq_pfull(pq, prec) && !pktq_full(pq))
+	if (!pktq_pfull(pq, prec) && !pktq_full(pq)) {
 		goto exit;
+	}
 
 	/* Determine precedence from which to evict packet, if any */
 	if (pktq_pfull(pq, prec))
@@ -698,10 +710,11 @@ _dhd_wlfc_prec_enq_with_drop(dhd_pub_t *dhdp, struct pktq *pq, void *pkt, int pr
 			return FALSE;
 		}
 		if ((eprec > prec) || (eprec < 0)) {
-			if (!pktq_pempty(pq, prec))
+			if (!pktq_pempty(pq, prec)) {
 				eprec = prec;
-			else
+			} else {
 				return FALSE;
+			}
 		}
 	}
 
@@ -780,14 +793,15 @@ exit:
 	if (rc != BCME_OK) {
 		ctx->stats.rollback_failed++;
 		_dhd_wlfc_prec_drop(ctx->dhdp, fifo_id, p, FALSE);
-	} else
+	}
+	else
 		ctx->stats.rollback++;
 
 	return rc;
 }
 
 static bool
-_dhd_wlfc_allow_fc(athost_wl_status_info_t *ctx, uint8 ifid)
+_dhd_wlfc_allow_fc(athost_wl_status_info_t* ctx, uint8 ifid)
 {
 	int prec, ac_traffic = WLFC_NO_TRAFFIC;
 
@@ -858,6 +872,7 @@ _dhd_wlfc_flow_control_check(athost_wl_status_info_t* ctx, struct pktq* pq, uint
 
 		ctx->toggle_host_if = 0;
 	}
+
 	if ((pq->len >= WLFC_FLOWCONTROL_HIWATER) && (ctx->hostif_flow_state[if_id] == OFF)) {
 		/* stop traffic */
 		ctx->hostif_flow_state[if_id] = ON;
@@ -882,7 +897,7 @@ _dhd_wlfc_send_signalonly_packet(athost_wl_status_info_t* ctx, wlfc_mac_descript
 {
 	int rc = BCME_OK;
 	void* p = NULL;
-	int dummylen = ((dhd_pub_t *)ctx->dhdp)->hdrlen + 16;
+	int dummylen = ((dhd_pub_t *)ctx->dhdp)->hdrlen+ 16;
 	dhd_pub_t *dhdp = (dhd_pub_t *)ctx->dhdp;
 
 	if (dhdp->proptxstatus_txoff) {
@@ -952,8 +967,10 @@ _dhd_wlfc_traffic_pending_check(athost_wl_status_info_t* ctx, wlfc_mac_descripto
 			_dhd_wlfc_send_signalonly_packet(ctx, entry, entry->traffic_pending_bmp);
 			entry->traffic_lastreported_bmp = entry->traffic_pending_bmp;
 			entry->send_tim_signal = 0;
-		} else
+		}
+		else {
 			rc = FALSE;
+		}
 	}
 	return rc;
 }
@@ -981,6 +998,7 @@ _dhd_wlfc_enque_suppressed(athost_wl_status_info_t* ctx, int prec, void* p)
 		WLFC_DBGMESG(("s"));
 		return BCME_ERROR;
 	}
+
 	/* A packet has been pushed, update traffic availability bitmap, if applicable */
 	_dhd_wlfc_traffic_pending_check(ctx, entry, prec);
 	_dhd_wlfc_flow_control_check(ctx, &entry->psq, DHD_PKTTAG_IF(PKTTAG(p)));
@@ -1002,38 +1020,43 @@ _dhd_wlfc_pretx_pktprocess(athost_wl_status_info_t* ctx,
 
 	*slot = hslot;
 
-	if (entry == NULL)
+	if (entry == NULL) {
 		entry = _dhd_wlfc_find_table_entry(ctx, p);
+	}
 
 	if (entry == NULL) {
 		DHD_ERROR(("Error: %s():%d\n", __FUNCTION__, __LINE__));
 		return BCME_ERROR;
 	}
+
 	if (entry->send_tim_signal) {
 		send_tim_update = TRUE;
 		entry->send_tim_signal = 0;
 		entry->traffic_lastreported_bmp = entry->traffic_pending_bmp;
 	}
-	if (header_needed) {
-		if (WLFC_GET_AFQ(dhdp->wlfc_mode))
-			hslot = (uint)(entry - &ctx->destination_entries.nodes[0]);
-		else
-			hslot = _dhd_wlfc_hanger_get_free_slot(ctx->hanger);
 
+	if (header_needed) {
+		if (WLFC_GET_AFQ(dhdp->wlfc_mode)) {
+			hslot = (uint)(entry - &ctx->destination_entries.nodes[0]);
+		} else {
+			hslot = _dhd_wlfc_hanger_get_free_slot(ctx->hanger);
+		}
 		gen = entry->generation;
 		free_ctr = WLFC_SEQCOUNT(entry, DHD_PKTTAG_FIFO(PKTTAG(p)));
 	} else {
-		if (WLFC_GET_REUSESEQ(dhdp->wlfc_mode))
+		if (WLFC_GET_REUSESEQ(dhdp->wlfc_mode)) {
 			htodseq = DHD_PKTTAG_H2DSEQ(PKTTAG(p));
+		}
 
 		hslot = WL_TXSTATUS_GET_HSLOT(DHD_PKTTAG_H2DTAG(PKTTAG(p)));
 
-		if (WLFC_GET_REORDERSUPP(dhdp->wlfc_mode))
+		if (WLFC_GET_REORDERSUPP(dhdp->wlfc_mode)) {
 			gen = entry->generation;
-		else if (WLFC_GET_AFQ(dhdp->wlfc_mode))
+		} else if (WLFC_GET_AFQ(dhdp->wlfc_mode)) {
 			gen = WL_TXSTATUS_GET_GENERATION(DHD_PKTTAG_H2DTAG(PKTTAG(p)));
-		else
+		} else {
 			_dhd_wlfc_hanger_get_genbit(ctx->hanger, p, hslot, &gen);
+		}
 
 		free_ctr = WL_TXSTATUS_GET_FREERUNCTR(DHD_PKTTAG_H2DTAG(PKTTAG(p)));
 		/* remove old header */
@@ -1095,7 +1118,7 @@ _dhd_wlfc_pretx_pktprocess(athost_wl_status_info_t* ctx,
 }
 
 static int
-_dhd_wlfc_is_destination_open(athost_wl_status_info_t *ctx,
+_dhd_wlfc_is_destination_open(athost_wl_status_info_t* ctx,
 	wlfc_mac_descriptor_t* entry, int prec)
 {
 	if (entry->interface_id >= WLFC_MAX_IFNUM) {
@@ -1111,21 +1134,23 @@ _dhd_wlfc_is_destination_open(athost_wl_status_info_t *ctx,
 		firmware storing the destination-specific-requested packet in queue.
 		*/
 		if ((entry->state == WLFC_STATE_CLOSE) && (entry->requested_credit == 0) &&
-			(entry->requested_packet == 0))
+			(entry->requested_packet == 0)) {
 			return 0;
+		}
 	}
 	/* AP, p2p_go -> unicast desc entry, STA/p2p_cl -> interface desc. entry */
 	if (((entry->state == WLFC_STATE_CLOSE) && (entry->requested_credit == 0) &&
 		(entry->requested_packet == 0)) ||
-		(!(entry->ac_bitmap & (1 << prec))))
+		(!(entry->ac_bitmap & (1 << prec)))) {
 		return 0;
+	}
 
 	return 1;
 }
 
 static void*
-_dhd_wlfc_deque_delayedq(athost_wl_status_info_t *ctx, int prec,
-	uint8 *ac_credit_spent, uint8 *needs_hdr, wlfc_mac_descriptor_t **entry_out,
+_dhd_wlfc_deque_delayedq(athost_wl_status_info_t* ctx, int prec,
+	uint8* ac_credit_spent, uint8* needs_hdr, wlfc_mac_descriptor_t** entry_out,
 	bool only_no_credit)
 {
 	dhd_pub_t *dhdp = (dhd_pub_t *)ctx->dhdp;
@@ -1139,15 +1164,16 @@ _dhd_wlfc_deque_delayedq(athost_wl_status_info_t *ctx, int prec,
 	*ac_credit_spent = ((prec == AC_COUNT) && !ctx->bcmc_credit_supported) ? 0 : 1;
 
 	/* search all entries, include nodes as well as interfaces */
-	if (only_no_credit)
+	if (only_no_credit) {
 		total_entries = ctx->requested_entry_count;
-	else
+	} else {
 		total_entries = ctx->active_entry_count;
+	}
 
 	for (i = 0; i < total_entries; i++) {
-		if (only_no_credit)
+		if (only_no_credit) {
 			entry = ctx->requested_entry[i];
-		else {
+		} else {
 			entry = ctx->active_entry_head;
 			/* move head to ensure fair round-robin */
 			ctx->active_entry_head = ctx->active_entry_head->next;
@@ -1157,8 +1183,9 @@ _dhd_wlfc_deque_delayedq(athost_wl_status_info_t *ctx, int prec,
 		if (entry->occupied && _dhd_wlfc_is_destination_open(ctx, entry, prec) &&
 			(entry->transit_count < WL_TXSTATUS_FREERUNCTR_MASK) &&
 			!(WLFC_GET_REORDERSUPP(dhdp->wlfc_mode) && entry->suppressed)) {
-			if (entry->state == WLFC_STATE_CLOSE)
+			if (entry->state == WLFC_STATE_CLOSE) {
 				*ac_credit_spent = 0;
+			}
 
 			/* higher precedence will be picked up first,
 			 * i.e. suppressed packets before delayed ones
@@ -1243,29 +1270,30 @@ _dhd_wlfc_enque_delayq(athost_wl_status_info_t* ctx, void* pktbuf, int prec)
 	return BCME_OK;
 }
 
-static bool _dhd_wlfc_ifpkt_fn(void *p, void *p_ifid)
+static bool _dhd_wlfc_ifpkt_fn(void* p, void *p_ifid)
 {
 	if (!p || !p_ifid)
 		return FALSE;
 
-	return (DHD_PKTTAG_WLFCPKT(PKTTAG(p)) && (*((uint8 *)p_ifid) == DHD_PKTTAG_IF(PKTTAG(p))));
+	return (DHD_PKTTAG_WLFCPKT(PKTTAG(p))&& (*((uint8 *)p_ifid) == DHD_PKTTAG_IF(PKTTAG(p))));
 }
 
-static bool _dhd_wlfc_entrypkt_fn(void *p, void *entry)
+static bool _dhd_wlfc_entrypkt_fn(void* p, void *entry)
 {
 	if (!p || !entry)
 		return FALSE;
 
-	return (DHD_PKTTAG_WLFCPKT(PKTTAG(p)) && (entry == DHD_PKTTAG_ENTRY(PKTTAG(p))));
+	return (DHD_PKTTAG_WLFCPKT(PKTTAG(p))&& (entry == DHD_PKTTAG_ENTRY(PKTTAG(p))));
 }
 
 static void
-_dhd_wlfc_return_implied_credit(athost_wl_status_info_t *wlfc, void *pkt)
+_dhd_wlfc_return_implied_credit(athost_wl_status_info_t* wlfc, void* pkt)
 {
 	dhd_pub_t *dhdp;
 
-	if (!wlfc || !pkt)
+	if (!wlfc || !pkt) {
 		return;
+	}
 
 	dhdp = (dhd_pub_t *)(wlfc->dhdp);
 	if (dhdp && (dhdp->proptxstatus_mode == WLFC_FCMODE_IMPLIED_CREDIT) &&
@@ -1284,14 +1312,14 @@ _dhd_wlfc_return_implied_credit(athost_wl_status_info_t *wlfc, void *pkt)
 			}
 		}
 
-		if (!credit_returned)
+		if (!credit_returned) {
 			wlfc->FIFO_credit[fifo_id]++;
-
+		}
 	}
 }
 
 static void
-_dhd_wlfc_pktq_flush(athost_wl_status_info_t *ctx, struct pktq *pq,
+_dhd_wlfc_pktq_flush(athost_wl_status_info_t* ctx, struct pktq *pq,
 	bool dir, f_processpkt_t fn, void *arg, q_type_t q_type)
 {
 	int prec;
@@ -1302,8 +1330,10 @@ _dhd_wlfc_pktq_flush(athost_wl_status_info_t *ctx, struct pktq *pq,
 	/* Optimize flush, if pktq len = 0, just return.
 	 * pktq len of 0 means pktq's prec q's are all empty.
 	 */
-	if (pq->len == 0)
+	if (pq->len == 0) {
 		return;
+	}
+
 
 	for (prec = 0; prec < pq->num_prec; prec++) {
 		struct pktq_prec *q;
@@ -1342,7 +1372,7 @@ _dhd_wlfc_pktq_flush(athost_wl_status_info_t *ctx, struct pktq *pq,
 #endif /* DHDTCPACK_SUPPRESS */
 					}
 				} else if (q_type == Q_TYPE_AFQ) {
-					wlfc_mac_descriptor_t *entry =
+					wlfc_mac_descriptor_t* entry =
 						_dhd_wlfc_find_table_entry(ctx, p);
 					entry->transit_count--;
 					if (entry->suppressed &&
@@ -1401,18 +1431,22 @@ _dhd_wlfc_pktq_pdeq_with_fn(struct pktq *pq, int prec, f_processpkt_t fn, void *
 		return NULL;
 
 	if (prev == NULL) {
-		if ((q->head = PKTLINK(p)) == NULL)
+		if ((q->head = PKTLINK(p)) == NULL) {
 			q->tail = NULL;
-
+		}
 	} else {
 		PKTSETLINK(prev, PKTLINK(p));
-		if (q->tail == p)
+		if (q->tail == p) {
 			q->tail = prev;
+		}
 	}
 
 	q->len--;
+
 	pq->len--;
+
 	PKTSETLINK(p, NULL);
+
 	return p;
 }
 
@@ -1422,9 +1456,9 @@ _dhd_wlfc_cleanup_txq(dhd_pub_t *dhd, f_processpkt_t fn, void *arg)
 	int prec;
 	void *pkt = NULL, *head = NULL, *tail = NULL;
 	struct pktq *txq = (struct pktq *)dhd_bus_txq(dhd->bus);
-	athost_wl_status_info_t *wlfc = (athost_wl_status_info_t *)dhd->wlfc_state;
-	wlfc_hanger_t *h = (wlfc_hanger_t*)wlfc->hanger;
-	wlfc_mac_descriptor_t *entry;
+	athost_wl_status_info_t* wlfc = (athost_wl_status_info_t*)dhd->wlfc_state;
+	wlfc_hanger_t* h = (wlfc_hanger_t*)wlfc->hanger;
+	wlfc_mac_descriptor_t* entry;
 
 	dhd_os_sdlock_txq(dhd);
 	for (prec = 0; prec < txq->num_prec; prec++) {
@@ -1436,12 +1470,12 @@ _dhd_wlfc_cleanup_txq(dhd_pub_t *dhd, f_processpkt_t fn, void *arg)
 				dhd_tcpack_suppress_set(dhd, TCPACK_SUP_OFF);
 			}
 #endif /* DHDTCPACK_SUPPRESS */
-			if (!head)
+			if (!head) {
 				head = pkt;
-
-			if (tail)
+			}
+			if (tail) {
 				PKTSETLINK(tail, pkt);
-
+			}
 			tail = pkt;
 		}
 	}
@@ -1477,9 +1511,9 @@ _dhd_wlfc_cleanup(dhd_pub_t *dhd, f_processpkt_t fn, void *arg)
 {
 	int i;
 	int total_entries;
-	athost_wl_status_info_t *wlfc = (athost_wl_status_info_t *)dhd->wlfc_state;
-	wlfc_mac_descriptor_t *table;
-	wlfc_hanger_t *h = (wlfc_hanger_t *)wlfc->hanger;
+	athost_wl_status_info_t* wlfc = (athost_wl_status_info_t*)dhd->wlfc_state;
+	wlfc_mac_descriptor_t* table;
+	wlfc_hanger_t* h = (wlfc_hanger_t*)wlfc->hanger;
 
 	wlfc->stats.cleanup_txq_cnt = 0;
 	wlfc->stats.cleanup_psq_cnt = 0;
@@ -1493,7 +1527,7 @@ _dhd_wlfc_cleanup(dhd_pub_t *dhd, f_processpkt_t fn, void *arg)
 
 	/* flush psq, search all entries, include nodes as well as interfaces */
 	total_entries = sizeof(wlfc->destination_entries)/sizeof(wlfc_mac_descriptor_t);
-	table = (wlfc_mac_descriptor_t *)&wlfc->destination_entries;
+	table = (wlfc_mac_descriptor_t*)&wlfc->destination_entries;
 
 	for (i = 0; i < total_entries; i++) {
 		if (table[i].occupied) {
@@ -1555,7 +1589,7 @@ _dhd_wlfc_cleanup(dhd_pub_t *dhd, f_processpkt_t fn, void *arg)
 
 static int
 _dhd_wlfc_mac_entry_update(athost_wl_status_info_t* ctx, wlfc_mac_descriptor_t* entry,
-	uint8 action, uint8 ifid, uint8 iftype, uint8 *ea,
+	uint8 action, uint8 ifid, uint8 iftype, uint8* ea,
 	f_processpkt_t fn, void *arg)
 {
 	int rc = BCME_OK;
@@ -1578,8 +1612,9 @@ _dhd_wlfc_mac_entry_update(athost_wl_status_info_t* ctx, wlfc_mac_descriptor_t* 
 		if (action == eWLFC_MAC_ENTRY_ACTION_ADD) {
 			dhd_pub_t *dhdp = (dhd_pub_t *)(ctx->dhdp);
 			pktq_init(&entry->psq, WLFC_PSQ_PREC_COUNT, WLFC_PSQ_LEN);
-			if (WLFC_GET_AFQ(dhdp->wlfc_mode))
+			if (WLFC_GET_AFQ(dhdp->wlfc_mode)) {
 				pktq_init(&entry->afq, WLFC_AFQ_PREC_COUNT, WLFC_PSQ_LEN);
+			}
 
 			if (entry->next == NULL) {
 				/* not linked to anywhere, add to tail */
@@ -1624,28 +1659,29 @@ _dhd_wlfc_mac_entry_update(athost_wl_status_info_t* ctx, wlfc_mac_descriptor_t* 
 			} else {
 				entry->prev->next = entry->next;
 				entry->next->prev = entry->prev;
-				if (entry == ctx->active_entry_head)
+				if (entry == ctx->active_entry_head) {
 					ctx->active_entry_head = entry->next;
-
+				}
 				ctx->active_entry_count--;
 			}
 			entry->next = entry->prev = NULL;
-		} else
+		} else {
 			DHD_ERROR(("Error: %s():%d\n", __FUNCTION__, __LINE__));
+		}
 	}
 	return rc;
 }
 
 #ifdef LIMIT_BORROW
 static int
-_dhd_wlfc_borrow_credit(athost_wl_status_info_t *ctx, int highest_lender_ac, int borrower_ac)
+_dhd_wlfc_borrow_credit(athost_wl_status_info_t* ctx, int highest_lender_ac, int borrower_ac)
 {
 	int lender_ac;
 	int rc = -1;
 
 	if (ctx == NULL) {
 		DHD_ERROR(("Error: %s():%d\n", __FUNCTION__, __LINE__));
-		return -EPERM;
+		return -1;
 	}
 
 	/* Borrow from lowest priority available AC (including BC/MC credits) */
@@ -1661,7 +1697,7 @@ _dhd_wlfc_borrow_credit(athost_wl_status_info_t *ctx, int highest_lender_ac, int
 	return rc;
 }
 
-static int _dhd_wlfc_return_credit(athost_wl_status_info_t *ctx, int lender_ac, int borrower_ac)
+static int _dhd_wlfc_return_credit(athost_wl_status_info_t* ctx, int lender_ac, int borrower_ac)
 {
 	if ((ctx == NULL) || (lender_ac < 0) || (lender_ac > AC_COUNT) ||
 		(borrower_ac < 0) || (borrower_ac > AC_COUNT)) {
@@ -1679,8 +1715,8 @@ static int _dhd_wlfc_return_credit(athost_wl_status_info_t *ctx, int lender_ac, 
 #endif /* LIMIT_BORROW */
 
 static int
-_dhd_wlfc_interface_entry_update(void *state,
-	uint8 action, uint8 ifid, uint8 iftype, uint8 *ea)
+_dhd_wlfc_interface_entry_update(void* state,
+	uint8 action, uint8 ifid, uint8 iftype, uint8* ea)
 {
 	athost_wl_status_info_t* ctx = (athost_wl_status_info_t*)state;
 	wlfc_mac_descriptor_t* entry;
@@ -1695,18 +1731,18 @@ _dhd_wlfc_interface_entry_update(void *state,
 }
 
 static int
-_dhd_wlfc_BCMCCredit_support_update(void *state)
+_dhd_wlfc_BCMCCredit_support_update(void* state)
 {
-	athost_wl_status_info_t *ctx = (athost_wl_status_info_t *)state;
+	athost_wl_status_info_t* ctx = (athost_wl_status_info_t*)state;
 
 	ctx->bcmc_credit_supported = TRUE;
 	return BCME_OK;
 }
 
 static int
-_dhd_wlfc_FIFOcreditmap_update(void *state, uint8 *credits)
+_dhd_wlfc_FIFOcreditmap_update(void* state, uint8* credits)
 {
-	athost_wl_status_info_t *ctx = (athost_wl_status_info_t *)state;
+	athost_wl_status_info_t* ctx = (athost_wl_status_info_t*)state;
 	int i;
 
 	for (i = 0; i <= 4; i++) {
@@ -1790,8 +1826,9 @@ _dhd_wlfc_handle_packet_commit(athost_wl_status_info_t* ctx, int ac,
 				ASSERT(commit_info->p == pout);
 			}
 		}
-	} else
+	} else {
 		ctx->stats.generic_error++;
+	}
 
 	if (rc != BCME_OK) {
 		/*
@@ -1808,7 +1845,7 @@ _dhd_wlfc_handle_packet_commit(athost_wl_status_info_t* ctx, int ac,
 }
 
 static uint8
-_dhd_wlfc_find_mac_desc_id_from_mac(dhd_pub_t *dhdp, uint8 *ea)
+_dhd_wlfc_find_mac_desc_id_from_mac(dhd_pub_t *dhdp, uint8* ea)
 {
 	wlfc_mac_descriptor_t* table =
 		((athost_wl_status_info_t*)dhdp->wlfc_state)->destination_entries.nodes;
@@ -1825,17 +1862,17 @@ _dhd_wlfc_find_mac_desc_id_from_mac(dhd_pub_t *dhdp, uint8 *ea)
 }
 
 static int
-_dhd_wlfc_compressed_txstatus_update(dhd_pub_t *dhd, uint8 *pkt_info, uint8 len, void **p_mac)
+_dhd_wlfc_compressed_txstatus_update(dhd_pub_t *dhd, uint8* pkt_info, uint8 len, void** p_mac)
 {
 	uint8 status_flag;
 	uint32 status;
 	int ret = BCME_OK;
 	int remove_from_hanger = 1;
-	void *pktbuf = NULL;
+	void* pktbuf = NULL;
 	uint8 fifo_id = 0, gen = 0, count = 0, hcnt;
 	uint16 hslot;
 	wlfc_mac_descriptor_t* entry = NULL;
-	athost_wl_status_info_t *wlfc = (athost_wl_status_info_t *)dhd->wlfc_state;
+	athost_wl_status_info_t* wlfc = (athost_wl_status_info_t*)dhd->wlfc_state;
 	uint16 seq = 0, seq_fromfw = 0, seq_num = 0;
 
 	memcpy(&status, pkt_info, sizeof(uint32));
@@ -1855,21 +1892,30 @@ _dhd_wlfc_compressed_txstatus_update(dhd_pub_t *dhd, uint8 *pkt_info, uint8 len,
 
 	if (status_flag == WLFC_CTL_PKTFLAG_DISCARD) {
 		wlfc->stats.pkt_freed += len;
-	} else if (status_flag == WLFC_CTL_PKTFLAG_DISCARD_NOACK) {
+	}
+
+	else if (status_flag == WLFC_CTL_PKTFLAG_DISCARD_NOACK) {
 		wlfc->stats.pkt_freed += len;
-	} else if (status_flag == WLFC_CTL_PKTFLAG_D11SUPPRESS) {
+	}
+
+	else if (status_flag == WLFC_CTL_PKTFLAG_D11SUPPRESS) {
 		wlfc->stats.d11_suppress += len;
 		remove_from_hanger = 0;
-	} else if (status_flag == WLFC_CTL_PKTFLAG_WLSUPPRESS) {
+	}
+
+	else if (status_flag == WLFC_CTL_PKTFLAG_WLSUPPRESS) {
 		wlfc->stats.wl_suppress += len;
 		remove_from_hanger = 0;
-	} else if (status_flag == WLFC_CTL_PKTFLAG_TOSSED_BYWLC)
+	}
+
+	else if (status_flag == WLFC_CTL_PKTFLAG_TOSSED_BYWLC) {
 		wlfc->stats.wlc_tossed_pkts += len;
+	}
 
 	if (dhd->proptxstatus_txstatus_ignore) {
-		if (!remove_from_hanger)
+		if (!remove_from_hanger) {
 			DHD_ERROR(("suppress txstatus: %d\n", status_flag));
-
+		}
 		return BCME_OK;
 	}
 
@@ -1877,15 +1923,17 @@ _dhd_wlfc_compressed_txstatus_update(dhd_pub_t *dhd, uint8 *pkt_info, uint8 len,
 		if (WLFC_GET_AFQ(dhd->wlfc_mode)) {
 			ret = _dhd_wlfc_deque_afq(wlfc, hslot, hcnt, fifo_id, &pktbuf);
 		} else {
-			if (_dhd_wlfc_hanger_wait_clean(wlfc->hanger, hslot))
+			if (_dhd_wlfc_hanger_wait_clean(wlfc->hanger, hslot)) {
 				goto cont;
+			}
 
 			ret = _dhd_wlfc_hanger_poppkt(wlfc->hanger, hslot,
 				&pktbuf, remove_from_hanger);
 		}
 
-		if ((ret != BCME_OK) || !pktbuf)
+		if ((ret != BCME_OK) || !pktbuf) {
 			goto cont;
+		}
 
 		/* set fifo_id to correct value because not all FW does that */
 		fifo_id = DHD_PKTTAG_FIFO(PKTTAG(pktbuf));
@@ -1897,9 +1945,9 @@ _dhd_wlfc_compressed_txstatus_update(dhd_pub_t *dhd, uint8 *pkt_info, uint8 len,
 			if (!entry->suppressed || (entry->generation != gen)) {
 				if (!entry->suppressed) {
 					entry->suppr_transit_count = entry->transit_count;
-					if (p_mac)
+					if (p_mac) {
 						*p_mac = entry;
-
+					}
 				} else {
 					DHD_ERROR(("gen(%d), entry->generation(%d)\n",
 						gen, entry->generation));
@@ -1916,7 +1964,7 @@ _dhd_wlfc_compressed_txstatus_update(dhd_pub_t *dhd, uint8 *pkt_info, uint8 len,
 			uint32 new_t = OSL_SYSUPTIME();
 			uint32 old_t;
 			uint32 delta;
-			old_t = ((wlfc_hanger_t *)(wlfc->hanger))->items[hslot].push_time;
+			old_t = ((wlfc_hanger_t*)(wlfc->hanger))->items[hslot].push_time;
 
 
 			wlfc->stats.latency_sample_count++;
@@ -1947,6 +1995,7 @@ _dhd_wlfc_compressed_txstatus_update(dhd_pub_t *dhd, uint8 *pkt_info, uint8 len,
 			entry->dstncredit_acks++;
 #endif
 		}
+
 		if ((status_flag == WLFC_CTL_PKTFLAG_D11SUPPRESS) ||
 			(status_flag == WLFC_CTL_PKTFLAG_WLSUPPRESS)) {
 			/* save generation bit inside packet */
@@ -1980,16 +2029,19 @@ _dhd_wlfc_compressed_txstatus_update(dhd_pub_t *dhd, uint8 *pkt_info, uint8 len,
 		}
 		/* pkt back from firmware side */
 		entry->transit_count--;
-		if (entry->suppressed && (--entry->suppr_transit_count == 0))
+		if (entry->suppressed && (--entry->suppr_transit_count == 0)) {
 			entry->suppressed = FALSE;
+		}
 
 cont:
 		hcnt = (hcnt + 1) & WL_TXSTATUS_FREERUNCTR_MASK;
-		if (!WLFC_GET_AFQ(dhd->wlfc_mode))
+		if (!WLFC_GET_AFQ(dhd->wlfc_mode)) {
 			hslot = (hslot + 1) & WL_TXSTATUS_HSLOT_MASK;
+		}
 
-		if (WLFC_GET_REUSESEQ(dhd->wlfc_mode) && seq_fromfw)
+		if (WLFC_GET_REUSESEQ(dhd->wlfc_mode) && seq_fromfw) {
 			seq_num = (seq_num + 1) & WL_SEQ_NUM_MASK;
+		}
 
 		count++;
 	}
@@ -1997,27 +2049,31 @@ cont:
 }
 
 static int
-_dhd_wlfc_fifocreditback_indicate(dhd_pub_t *dhd, uint8 *credits)
+_dhd_wlfc_fifocreditback_indicate(dhd_pub_t *dhd, uint8* credits)
 {
 	int i;
-	athost_wl_status_info_t *wlfc = (athost_wl_status_info_t *)dhd->wlfc_state;
+	athost_wl_status_info_t* wlfc = (athost_wl_status_info_t*)dhd->wlfc_state;
 	for (i = 0; i < WLFC_CTL_VALUE_LEN_FIFO_CREDITBACK; i++) {
 #ifdef PROP_TXSTATUS_DEBUG
 		wlfc->stats.fifo_credits_back[i] += credits[i];
 #endif
+
 		/* update FIFO credits */
-		if (dhd->proptxstatus_mode == WLFC_FCMODE_EXPLICIT_CREDIT) {
+		if (dhd->proptxstatus_mode == WLFC_FCMODE_EXPLICIT_CREDIT)
+		{
 			int lender; /* Note that borrower is i */
 
 			/* Return credits to highest priority lender first */
 			for (lender = AC_COUNT; (lender >= 0) && (credits[i] > 0); lender--) {
 				if (wlfc->credits_borrowed[i][lender] > 0) {
 					if (credits[i] >= wlfc->credits_borrowed[i][lender]) {
-						credits[i] -= (uint8)wlfc->credits_borrowed[i][lender];
+						credits[i] -=
+							(uint8)wlfc->credits_borrowed[i][lender];
 						wlfc->FIFO_credit[lender] +=
 						    wlfc->credits_borrowed[i][lender];
 						wlfc->credits_borrowed[i][lender] = 0;
-					} else {
+					}
+					else {
 						wlfc->credits_borrowed[i][lender] -= credits[i];
 						wlfc->FIFO_credit[lender] += credits[i];
 						credits[i] = 0;
@@ -2026,13 +2082,13 @@ _dhd_wlfc_fifocreditback_indicate(dhd_pub_t *dhd, uint8 *credits)
 			}
 
 			/* If we have more credits left over, these must belong to the AC */
-			if (credits[i] > 0)
+			if (credits[i] > 0) {
 				wlfc->FIFO_credit[i] += credits[i];
+			}
 
-
-			if (wlfc->FIFO_credit[i] > wlfc->Init_FIFO_credit[i])
+			if (wlfc->FIFO_credit[i] > wlfc->Init_FIFO_credit[i]) {
 				wlfc->FIFO_credit[i] = wlfc->Init_FIFO_credit[i];
-
+			}
 		}
 	}
 
@@ -2042,8 +2098,8 @@ _dhd_wlfc_fifocreditback_indicate(dhd_pub_t *dhd, uint8 *credits)
 static void
 _dhd_wlfc_suppress_txq(dhd_pub_t *dhd, f_processpkt_t fn, void *arg)
 {
-	athost_wl_status_info_t *wlfc = (athost_wl_status_info_t *)dhd->wlfc_state;
-	wlfc_mac_descriptor_t *entry;
+	athost_wl_status_info_t* wlfc = (athost_wl_status_info_t*)dhd->wlfc_state;
+	wlfc_mac_descriptor_t* entry;
 	int prec;
 	void *pkt = NULL, *head = NULL, *tail = NULL;
 	struct pktq *txq = (struct pktq *)dhd_bus_txq(dhd->bus);
@@ -2056,12 +2112,12 @@ _dhd_wlfc_suppress_txq(dhd_pub_t *dhd, f_processpkt_t fn, void *arg)
 	dhd_os_sdlock_txq(dhd);
 	for (prec = 0; prec < txq->num_prec; prec++) {
 		while ((pkt = _dhd_wlfc_pktq_pdeq_with_fn(txq, prec, fn, arg))) {
-			if (!head)
+			if (!head) {
 				head = pkt;
-
-			if (tail)
+			}
+			if (tail) {
 				PKTSETLINK(tail, pkt);
-
+			}
 			tail = pkt;
 		}
 	}
@@ -2087,9 +2143,9 @@ _dhd_wlfc_suppress_txq(dhd_pub_t *dhd, f_processpkt_t fn, void *arg)
 			memcpy(results + WLFC_CTL_VALUE_LEN_TXSTATUS, &htodseq,
 				WLFC_CTL_VALUE_LEN_SEQ);
 		}
-		if (WLFC_GET_AFQ(dhd->wlfc_mode))
+		if (WLFC_GET_AFQ(dhd->wlfc_mode)) {
 			_dhd_wlfc_enque_afq(wlfc, pkt);
-
+		}
 		_dhd_wlfc_compressed_txstatus_update(dhd, results, 1, NULL);
 
 		/* fake a fifo credit back */
@@ -2099,9 +2155,9 @@ _dhd_wlfc_suppress_txq(dhd_pub_t *dhd, f_processpkt_t fn, void *arg)
 		}
 	}
 
-	if (bCreditUpdate)
+	if (bCreditUpdate) {
 		_dhd_wlfc_fifocreditback_indicate(dhd, credits);
-
+	}
 }
 
 
@@ -2117,9 +2173,8 @@ _dhd_wlfc_dbg_senum_check(dhd_pub_t *dhd, uint8 *value)
 	return BCME_OK;
 }
 
-
 static int
-_dhd_wlfc_rssi_indicate(dhd_pub_t *dhd, uint8 *rssi)
+_dhd_wlfc_rssi_indicate(dhd_pub_t *dhd, uint8* rssi)
 {
 	(void)dhd;
 	(void)rssi;
@@ -2127,16 +2182,18 @@ _dhd_wlfc_rssi_indicate(dhd_pub_t *dhd, uint8 *rssi)
 }
 
 static void
-_dhd_wlfc_add_requested_entry(athost_wl_status_info_t *wlfc, wlfc_mac_descriptor_t *entry)
+_dhd_wlfc_add_requested_entry(athost_wl_status_info_t* wlfc, wlfc_mac_descriptor_t* entry)
 {
 	int i;
 
-	if (!wlfc || !entry)
+	if (!wlfc || !entry) {
 		return;
+	}
 
 	for (i = 0; i < wlfc->requested_entry_count; i++) {
-		if (entry == wlfc->requested_entry[i])
+		if (entry == wlfc->requested_entry[i]) {
 			break;
+		}
 	}
 
 	if (i == wlfc->requested_entry_count) {
@@ -2147,17 +2204,18 @@ _dhd_wlfc_add_requested_entry(athost_wl_status_info_t *wlfc, wlfc_mac_descriptor
 }
 
 static void
-_dhd_wlfc_remove_requested_entry(athost_wl_status_info_t *wlfc, wlfc_mac_descriptor_t *entry)
+_dhd_wlfc_remove_requested_entry(athost_wl_status_info_t* wlfc, wlfc_mac_descriptor_t* entry)
 {
 	int i;
 
-	if (!wlfc || !entry)
+	if (!wlfc || !entry) {
 		return;
+	}
 
 	for (i = 0; i < wlfc->requested_entry_count; i++) {
-		if (entry == wlfc->requested_entry[i])
+		if (entry == wlfc->requested_entry[i]) {
 			break;
-
+		}
 	}
 
 	if (i < wlfc->requested_entry_count) {
@@ -2173,10 +2231,10 @@ _dhd_wlfc_remove_requested_entry(athost_wl_status_info_t *wlfc, wlfc_mac_descrip
 }
 
 static int
-_dhd_wlfc_mac_table_update(dhd_pub_t *dhd, uint8 *value, uint8 type)
+_dhd_wlfc_mac_table_update(dhd_pub_t *dhd, uint8* value, uint8 type)
 {
 	int rc;
-	athost_wl_status_info_t *wlfc = (athost_wl_status_info_t *)dhd->wlfc_state;
+	athost_wl_status_info_t* wlfc = (athost_wl_status_info_t*)dhd->wlfc_state;
 	wlfc_mac_descriptor_t* table;
 	uint8 existing_index;
 	uint8 table_index;
@@ -2220,6 +2278,7 @@ _dhd_wlfc_mac_table_update(dhd_pub_t *dhd, uint8 *value, uint8 type)
 			wlfc->stats.mac_update_failed++;
 		}
 	}
+
 	if (type == WLFC_CTL_TYPE_MACDESC_DEL) {
 		if (table[table_index].occupied) {
 				rc = _dhd_wlfc_mac_entry_update(wlfc, &table[table_index],
@@ -2236,10 +2295,10 @@ _dhd_wlfc_mac_table_update(dhd_pub_t *dhd, uint8 *value, uint8 type)
 }
 
 static int
-_dhd_wlfc_psmode_update(dhd_pub_t *dhd, uint8 *value, uint8 type)
+_dhd_wlfc_psmode_update(dhd_pub_t *dhd, uint8* value, uint8 type)
 {
 	/* Handle PS on/off indication */
-	athost_wl_status_info_t *wlfc = (athost_wl_status_info_t *)dhd->wlfc_state;
+	athost_wl_status_info_t* wlfc = (athost_wl_status_info_t*)dhd->wlfc_state;
 	wlfc_mac_descriptor_t* table;
 	wlfc_mac_descriptor_t* desc;
 	uint8 mac_handle = value[0];
@@ -2266,17 +2325,18 @@ _dhd_wlfc_psmode_update(dhd_pub_t *dhd, uint8 *value, uint8 type)
 				_dhd_wlfc_traffic_pending_check(wlfc, desc, i);
 			}
 		}
-	} else
+	}
+	else {
 		wlfc->stats.psmode_update_failed++;
-
+	}
 	return BCME_OK;
 }
 
 static int
-_dhd_wlfc_interface_update(dhd_pub_t *dhd, uint8 *value, uint8 type)
+_dhd_wlfc_interface_update(dhd_pub_t *dhd, uint8* value, uint8 type)
 {
 	/* Handle PS on/off indication */
-	athost_wl_status_info_t *wlfc = (athost_wl_status_info_t *)dhd->wlfc_state;
+	athost_wl_status_info_t* wlfc = (athost_wl_status_info_t*)dhd->wlfc_state;
 	wlfc_mac_descriptor_t* table;
 	uint8 if_id = value[0];
 
@@ -2300,9 +2360,9 @@ _dhd_wlfc_interface_update(dhd_pub_t *dhd, uint8 *value, uint8 type)
 }
 
 static int
-_dhd_wlfc_credit_request(dhd_pub_t *dhd, uint8 *value)
+_dhd_wlfc_credit_request(dhd_pub_t *dhd, uint8* value)
 {
-	athost_wl_status_info_t *wlfc = (athost_wl_status_info_t *)dhd->wlfc_state;
+	athost_wl_status_info_t* wlfc = (athost_wl_status_info_t*)dhd->wlfc_state;
 	wlfc_mac_descriptor_t* table;
 	wlfc_mac_descriptor_t* desc;
 	uint8 mac_handle;
@@ -2318,16 +2378,17 @@ _dhd_wlfc_credit_request(dhd_pub_t *dhd, uint8 *value)
 
 		desc->ac_bitmap = value[2] & (~(1<<AC_COUNT));
 		_dhd_wlfc_add_requested_entry(wlfc, desc);
-	} else
+	}
+	else {
 		wlfc->stats.credit_request_failed++;
-
+	}
 	return BCME_OK;
 }
 
 static int
-_dhd_wlfc_packet_request(dhd_pub_t *dhd, uint8 *value)
+_dhd_wlfc_packet_request(dhd_pub_t *dhd, uint8* value)
 {
-	athost_wl_status_info_t *wlfc = (athost_wl_status_info_t *)dhd->wlfc_state;
+	athost_wl_status_info_t* wlfc = (athost_wl_status_info_t*)dhd->wlfc_state;
 	wlfc_mac_descriptor_t* table;
 	wlfc_mac_descriptor_t* desc;
 	uint8 mac_handle;
@@ -2343,9 +2404,10 @@ _dhd_wlfc_packet_request(dhd_pub_t *dhd, uint8 *value)
 
 		desc->ac_bitmap = value[2] & (~(1<<AC_COUNT));
 		_dhd_wlfc_add_requested_entry(wlfc, desc);
-	} else
+	}
+	else {
 		wlfc->stats.packet_request_failed++;
-
+	}
 	return BCME_OK;
 }
 
@@ -2356,7 +2418,8 @@ _dhd_wlfc_reorderinfo_indicate(uint8 *val, uint8 len, uchar *info_buf, uint *inf
 		if (info_buf) {
 			bcopy(val, info_buf, len);
 			*info_len = len;
-		} else
+		}
+		else
 			*info_len = 0;
 	}
 }
@@ -2376,8 +2439,9 @@ bool dhd_wlfc_is_supported(dhd_pub_t *dhd)
 
 	dhd_os_wlfc_block(dhd);
 
-	if (!dhd->wlfc_state || (dhd->proptxstatus_mode == WLFC_FCMODE_NONE))
+	if (!dhd->wlfc_state || (dhd->proptxstatus_mode == WLFC_FCMODE_NONE)) {
 		rc =  FALSE;
+	}
 
 	dhd_os_wlfc_unblock(dhd);
 
@@ -2387,7 +2451,7 @@ bool dhd_wlfc_is_supported(dhd_pub_t *dhd)
 int dhd_wlfc_enable(dhd_pub_t *dhd)
 {
 	int i, rc = BCME_OK;
-	athost_wl_status_info_t *wlfc;
+	athost_wl_status_info_t* wlfc;
 
 	if (dhd == NULL) {
 		DHD_ERROR(("Error: %s():%d\n", __FUNCTION__, __LINE__));
@@ -2409,7 +2473,7 @@ int dhd_wlfc_enable(dhd_pub_t *dhd)
 	}
 
 	/* initialize state space */
-	wlfc = (athost_wl_status_info_t *)dhd->wlfc_state;
+	wlfc = (athost_wl_status_info_t*)dhd->wlfc_state;
 	memset(wlfc, 0, sizeof(athost_wl_status_info_t));
 
 	/* remember osh & dhdp */
@@ -2429,8 +2493,9 @@ int dhd_wlfc_enable(dhd_pub_t *dhd)
 	dhd->proptxstatus_mode = WLFC_FCMODE_EXPLICIT_CREDIT;
 
 	/* initialize all interfaces to accept traffic */
-	for (i = 0; i < WLFC_MAX_IFNUM; i++)
+	for (i = 0; i < WLFC_MAX_IFNUM; i++) {
 		wlfc->hostif_flow_state[i] = OFF;
+	}
 
 	_dhd_wlfc_mac_entry_update(wlfc, &wlfc->destination_entries.other,
 		eWLFC_MAC_ENTRY_ACTION_ADD, 0xff, 0, NULL, NULL, NULL);
@@ -2455,8 +2520,8 @@ dhd_wlfc_parse_header_info(dhd_pub_t *dhd, void* pktbuf, int tlv_hdr_len, uchar 
 	uint8* tmpbuf;
 	uint16 remainder = (uint16)tlv_hdr_len;
 	uint16 processed = 0;
-	athost_wl_status_info_t *wlfc = NULL;
-	void *entry;
+	athost_wl_status_info_t* wlfc = NULL;
+	void* entry;
 
 	if ((dhd == NULL) || (pktbuf == NULL)) {
 		DHD_ERROR(("Error: %s():%d\n", __FUNCTION__, __LINE__));
@@ -2470,7 +2535,7 @@ dhd_wlfc_parse_header_info(dhd_pub_t *dhd, void* pktbuf, int tlv_hdr_len, uchar 
 			dhd_os_wlfc_unblock(dhd);
 			return WLFC_UNSUPPORTED;
 		}
-		wlfc = (athost_wl_status_info_t *)dhd->wlfc_state;
+		wlfc = (athost_wl_status_info_t*)dhd->wlfc_state;
 	}
 
 	tmpbuf = (uint8*)PKTDATA(dhd->osh, pktbuf);
@@ -2514,12 +2579,13 @@ dhd_wlfc_parse_header_info(dhd_pub_t *dhd, void* pktbuf, int tlv_hdr_len, uchar 
 
 			if (type == WLFC_CTL_TYPE_TXSTATUS) {
 				_dhd_wlfc_compressed_txstatus_update(dhd, value, 1, &entry);
-			} else if (type == WLFC_CTL_TYPE_COMP_TXSTATUS) {
+			}
+			else if (type == WLFC_CTL_TYPE_COMP_TXSTATUS) {
 				uint8 compcnt_offset = WLFC_CTL_VALUE_LEN_TXSTATUS;
 
-				if (WLFC_GET_REUSESEQ(dhd->wlfc_mode))
+				if (WLFC_GET_REUSESEQ(dhd->wlfc_mode)) {
 					compcnt_offset += WLFC_CTL_VALUE_LEN_SEQ;
-
+				}
 				_dhd_wlfc_compressed_txstatus_update(dhd, value,
 					value[compcnt_offset], &entry);
 			}
@@ -2570,12 +2636,12 @@ dhd_wlfc_parse_header_info(dhd_pub_t *dhd, void* pktbuf, int tlv_hdr_len, uchar 
 }
 
 int
-dhd_wlfc_commit_packets(dhd_pub_t *dhdp, f_commitpkt_t fcommit, void *commit_ctx, void *pktbuf,
+dhd_wlfc_commit_packets(dhd_pub_t *dhdp, f_commitpkt_t fcommit, void* commit_ctx, void *pktbuf,
 	bool need_toggle_host_if)
 {
 	int ac, single_ac = 0, rc = BCME_OK;
 	dhd_wlfc_commit_info_t  commit_info;
-	athost_wl_status_info_t *ctx;
+	athost_wl_status_info_t* ctx;
 	int bus_retry_count = 0;
 
 	uint8 traffic_map = 0; /* packets (send + in queue), Bitmask for 4 ACs + BC/MC */
@@ -2601,7 +2667,7 @@ dhd_wlfc_commit_packets(dhd_pub_t *dhdp, f_commitpkt_t fcommit, void *commit_ctx
 		goto exit2;
 	}
 
-	ctx = (athost_wl_status_info_t *)dhdp->wlfc_state;
+	ctx = (athost_wl_status_info_t*)dhdp->wlfc_state;
 
 
 	if (dhdp->proptxstatus_module_ignore) {
@@ -2642,9 +2708,9 @@ dhd_wlfc_commit_packets(dhd_pub_t *dhdp, f_commitpkt_t fcommit, void *commit_ctx
 	}
 
 	for (ac = AC_COUNT; ac >= 0; ac--) {
-		if (ctx->pkt_cnt_per_ac[ac] == 0)
+		if (ctx->pkt_cnt_per_ac[ac] == 0) {
 			continue;
-
+		}
 		traffic_map |= (1 << ac);
 		single_ac = ac + 1;
 		while (FALSE == dhdp->proptxstatus_txoff) {
@@ -2666,13 +2732,13 @@ dhd_wlfc_commit_packets(dhd_pub_t *dhdp, f_commitpkt_t fcommit, void *commit_ctx
 			commit_info.pkt_type = (commit_info.needs_hdr) ? eWLFC_PKTTYPE_DELAYED :
 				eWLFC_PKTTYPE_SUPPRESSED;
 
-			if (commit_info.p == NULL)
+			if (commit_info.p == NULL) {
 				break;
+			}
 
-
-			if (!dhdp->proptxstatus_credit_ignore)
+			if (!dhdp->proptxstatus_credit_ignore) {
 				ASSERT(ctx->FIFO_credit[ac] >= commit_info.ac_fifo_credit_spent);
-
+			}
 			/* here we can ensure have credit or no credit needed */
 			rc = _dhd_wlfc_handle_packet_commit(ctx, ac, &commit_info, fcommit,
 				commit_ctx);
@@ -2810,8 +2876,8 @@ exit2:
 int
 dhd_wlfc_txcomplete(dhd_pub_t *dhd, void *txp, bool success)
 {
-	athost_wl_status_info_t *wlfc;
-	void *pout = NULL;
+	athost_wl_status_info_t* wlfc;
+	void* pout = NULL;
 
 	if ((dhd == NULL) || (txp == NULL)) {
 		DHD_ERROR(("Error: %s():%d\n", __FUNCTION__, __LINE__));
@@ -2825,7 +2891,7 @@ dhd_wlfc_txcomplete(dhd_pub_t *dhd, void *txp, bool success)
 		return WLFC_UNSUPPORTED;
 	}
 
-	wlfc = (athost_wl_status_info_t *)dhd->wlfc_state;
+	wlfc = (athost_wl_status_info_t*)dhd->wlfc_state;
 	if (DHD_PKTTAG_SIGNALONLY(PKTTAG(txp))) {
 #ifdef PROP_TXSTATUS_DEBUG
 		wlfc->stats.signal_only_pkts_freed++;
@@ -2863,9 +2929,9 @@ dhd_wlfc_txcomplete(dhd_pub_t *dhd, void *txp, bool success)
 		wlfc->stats.pktout++;
 	} else {
 		/* bus confirmed pkt went to firmware side */
-		if (WLFC_GET_AFQ(dhd->wlfc_mode))
+		if (WLFC_GET_AFQ(dhd->wlfc_mode)) {
 			_dhd_wlfc_enque_afq(wlfc, txp);
-
+		}
 	}
 
 	dhd_os_wlfc_unblock(dhd);
@@ -2910,7 +2976,8 @@ dhd_wlfc_init(dhd_pub_t *dhd)
 	bcm_mkiovar("tlv", (char *)&tlv, 4, iovbuf, sizeof(iovbuf));
 	if (dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf, sizeof(iovbuf), TRUE, 0) < 0) {
 		DHD_ERROR(("dhd_wlfc_init(): failed to enable/disable bdcv2 tlv signaling\n"));
-	} else {
+	}
+	else {
 		/*
 		Leaving the message for now, it should be removed after a while; once
 		the tlv situation is stable.
@@ -2985,7 +3052,8 @@ dhd_wlfc_hostreorder_init(dhd_pub_t *dhd)
 	if (dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf, sizeof(iovbuf), TRUE, 0) < 0) {
 		DHD_ERROR(("%s(): failed to enable/disable bdcv2 tlv signaling\n",
 			__FUNCTION__));
-	} else {
+	}
+	else {
 		/*
 		Leaving the message for now, it should be removed after a while; once
 		the tlv situation is stable.
@@ -3010,22 +3078,22 @@ dhd_wlfc_suspend(dhd_pub_t *dhd)
 
 	DHD_TRACE(("%s: masking wlfc events\n", __FUNCTION__));
 	if (!dhd->wlfc_enabled)
-		return -EPERM;
+		return -1;
 
-	bcm_mkiovar("tlv", NULL, 0, (char *)iovbuf, sizeof(iovbuf));
+	bcm_mkiovar("tlv", NULL, 0, (char*)iovbuf, sizeof(iovbuf));
 	if (dhd_wl_ioctl_cmd(dhd, WLC_GET_VAR, iovbuf, sizeof(iovbuf), FALSE, 0) < 0) {
 		DHD_ERROR(("%s: failed to get bdcv2 tlv signaling\n", __FUNCTION__));
-		return -EPERM;
+		return -1;
 	}
 	tlv = iovbuf[0];
 	if ((tlv & (WLFC_FLAGS_RSSI_SIGNALS | WLFC_FLAGS_XONXOFF_SIGNALS)) == 0)
 		return 0;
 	tlv &= ~(WLFC_FLAGS_RSSI_SIGNALS | WLFC_FLAGS_XONXOFF_SIGNALS);
-	bcm_mkiovar("tlv", (char *)&tlv, 4, (char *)iovbuf, sizeof(iovbuf));
+	bcm_mkiovar("tlv", (char *)&tlv, 4, (char*)iovbuf, sizeof(iovbuf));
 	if (dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf, sizeof(iovbuf), TRUE, 0) < 0) {
 		DHD_ERROR(("%s: failed to set bdcv2 tlv signaling to 0x%x\n",
 			__FUNCTION__, tlv));
-		return -EPERM;
+		return -1;
 	}
 
 	return 0;
@@ -3039,23 +3107,23 @@ dhd_wlfc_resume(dhd_pub_t *dhd)
 
 	DHD_TRACE(("%s: unmasking wlfc events\n", __FUNCTION__));
 	if (!dhd->wlfc_enabled)
-		return -EPERM;
+		return -1;
 
-	bcm_mkiovar("tlv", NULL, 0, (char *)iovbuf, sizeof(iovbuf));
+	bcm_mkiovar("tlv", NULL, 0, (char*)iovbuf, sizeof(iovbuf));
 	if (dhd_wl_ioctl_cmd(dhd, WLC_GET_VAR, iovbuf, sizeof(iovbuf), FALSE, 0) < 0) {
 		DHD_ERROR(("%s: failed to get bdcv2 tlv signaling\n", __FUNCTION__));
-		return -EPERM;
+		return -1;
 	}
 	tlv = iovbuf[0];
 	if ((tlv & (WLFC_FLAGS_RSSI_SIGNALS | WLFC_FLAGS_XONXOFF_SIGNALS)) ==
 		(WLFC_FLAGS_RSSI_SIGNALS | WLFC_FLAGS_XONXOFF_SIGNALS))
 		return 0;
 	tlv |= (WLFC_FLAGS_RSSI_SIGNALS | WLFC_FLAGS_XONXOFF_SIGNALS);
-	bcm_mkiovar("tlv", (char *)&tlv, 4, (char *)iovbuf, sizeof(iovbuf));
-	if (dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, (char *)iovbuf, sizeof(iovbuf), TRUE, 0) < 0) {
+	bcm_mkiovar("tlv", (char *)&tlv, 4, (char*)iovbuf, sizeof(iovbuf));
+	if (dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, (char*)iovbuf, sizeof(iovbuf), TRUE, 0) < 0) {
 		DHD_ERROR(("%s: failed to set bdcv2 tlv signaling to 0x%x\n",
 			__FUNCTION__, tlv));
-		return -EPERM;
+		return -1;
 	}
 
 	return 0;
@@ -3111,7 +3179,7 @@ dhd_wlfc_deinit(dhd_pub_t *dhd)
 {
 	char iovbuf[32]; /* Room for "ampdu_hostreorder" or "tlv" + '\0' + parameter */
 	/* cleanup all psq related resources */
-	athost_wl_status_info_t *wlfc;
+	athost_wl_status_info_t* wlfc;
 	uint32 tlv = 0;
 	uint32 hostreorder = 0;
 	int ret = BCME_OK;
@@ -3170,12 +3238,13 @@ dhd_wlfc_deinit(dhd_pub_t *dhd)
 		return WLFC_UNSUPPORTED;
 	}
 
-	wlfc = (athost_wl_status_info_t *)dhd->wlfc_state;
+	wlfc = (athost_wl_status_info_t*)dhd->wlfc_state;
 
 #ifdef PROP_TXSTATUS_DEBUG
-	if (!WLFC_GET_AFQ(dhd->wlfc_mode)) {
+	if (!WLFC_GET_AFQ(dhd->wlfc_mode))
+	{
 		int i;
-		wlfc_hanger_t *h = (wlfc_hanger_t *)wlfc->hanger;
+		wlfc_hanger_t* h = (wlfc_hanger_t*)wlfc->hanger;
 		for (i = 0; i < h->max_items; i++) {
 			if (h->items[i].state != WLFC_HANGER_ITEM_STATE_FREE) {
 				WLFC_DBGMESG(("%s() pkt[%d] = 0x%p, FIFO_credit_used:%d\n",
@@ -3207,7 +3276,7 @@ dhd_wlfc_deinit(dhd_pub_t *dhd)
 	return BCME_OK;
 }
 
-int dhd_wlfc_interface_event(dhd_pub_t *dhdp, uint8 action, uint8 ifid, uint8 iftype, uint8 *ea)
+int dhd_wlfc_interface_event(dhd_pub_t *dhdp, uint8 action, uint8 ifid, uint8 iftype, uint8* ea)
 {
 	int rc;
 
@@ -3229,7 +3298,7 @@ int dhd_wlfc_interface_event(dhd_pub_t *dhdp, uint8 action, uint8 ifid, uint8 if
 	return rc;
 }
 
-int dhd_wlfc_FIFOcreditmap_event(dhd_pub_t *dhdp, uint8 *event_data)
+int dhd_wlfc_FIFOcreditmap_event(dhd_pub_t *dhdp, uint8* event_data)
 {
 	int rc;
 
@@ -3278,12 +3347,12 @@ int
 dhd_wlfc_dump(dhd_pub_t *dhdp, struct bcmstrbuf *strbuf)
 {
 	int i;
-	uint8 *ea;
-	athost_wl_status_info_t *wlfc;
-	wlfc_hanger_t *h;
-	wlfc_mac_descriptor_t *mac_table;
-	wlfc_mac_descriptor_t *interfaces;
-	char *iftypes[] = {"STA", "AP", "WDS", "p2pGO", "p2pCL"};
+	uint8* ea;
+	athost_wl_status_info_t* wlfc;
+	wlfc_hanger_t* h;
+	wlfc_mac_descriptor_t* mac_table;
+	wlfc_mac_descriptor_t* interfaces;
+	char* iftypes[] = {"STA", "AP", "WDS", "p2pGO", "p2pCL"};
 
 	if (!dhdp || !strbuf) {
 		DHD_ERROR(("Error: %s():%d\n", __FUNCTION__, __LINE__));
@@ -3297,9 +3366,9 @@ dhd_wlfc_dump(dhd_pub_t *dhdp, struct bcmstrbuf *strbuf)
 		return WLFC_UNSUPPORTED;
 	}
 
-	wlfc = (athost_wl_status_info_t *)dhdp->wlfc_state;
+	wlfc = (athost_wl_status_info_t*)dhdp->wlfc_state;
 
-	h = (wlfc_hanger_t *)wlfc->hanger;
+	h = (wlfc_hanger_t*)wlfc->hanger;
 	if (h == NULL) {
 		bcm_bprintf(strbuf, "wlfc-hanger not initialized yet\n");
 	}
@@ -3309,7 +3378,7 @@ dhd_wlfc_dump(dhd_pub_t *dhdp, struct bcmstrbuf *strbuf)
 	bcm_bprintf(strbuf, "---- wlfc stats ----\n");
 
 	if (!WLFC_GET_AFQ(dhdp->wlfc_mode)) {
-		h = (wlfc_hanger_t *)wlfc->hanger;
+		h = (wlfc_hanger_t*)wlfc->hanger;
 		if (h == NULL) {
 			bcm_bprintf(strbuf, "wlfc-hanger not initialized yet\n");
 		} else {
@@ -3350,7 +3419,7 @@ dhd_wlfc_dump(dhd_pub_t *dhdp, struct bcmstrbuf *strbuf)
 	bcm_bprintf(strbuf, "\n");
 	for (i = 0; i < WLFC_MAX_IFNUM; i++) {
 		if (interfaces[i].occupied) {
-			char *iftype_desc;
+			char* iftype_desc;
 
 			if (interfaces[i].iftype > WLC_E_IF_ROLE_P2P_CLIENT)
 				iftype_desc = "<Unknown";
@@ -3584,8 +3653,8 @@ dhd_wlfc_dump(dhd_pub_t *dhdp, struct bcmstrbuf *strbuf)
 
 int dhd_wlfc_clear_counts(dhd_pub_t *dhd)
 {
-	athost_wl_status_info_t *wlfc;
-	wlfc_hanger_t *hanger;
+	athost_wl_status_info_t* wlfc;
+	wlfc_hanger_t* hanger;
 
 	if (dhd == NULL) {
 		DHD_ERROR(("Error: %s():%d\n", __FUNCTION__, __LINE__));
@@ -3599,12 +3668,12 @@ int dhd_wlfc_clear_counts(dhd_pub_t *dhd)
 		return WLFC_UNSUPPORTED;
 	}
 
-	wlfc = (athost_wl_status_info_t *)dhd->wlfc_state;
+	wlfc = (athost_wl_status_info_t*)dhd->wlfc_state;
 
 	memset(&wlfc->stats, 0, sizeof(athost_wl_stat_counters_t));
 
 	if (!WLFC_GET_AFQ(dhd->wlfc_mode)) {
-		hanger = (wlfc_hanger_t *)wlfc->hanger;
+		hanger = (wlfc_hanger_t*)wlfc->hanger;
 
 		hanger->pushed = 0;
 		hanger->popped = 0;
@@ -3660,17 +3729,18 @@ int dhd_wlfc_set_mode(dhd_pub_t *dhd, int val)
 	dhd_os_wlfc_block(dhd);
 
 	/* two locks for write variable, then read can use any one lock */
-	if (dhd->wlfc_state)
+	if (dhd->wlfc_state) {
 		dhd->proptxstatus_mode = val & 0xff;
+	}
 
 	dhd_os_wlfc_unblock(dhd);
 
 	return BCME_OK;
 }
 
-bool dhd_wlfc_is_header_only_pkt(dhd_pub_t *dhd, void *pktbuf)
+bool dhd_wlfc_is_header_only_pkt(dhd_pub_t * dhd, void *pktbuf)
 {
-	athost_wl_status_info_t *wlfc;
+	athost_wl_status_info_t* wlfc;
 	bool rc = FALSE;
 
 	if (dhd == NULL) {
@@ -3685,7 +3755,7 @@ bool dhd_wlfc_is_header_only_pkt(dhd_pub_t *dhd, void *pktbuf)
 		return FALSE;
 	}
 
-	wlfc = (athost_wl_status_info_t *)dhd->wlfc_state;
+	wlfc = (athost_wl_status_info_t*)dhd->wlfc_state;
 
 	if (PKTLEN(wlfc->osh, pktbuf) == 0) {
 		wlfc->stats.wlfc_header_only_pkt++;
@@ -3704,21 +3774,25 @@ int dhd_wlfc_flowcontrol(dhd_pub_t *dhdp, bool state, bool bAcquireLock)
 		return BCME_BADARG;
 	}
 
-	if (bAcquireLock)
+	if (bAcquireLock) {
 		dhd_os_wlfc_block(dhdp);
+	}
 
 	if (!dhdp->wlfc_state || (dhdp->proptxstatus_mode == WLFC_FCMODE_NONE) ||
 		dhdp->proptxstatus_module_ignore) {
-		if (bAcquireLock)
+		if (bAcquireLock) {
 			dhd_os_wlfc_unblock(dhdp);
+		}
 		return WLFC_UNSUPPORTED;
 	}
 
-	if (state != dhdp->proptxstatus_txoff)
+	if (state != dhdp->proptxstatus_txoff) {
 		dhdp->proptxstatus_txoff = state;
+	}
 
-	if (bAcquireLock)
+	if (bAcquireLock) {
 		dhd_os_wlfc_unblock(dhdp);
+	}
 
 	return BCME_OK;
 }
@@ -3776,7 +3850,8 @@ int dhd_wlfc_set_module_ignore(dhd_pub_t *dhd, int val)
 		if (dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf, sizeof(iovbuf), TRUE, 0) < 0) {
 			DHD_ERROR(("%s: failed to set bdcv2 tlv signaling to 0x%x\n",
 				__FUNCTION__, tlv));
-		} else {
+		}
+		else {
 			DHD_ERROR(("%s: successfully set bdcv2 tlv signaling to 0x%x\n",
 				__FUNCTION__, tlv));
 		}

@@ -3,7 +3,6 @@
  * Broadcom 802.11 Networking Adapter.
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -60,7 +59,7 @@ extern uint32 wl_msg_level2;
 #define WL_WSEC(args)
 #define WL_WSEC_DUMP(args)
 #endif
-#define WL_PCIE(args)		do {if (wl_msg_level2 & WL_PCIE_VAL) WL_PRINT(args); } while (0)
+#define WL_PCIE(args)		do {if (wl_msg_level2 & WL_PCIE_VAL) WL_PRINT(args);} while (0)
 #define WL_PCIE_ON()		(wl_msg_level2 & WL_PCIE_VAL)
 
 extern uint32 wl_msg_level;

@@ -2,7 +2,6 @@
  * IP Packet Parser Module.
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -186,7 +185,7 @@ _tdata_psh_info_pool_deq(tcpack_sup_module_t *tcpack_sup_mod)
 
 	tdata_psh_info = tcpack_sup_mod->tdata_psh_info_free;
 	if (tdata_psh_info == NULL)
-		DHD_TRACE(("%s %d: Out of tdata_disc_grp\n", __FUNCTION__, __LINE__));
+		DHD_ERROR(("%s %d: Out of tdata_disc_grp\n", __FUNCTION__, __LINE__));
 	else {
 		tcpack_sup_mod->tdata_psh_info_free = tdata_psh_info->next;
 		tdata_psh_info->next = NULL;
@@ -866,7 +865,7 @@ dhd_tcpdata_info_get(dhd_pub_t *dhdp, void *pkt)
 				bcopy(last_tdata_info, tdata_info_tmp, sizeof(tcpdata_info_t));
 			}
 			bzero(last_tdata_info, sizeof(tcpdata_info_t));
-			DHD_TRACE(("%s %d: tcpdata_info(idx %d) is aged out. ttl cnt is now %d\n",
+			DHD_ERROR(("%s %d: tcpdata_info(idx %d) is aged out. ttl cnt is now %d\n",
 				__FUNCTION__, __LINE__, i, tcpack_sup_mod->tcpdata_info_cnt));
 			/* Don't increase "i" here, so that the prev last tcpdata_info is checked */
 		} else
@@ -895,7 +894,7 @@ dhd_tcpdata_info_get(dhd_pub_t *dhdp, void *pkt)
 		/* No TCP flow with the same IP addr and TCP port is found
 		 * in tcp_data_info_tbl. So add this flow to the table.
 		 */
-		DHD_TRACE(("%s %d: Add data info to tbl[%d]: IP addr "IPV4_ADDR_STR" "IPV4_ADDR_STR
+		DHD_ERROR(("%s %d: Add data info to tbl[%d]: IP addr "IPV4_ADDR_STR" "IPV4_ADDR_STR
 			" TCP port %d %d\n",
 			__FUNCTION__, __LINE__, tcpack_sup_mod->tcpdata_info_cnt,
 			IPV4_ADDR_TO_STR(ntoh32_ua(&ip_hdr[IPV4_SRC_IP_OFFSET])),
@@ -921,7 +920,7 @@ dhd_tcpdata_info_get(dhd_pub_t *dhdp, void *pkt)
 #endif /* DHDTCPACK_SUP_DBG */
 
 	if (tdata_psh_info == NULL) {
-		DHD_TRACE(("%s %d: No more free tdata_psh_info!!\n", __FUNCTION__, __LINE__));
+		DHD_ERROR(("%s %d: No more free tdata_psh_info!!\n", __FUNCTION__, __LINE__));
 		ret = BCME_ERROR;
 		dhd_os_tcpackunlock(dhdp);
 		goto exit;

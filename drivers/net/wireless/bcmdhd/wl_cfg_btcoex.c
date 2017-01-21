@@ -2,13 +2,13 @@
  * Linux cfg80211 driver - Dongle Host Driver (DHD) related
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- *
+ * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
  * available at http://www.broadcom.com/licenses/GPLv2.php, with the
  * following added to such license:
- *
+ * 
  *      As a special exception, the copyright holders of this software give you
  * permission to link this software with independent modules, and to copy and
  * distribute the resulting executable under terms of your choice, provided that
@@ -16,7 +16,7 @@
  * the license of that module.  An independent module is a module which is not
  * derived from this software.  The special exception does not apply to any
  * modifications of the software.
- *
+ * 
  *      Notwithstanding the above, under no circumstances may you combine this
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
@@ -38,7 +38,7 @@
 #ifdef PKT_FILTER_SUPPORT
 extern uint dhd_pkt_filter_enable;
 extern uint dhd_master_mode;
-extern void dhd_pktfilter_offload_enable(dhd_pub_t *dhd, char *arg, int enable, int master_mode);
+extern void dhd_pktfilter_offload_enable(dhd_pub_t * dhd, char *arg, int enable, int master_mode);
 #endif
 
 struct btcoex_info {
@@ -94,7 +94,7 @@ dev_wlc_intvar_get_reg(struct net_device *dev, char *name,
 	error = wldev_ioctl(dev, WLC_GET_VAR, (char *)(&var), sizeof(var.buf), false);
 
 	*retval = dtoh32(var.val);
-	return error;
+	return (error);
 }
 
 static int
@@ -108,14 +108,14 @@ dev_wlc_bufvar_set(struct net_device *dev, char *name, char *buf, int len)
 
 	bcm_mkiovar(name, buf, len, ioctlbuf_local, sizeof(ioctlbuf_local));
 
-	return wldev_ioctl(dev, WLC_SET_VAR, ioctlbuf_local, sizeof(ioctlbuf_local), true);
+	return (wldev_ioctl(dev, WLC_SET_VAR, ioctlbuf_local, sizeof(ioctlbuf_local), true));
 }
 /*
 get named driver variable to uint register value and return error indication
 calling example: dev_wlc_intvar_set_reg(dev, "btc_params",66, value)
 */
 static int
-dev_wlc_intvar_set_reg(struct net_device *dev, char *name, char *addr, char *val)
+dev_wlc_intvar_set_reg(struct net_device *dev, char *name, char *addr, char * val)
 {
 	char reg_addr[8];
 
@@ -123,7 +123,7 @@ dev_wlc_intvar_set_reg(struct net_device *dev, char *name, char *addr, char *val
 	memcpy((char *)&reg_addr[0], (char *)addr, 4);
 	memcpy((char *)&reg_addr[4], (char *)val, 4);
 
-	return dev_wlc_bufvar_set(dev, name, (char *)&reg_addr[0], sizeof(reg_addr));
+	return (dev_wlc_bufvar_set(dev, name, (char *)&reg_addr[0], sizeof(reg_addr)));
 }
 
 static bool btcoex_is_sco_active(struct net_device *dev)
@@ -207,7 +207,7 @@ static int set_btc_esco_params(struct net_device *dev, bool trump_sco)
 			WL_ERR((":%s: save btc_params failed\n",
 				__FUNCTION__));
 			saved_status = FALSE;
-			return -EPERM;
+			return -1;
 		}
 
 		WL_TRACE(("override with [50,51,64,65,71]:"
@@ -260,7 +260,7 @@ static int set_btc_esco_params(struct net_device *dev, bool trump_sco)
 	} else {
 		WL_ERR((":%s att to restore not saved BTCOEX params\n",
 			__FUNCTION__));
-		return -EPERM;
+		return -1;
 	}
 	return 0;
 }
@@ -315,56 +315,56 @@ static void wl_cfg80211_bt_handler(struct work_struct *work)
 	}
 
 	switch (btcx_inf->bt_state) {
-	case BT_DHCP_START:
-		/* DHCP started
-		 * provide OPPORTUNITY window to get DHCP address
-		 */
-		WL_TRACE(("bt_dhcp stm: started \n"));
+		case BT_DHCP_START:
+			/* DHCP started
+			 * provide OPPORTUNITY window to get DHCP address
+			 */
+			WL_TRACE(("bt_dhcp stm: started \n"));
 
-		btcx_inf->bt_state = BT_DHCP_OPPR_WIN;
-		mod_timer(&btcx_inf->timer,
-			jiffies + msecs_to_jiffies(BT_DHCP_OPPR_WIN_TIME));
-		btcx_inf->timer_on = 1;
-		break;
+			btcx_inf->bt_state = BT_DHCP_OPPR_WIN;
+			mod_timer(&btcx_inf->timer,
+				jiffies + msecs_to_jiffies(BT_DHCP_OPPR_WIN_TIME));
+			btcx_inf->timer_on = 1;
+			break;
 
-	case BT_DHCP_OPPR_WIN:
-		if (btcx_inf->dhcp_done) {
-			WL_TRACE(("DHCP Done before T1 expiration\n"));
-			goto btc_coex_idle;
-		}
+		case BT_DHCP_OPPR_WIN:
+			if (btcx_inf->dhcp_done) {
+				WL_TRACE(("DHCP Done before T1 expiration\n"));
+				goto btc_coex_idle;
+			}
 
-		/* DHCP is not over yet, start lowering BT priority
-		 * enforce btc_params + flags if necessary
-		 */
-		WL_TRACE(("DHCP T1:%d expired\n", BT_DHCP_OPPR_WIN_TIME));
-		if (btcx_inf->dev)
+			/* DHCP is not over yet, start lowering BT priority
+			 * enforce btc_params + flags if necessary
+			 */
+			WL_TRACE(("DHCP T1:%d expired\n", BT_DHCP_OPPR_WIN_TIME));
+			if (btcx_inf->dev)
 				wl_cfg80211_bt_setflag(btcx_inf->dev, TRUE);
-		btcx_inf->bt_state = BT_DHCP_FLAG_FORCE_TIMEOUT;
-		mod_timer(&btcx_inf->timer,
+			btcx_inf->bt_state = BT_DHCP_FLAG_FORCE_TIMEOUT;
+			mod_timer(&btcx_inf->timer,
 				jiffies + msecs_to_jiffies(BT_DHCP_FLAG_FORCE_TIME));
-		btcx_inf->timer_on = 1;
-		break;
+			btcx_inf->timer_on = 1;
+			break;
 
-	case BT_DHCP_FLAG_FORCE_TIMEOUT:
-		if (btcx_inf->dhcp_done) {
-			WL_TRACE(("DHCP Done before T2 expiration\n"));
-		} else {
-			/* Noo dhcp during T1+T2, restore BT priority */
-			WL_TRACE(("DHCP wait interval T2:%d msec expired\n",
-				BT_DHCP_FLAG_FORCE_TIME));
-		}
+		case BT_DHCP_FLAG_FORCE_TIMEOUT:
+			if (btcx_inf->dhcp_done) {
+				WL_TRACE(("DHCP Done before T2 expiration\n"));
+			} else {
+				/* Noo dhcp during T1+T2, restore BT priority */
+				WL_TRACE(("DHCP wait interval T2:%d msec expired\n",
+					BT_DHCP_FLAG_FORCE_TIME));
+			}
 
-		/* Restoring default bt priority */
-		if (btcx_inf->dev)
-			wl_cfg80211_bt_setflag(btcx_inf->dev, FALSE);
+			/* Restoring default bt priority */
+			if (btcx_inf->dev)
+				wl_cfg80211_bt_setflag(btcx_inf->dev, FALSE);
 btc_coex_idle:
-		btcx_inf->bt_state = BT_DHCP_IDLE;
-		btcx_inf->timer_on = 0;
-		break;
+			btcx_inf->bt_state = BT_DHCP_IDLE;
+			btcx_inf->timer_on = 0;
+			break;
 
-	default:
-		WL_ERR(("error g_status=%d !!!\n",	btcx_inf->bt_state));
-		if (btcx_inf->dev)
+		default:
+			WL_ERR(("error g_status=%d !!!\n",	btcx_inf->bt_state));
+			if (btcx_inf->dev)
 				wl_cfg80211_bt_setflag(btcx_inf->dev, FALSE);
 			btcx_inf->bt_state = BT_DHCP_IDLE;
 			btcx_inf->timer_on = 0;
@@ -374,7 +374,7 @@ btc_coex_idle:
 	net_os_wake_unlock(btcx_inf->dev);
 }
 
-void *wl_cfg80211_btcoex_init(struct net_device *ndev)
+void* wl_cfg80211_btcoex_init(struct net_device *ndev)
 {
 	struct btcoex_info *btco_inf = NULL;
 
@@ -432,7 +432,7 @@ int wl_cfg80211_set_btcoex_dhcp(struct net_device *dev, dhd_pub_t *dhd, char *co
 	char buf_flag7_default[8] =   { 7, 00, 00, 00, 0x0, 0x00, 0x00, 0x00};
 
 	/* Figure out powermode 1 or o command */
-	strncpy((char *)&powermode_val, command + strlen("BTCOEXMODE") + 1, 1);
+	strncpy((char *)&powermode_val, command + strlen("BTCOEXMODE") +1, 1);
 
 	if (strnicmp((char *)&powermode_val, "1", strlen("1")) == 0) {
 		WL_TRACE_HW4(("DHCP session starts\n"));
@@ -451,9 +451,9 @@ int wl_cfg80211_set_btcoex_dhcp(struct net_device *dev, dhd_pub_t *dhd, char *co
 		if ((saved_status == FALSE) &&
 			(!dev_wlc_intvar_get_reg(dev, "btc_params", 66,  &saved_reg66)) &&
 			(!dev_wlc_intvar_get_reg(dev, "btc_params", 41,  &saved_reg41)) &&
-			(!dev_wlc_intvar_get_reg(dev, "btc_params", 68,  &saved_reg68))) {
-			saved_status = TRUE;
-			WL_TRACE(("Saved 0x%x 0x%x 0x%x\n",
+			(!dev_wlc_intvar_get_reg(dev, "btc_params", 68,  &saved_reg68)))   {
+				saved_status = TRUE;
+				WL_TRACE(("Saved 0x%x 0x%x 0x%x\n",
 					saved_reg66, saved_reg41, saved_reg68));
 
 				/* Disable PM mode during dhpc session */
@@ -480,9 +480,12 @@ int wl_cfg80211_set_btcoex_dhcp(struct net_device *dev, dhd_pub_t *dhd, char *co
 					mod_timer(&btco_inf->timer, btco_inf->timer.expires);
 					WL_TRACE(("enable BT DHCP Timer\n"));
 				}
-		} else if (saved_status == TRUE)
+		}
+		else if (saved_status == TRUE) {
 			WL_ERR(("was called w/o DHCP OFF. Continue\n"));
-	} else if (strnicmp((char *)&powermode_val, "2", strlen("2")) == 0) {
+		}
+	}
+	else if (strnicmp((char *)&powermode_val, "2", strlen("2")) == 0) {
 
 
 
@@ -535,10 +538,12 @@ int wl_cfg80211_set_btcoex_dhcp(struct net_device *dev, dhd_pub_t *dhd, char *co
 		}
 		saved_status = FALSE;
 
-	} else
+	}
+	else {
 		WL_ERR(("Unkwown yet power setting, ignored\n"));
+	}
 
 	snprintf(command, 3, "OK");
 
-	return strlen("OK");
+	return (strlen("OK"));
 }

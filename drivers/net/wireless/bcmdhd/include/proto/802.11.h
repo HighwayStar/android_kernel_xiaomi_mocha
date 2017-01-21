@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
- *
+ * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
@@ -185,6 +184,7 @@ BWL_PRE_PACKED_STRUCT struct dot11_action_vs_frmhdr {
 	uint8	data[1];
 } BWL_POST_PACKED_STRUCT;
 typedef struct dot11_action_vs_frmhdr dot11_action_vs_frmhdr_t;
+
 #define DOT11_ACTION_VS_HDR_LEN	6
 
 #define BCM_ACTION_OUI_BYTE0	0x00

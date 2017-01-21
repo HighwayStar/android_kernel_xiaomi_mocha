@@ -2,7 +2,6 @@
  * Linux OS Independent Layer
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -90,7 +89,7 @@ typedef struct bcm_static_pkt {
 
 static bcm_static_pkt_t *bcm_static_skb = 0;
 
-void *wifi_platform_prealloc(void *adapter, int section, unsigned long size);
+void* wifi_platform_prealloc(void *adapter, int section, unsigned long size);
 #endif /* CONFIG_DHD_USE_STATIC_BUF */
 
 typedef struct bcm_mem_link {
@@ -236,7 +235,7 @@ osl_attach(void *pdev, uint bustype, bool pkttag)
 	osl_t *osh;
 	gfp_t flags;
 
-	flags = CAN_SLEEP() ? GFP_KERNEL : GFP_ATOMIC;
+	flags = CAN_SLEEP() ? GFP_KERNEL: GFP_ATOMIC;
 	if (!(osh = kmalloc(sizeof(osl_t), flags)))
 		return osh;
 
@@ -258,9 +257,9 @@ osl_attach(void *pdev, uint bustype, bool pkttag)
 
 		spin_lock_init(&(osh->cmn->pktalloc_lock));
 
-	} else
+	} else {
 		osh->cmn = *osl_cmn;
-
+	}
 	atomic_add(1, &osh->cmn->refcount);
 
 	/* Check that error map has the right number of entries in it */
@@ -311,7 +310,8 @@ int osl_static_mem_init(osl_t *osh, void *adapter)
 				ASSERT(osh->magic == OS_HANDLE_MAGIC);
 				kfree(osh);
 				return -ENOMEM;
-			} else
+			}
+			else
 				printk("alloc static buf at %x!\n", (unsigned int)bcm_static_buf);
 
 
@@ -351,7 +351,7 @@ void osl_set_bus_handle(osl_t *osh, void *bus_handle)
 	osh->bus_handle = bus_handle;
 }
 
-void *osl_get_bus_handle(osl_t *osh)
+void* osl_get_bus_handle(osl_t *osh)
 {
 	return osh->bus_handle;
 }
@@ -373,12 +373,12 @@ osl_detach(osl_t *osh)
 int osl_static_mem_deinit(osl_t *osh, void *adapter)
 {
 #ifdef CONFIG_DHD_USE_STATIC_BUF
-	if (bcm_static_buf)
+	if (bcm_static_buf) {
 		bcm_static_buf = 0;
-
-	if (bcm_static_skb)
+	}
+	if (bcm_static_skb) {
 		bcm_static_skb = 0;
-
+	}
 #endif
 	return 0;
 }
@@ -480,7 +480,7 @@ osl_ctfpool_init(osl_t *osh, uint numobj, uint size)
 {
 	gfp_t flags;
 
-	flags = CAN_SLEEP() ? GFP_KERNEL : GFP_ATOMIC;
+	flags = CAN_SLEEP() ? GFP_KERNEL: GFP_ATOMIC;
 	osh->ctfpool = kzalloc(sizeof(ctfpool_t), flags);
 	ASSERT(osh->ctfpool);
 
@@ -491,7 +491,7 @@ osl_ctfpool_init(osl_t *osh, uint numobj, uint size)
 
 	while (numobj--) {
 		if (!osl_ctfpool_add(osh))
-			return -EPERM;
+			return -1;
 		osh->ctfpool->fast_frees--;
 	}
 
@@ -776,7 +776,6 @@ void BCMFASTPATH
 osl_pktfree(osl_t *osh, void *p, bool send)
 {
 	struct sk_buff *skb, *nskb;
-
 	if (osh == NULL)
 		return;
 
@@ -1029,7 +1028,6 @@ osl_malloc(osl_t *osh, uint size)
 	/* only ASSERT if osh is defined */
 	if (osh)
 		ASSERT(osh->magic == OS_HANDLE_MAGIC);
-
 #ifdef CONFIG_DHD_USE_STATIC_BUF
 	if (bcm_static_buf)
 	{
@@ -1064,7 +1062,7 @@ osl_malloc(osl_t *osh, uint size)
 original:
 #endif /* CONFIG_DHD_USE_STATIC_BUF */
 
-	flags = CAN_SLEEP() ? GFP_KERNEL : GFP_ATOMIC;
+	flags = CAN_SLEEP() ? GFP_KERNEL: GFP_ATOMIC;
 	if ((addr = kmalloc(size, flags)) == NULL) {
 		if (osh)
 			osh->failed++;
@@ -1083,8 +1081,9 @@ osl_mallocz(osl_t *osh, uint size)
 
 	ptr = osl_malloc(osh, size);
 
-	if (ptr != NULL)
+	if (ptr != NULL) {
 		bzero(ptr, size);
+	}
 
 	return ptr;
 }
@@ -1129,7 +1128,7 @@ osl_check_memleak(osl_t *osh)
 {
 	ASSERT((osh && (osh->magic == OS_HANDLE_MAGIC)));
 	if (atomic_read(&osh->cmn->refcount) == 1)
-		return atomic_read(&osh->cmn->malloced);
+		return (atomic_read(&osh->cmn->malloced));
 	else
 		return 0;
 }
@@ -1138,7 +1137,7 @@ uint
 osl_malloced(osl_t *osh)
 {
 	ASSERT((osh && (osh->magic == OS_HANDLE_MAGIC)));
-		return atomic_read(&osh->cmn->malloced);
+		return (atomic_read(&osh->cmn->malloced));
 }
 
 uint
@@ -1268,7 +1267,7 @@ inline void osl_prefetch(const void *ptr)
 		: "o" (*(char *)ptr)
 		: "cc");
 }
-#endif
+#endif 
 
 #if defined(BCMASSERT_LOG)
 void
@@ -1455,7 +1454,7 @@ uint
 osl_pktalloced(osl_t *osh)
 {
 	if (atomic_read(&osh->cmn->refcount) == 1)
-		return atomic_read(&osh->cmn->pktalloced);
+		return (atomic_read(&osh->cmn->pktalloced));
 	else
 		return 0;
 }

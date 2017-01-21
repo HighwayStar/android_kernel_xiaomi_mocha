@@ -2,7 +2,6 @@
  * Broadcom Dongle Host Driver (DHD), common DHD core.
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -109,7 +108,7 @@ const char dhd_version[] = "Dongle Host Driver, version " EPI_VERSION_STR
 	DHD_COMPILED " on " __DATE__ " at " __TIME__;
 #else
 const char dhd_version[] = "\nDongle Host Driver, version " EPI_VERSION_STR "\nCompiled from ";
-#endif
+#endif 
 
 void dhd_set_timer(void *bus, uint wdtick);
 
@@ -201,6 +200,7 @@ const bcm_iovar_t dhd_iovars[] = {
 #endif /* DHDTCPACK_SUPPRESS */
 	{NULL, 0, 0, 0, 0 }
 };
+
 #define DHD_IOVAR_BUF_SIZE	128
 
 /* to NDIS developer, the structure dhd_common is redundant,
@@ -298,6 +298,7 @@ dhd_wl_ioctl(dhd_pub_t *dhd_pub, int ifindex, wl_ioctl_t *ioc, void *buf, int le
 
 
 	}
+
 	return ret;
 }
 
@@ -1217,13 +1218,13 @@ wl_host_event(dhd_pub_t *dhd_pub, int *ifidx, void *pktdata,
 
 #ifdef PROP_TXSTATUS
 		{
-			uint8 *ea = pvt_data->eth.ether_dhost;
+			uint8* ea = pvt_data->eth.ether_dhost;
 			WLFC_DBGMESG(("WLC_E_IF: idx:%d, action:%s, iftype:%s, "
-						"[%02x:%02x:%02x:%02x:%02x:%02x]\n",
-						ifevent->ifidx,
-						((ifevent->opcode == WLC_E_IF_ADD) ? "ADD":"DEL"),
-						((ifevent->role == 0) ? "STA":"AP "),
-						ea[0], ea[1], ea[2], ea[3], ea[4], ea[5]));
+			              "[%02x:%02x:%02x:%02x:%02x:%02x]\n",
+			              ifevent->ifidx,
+			              ((ifevent->opcode == WLC_E_IF_ADD) ? "ADD":"DEL"),
+			              ((ifevent->role == 0) ? "STA":"AP "),
+			              ea[0], ea[1], ea[2], ea[3], ea[4], ea[5]));
 			(void)ea;
 
 			if (ifevent->opcode == WLC_E_IF_CHANGE)
@@ -1249,7 +1250,7 @@ wl_host_event(dhd_pub_t *dhd_pub, int *ifidx, void *pktdata,
 
 					DHD_ERROR(("%s: dhd_event_ifadd failed ifidx: %d  %s\n",
 						__FUNCTION__, ifevent->ifidx, event->ifname));
-					return BCME_ERROR;
+					return (BCME_ERROR);
 				}
 			} else if (ifevent->opcode == WLC_E_IF_DEL) {
 				dhd_event_ifdel(dhd_pub->info, ifevent, event->ifname,
@@ -1263,7 +1264,7 @@ wl_host_event(dhd_pub_t *dhd_pub, int *ifidx, void *pktdata,
 		} else {
 #ifndef PROP_TXSTATUS
 			DHD_ERROR(("%s: Invalid ifidx %d for %s\n",
-			           __FUNCTION__, ifevent->ifidx, event->ifname));
+				__FUNCTION__, ifevent->ifidx, event->ifname));
 #endif /* !PROP_TXSTATUS */
 		}
 
@@ -1293,7 +1294,7 @@ wl_host_event(dhd_pub_t *dhd_pub, int *ifidx, void *pktdata,
 	case WLC_E_PFN_BEST_BATCHING:
 		dhd_pno_event_handler(dhd_pub, event, (void *)event_data);
 		break;
-#endif
+#endif 
 		/* These are what external supplicant/authenticator wants */
 		/* fall through */
 	case WLC_E_LINK:
@@ -1763,9 +1764,8 @@ dhd_arp_get_arp_hostip_table(dhd_pub_t *dhd, void *buf, int buflen, int idx)
 	bool clr_bottom = FALSE;
 
 	if (!buf)
-		return -EPERM;
-	if (dhd == NULL)
-		return -EPERM;
+		return -1;
+	if (dhd == NULL) return -1;
 	if (dhd->arp_version == 1)
 		idx = 0;
 
@@ -1777,7 +1777,7 @@ dhd_arp_get_arp_hostip_table(dhd_pub_t *dhd, void *buf, int buflen, int idx)
 		DHD_TRACE(("%s: ioctl WLC_GET_VAR error %d\n",
 		__FUNCTION__, retcode));
 
-		return -EPERM;
+		return -1;
 	}
 
 	/* clean up the buf, ascii reminder */
@@ -1794,6 +1794,7 @@ dhd_arp_get_arp_hostip_table(dhd_pub_t *dhd, void *buf, int buflen, int idx)
 	return 0;
 }
 #endif /* ARP_OFFLOAD_SUPPORT  */
+
 /*
  * Neighbor Discovery Offload: enable NDO feature
  * Called  by ipv6 event handler when interface comes up/goes down
@@ -1812,7 +1813,7 @@ dhd_ndo_enable(dhd_pub_t * dhd, int ndo_enable)
 	if (!iov_len) {
 		DHD_ERROR(("%s: Insufficient iovar buffer size %zu \n",
 			__FUNCTION__, sizeof(iovbuf)));
-		return -EPERM;
+		return -1;
 	}
 	retcode = dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf, iov_len, TRUE, 0);
 	if (retcode)
@@ -1844,7 +1845,7 @@ dhd_ndo_add_ip(dhd_pub_t *dhd, char* ipv6addr, int idx)
 	if (!iov_len) {
 		DHD_ERROR(("%s: Insufficient iovar buffer size %zu \n",
 			__FUNCTION__, sizeof(iovbuf)));
-		return -EPERM;
+		return -1;
 	}
 	retcode = dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf, iov_len, TRUE, idx);
 
@@ -1854,6 +1855,7 @@ dhd_ndo_add_ip(dhd_pub_t *dhd, char* ipv6addr, int idx)
 	else
 		DHD_TRACE(("%s: ndo ipaddr entry added \n",
 		__FUNCTION__));
+
 	return retcode;
 }
 /*
@@ -1875,7 +1877,7 @@ dhd_ndo_remove_ip(dhd_pub_t *dhd, int idx)
 	if (!iov_len) {
 		DHD_ERROR(("%s: Insufficient iovar buffer size %zu \n",
 			__FUNCTION__, sizeof(iovbuf)));
-		return -EPERM;
+		return -1;
 	}
 	retcode = dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf, iov_len, TRUE, idx);
 

@@ -2,7 +2,6 @@
  * SDIO access interface for drivers - linux specific (pci only)
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -33,7 +32,6 @@
 
 #include <typedefs.h>
 #include <linuxver.h>
-
 #include <linux/pci.h>
 #include <linux/completion.h>
 
@@ -132,7 +130,7 @@ bcmsdh_chipmatch(uint16 vendor, uint16 device)
 	return (FALSE);
 }
 
-void *bcmsdh_probe(osl_t *osh, void *dev, void *sdioh, void *adapter_info, uint bus_type,
+void* bcmsdh_probe(osl_t *osh, void *dev, void *sdioh, void *adapter_info, uint bus_type,
 	uint bus_num, uint slot_num)
 {
 	ulong regs;
@@ -326,7 +324,7 @@ static irqreturn_t wlan_oob_irq(int irq, void *dev_id)
 }
 
 int bcmsdh_oob_intr_register(bcmsdh_info_t *bcmsdh, bcmsdh_cb_fn_t oob_irq_handler,
-	void *oob_irq_handler_context)
+	void* oob_irq_handler_context)
 {
 	int err = 0;
 	bcmsdh_os_info_t *bcmsdh_osinfo = bcmsdh->os_cxt;
@@ -377,7 +375,7 @@ void bcmsdh_oob_intr_unregister(bcmsdh_info_t *bcmsdh)
 	free_irq(bcmsdh_osinfo->oob_irq_num, bcmsdh);
 	bcmsdh_osinfo->oob_irq_registered = FALSE;
 }
-#endif
+#endif 
 
 /* Module parameters specific to each host-controller driver */
 

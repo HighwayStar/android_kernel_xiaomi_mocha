@@ -2,14 +2,13 @@
  * DHD Bus Module for PCIE
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
- *
+ * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
  * available at http://www.broadcom.com/licenses/GPLv2.php, with the
  * following added to such license:
- *
+ * 
  *      As a special exception, the copyright holders of this software give you
  * permission to link this software with independent modules, and to copy and
  * distribute the resulting executable under terms of your choice, provided that
@@ -17,7 +16,7 @@
  * the license of that module.  An independent module is a module which is not
  * derived from this software.  The special exception does not apply to any
  * modifications of the software.
- *
+ * 
  *      Notwithstanding the above, under no circumstances may you combine this
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
@@ -177,12 +176,12 @@ dhdpcie_bus_reg_map(osl_t *osh, ulong addr, int size)
 void
 dhdpcie_bus_reg_unmap(osl_t *osh, ulong addr, int size)
 {
-	REG_UNMAP((void *)(uintptr)addr);
+	REG_UNMAP((void*)(uintptr)addr);
 	return;
 }
 
 /** 'tcm' is the *host* virtual address at which tcm is mapped */
-dhd_bus_t *dhdpcie_bus_attach(osl_t *osh, volatile char *regs, volatile char *tcm)
+dhd_bus_t* dhdpcie_bus_attach(osl_t *osh, volatile char* regs, volatile char* tcm)
 {
 	dhd_bus_t *bus;
 
@@ -294,48 +293,48 @@ dhdpcie_bus_isr(dhd_bus_t *bus)
 {
 
 	do {
-		DHD_TRACE(("%s: Enter\n", __FUNCTION__));
-		/* verify argument */
-		if (!bus) {
-			DHD_ERROR(("%s : bus is null pointer , exit \n", __FUNCTION__));
-			break;
-		}
+			DHD_TRACE(("%s: Enter\n", __FUNCTION__));
+			/* verify argument */
+			if (!bus) {
+				DHD_ERROR(("%s : bus is null pointer , exit \n", __FUNCTION__));
+				break;
+			}
 
-		if (bus->dhd->busstate == DHD_BUS_DOWN) {
-			DHD_ERROR(("%s : bus is down. we have nothing to do\n",
-				__FUNCTION__));
-			break;
-		}
+			if (bus->dhd->busstate == DHD_BUS_DOWN) {
+				DHD_ERROR(("%s : bus is down. we have nothing to do\n",
+					__FUNCTION__));
+				break;
+			}
 
 
 #ifdef DHD_ALLIRQ
-		/* Lock here covers SMP */
-		dhd_os_sdisrlock(bus->dhd);
+			/* Lock here covers SMP */
+			dhd_os_sdisrlock(bus->dhd);
 #endif
-		/* Count the interrupt call */
-		bus->intrcount++;
+			/* Count the interrupt call */
+			bus->intrcount++;
 
-		/* read interrupt status register!! Status bits will be cleared in DPC !! */
-		bus->ipend = TRUE;
-		dhdpcie_bus_intr_disable(bus); /* Disable interrupt!! */
-		bus->intdis = TRUE;
+			/* read interrupt status register!! Status bits will be cleared in DPC !! */
+			bus->ipend = TRUE;
+			dhdpcie_bus_intr_disable(bus); /* Disable interrupt!! */
+			bus->intdis = TRUE;
 
 #if defined(DHD_ALLIRQ) || defined(PCIE_ISR_THREAD)
 
-		DHD_TRACE(("Calling dhd_bus_dpc() from %s\n", __FUNCTION__));
-		DHD_OS_WAKE_LOCK(bus->dhd);
-		while (dhd_bus_dpc(bus));
-		DHD_OS_WAKE_UNLOCK(bus->dhd);
+			DHD_TRACE(("Calling dhd_bus_dpc() from %s\n", __FUNCTION__));
+			DHD_OS_WAKE_LOCK(bus->dhd);
+			while (dhd_bus_dpc(bus));
+			DHD_OS_WAKE_UNLOCK(bus->dhd);
 #else
-		bus->dpc_sched = TRUE;
-		dhd_sched_dpc(bus->dhd);     /* queue DPC now!! */
+			bus->dpc_sched = TRUE;
+			dhd_sched_dpc(bus->dhd);     /* queue DPC now!! */
 #endif /* defined(DHD_ALLIRQ) || defined(SDIO_ISR_THREAD) */
 
 #ifdef DHD_ALLIRQ
-		dhd_os_sdisrunlock(bus->dhd);
+			dhd_os_sdisrunlock(bus->dhd);
 #endif
-		DHD_TRACE(("%s: Exit Success DPC Queued\n", __FUNCTION__));
-		return TRUE;
+			DHD_TRACE(("%s: Exit Success DPC Queued\n", __FUNCTION__));
+			return TRUE;
 
 	} while (0);
 
@@ -348,7 +347,7 @@ dhdpcie_dongle_attach(dhd_bus_t *bus)
 {
 
 	osl_t *osh = bus->osh;
-	void *regsva = (void *)bus->regs;
+	void *regsva = (void*)bus->regs;
 	uint16 devid = bus->cl_devid;
 	uint32 val;
 
@@ -363,7 +362,7 @@ dhdpcie_dongle_attach(dhd_bus_t *bus)
 
 	/* si_attach() will provide an SI handle and scan the backplane */
 	if (!(bus->sih = si_attach((uint)devid, osh, regsva, PCI_BUS, bus,
-					&bus->vars, &bus->varsz))) {
+	                           &bus->vars, &bus->varsz))) {
 		DHD_ERROR(("%s: si_attach failed!\n", __FUNCTION__));
 		goto fail;
 	}
@@ -416,7 +415,7 @@ dhdpcie_dongle_attach(dhd_bus_t *bus)
 		default:
 			bus->dongle_ram_base = 0;
 			DHD_ERROR(("%s: WARNING: Using default ram base at 0x%x\n",
-					__FUNCTION__, bus->dongle_ram_base));
+			           __FUNCTION__, bus->dongle_ram_base));
 		}
 	}
 	bus->ramsize = bus->orig_ramsize;
@@ -424,9 +423,11 @@ dhdpcie_dongle_attach(dhd_bus_t *bus)
 		dhdpcie_bus_dongle_setmemsize(bus, dhd_dongle_memsize);
 
 	DHD_ERROR(("DHD: dongle ram size is set to %d(orig %d) at 0x%x\n",
-				bus->ramsize, bus->orig_ramsize, bus->dongle_ram_base));
+	           bus->ramsize, bus->orig_ramsize, bus->dongle_ram_base));
 
 	bus->srmemsize = si_socram_srmem_size(bus->sih);
+
+
 	bus->def_intmask = PCIE_MB_D2H_MB_MASK | PCIE_MB_TOPCIE_FN0_0 | PCIE_MB_TOPCIE_FN0_1;
 
 	/* Set the poll and/or interrupt flags */
@@ -441,7 +442,7 @@ fail:
 		si_detach(bus->sih);
 	DHD_TRACE(("%s: EXIT: FAILURE\n",
 		__FUNCTION__));
-	return -EPERM;
+	return -1;
 }
 
 int
@@ -464,7 +465,8 @@ dhdpcie_bus_intr_enable(dhd_bus_t *bus)
 	if ((bus->sih->buscorerev == 2) || (bus->sih->buscorerev == 6) ||
 		(bus->sih->buscorerev == 4)) {
 		dhpcie_bus_unmask_interrupt(bus);
-	} else if (bus->sih) {
+	}
+	else if (bus->sih) {
 		si_corereg(bus->sih, bus->sih->buscoreidx, PCIMailBoxMask,
 			bus->def_intmask, bus->def_intmask);
 	}
@@ -477,10 +479,12 @@ dhdpcie_bus_intr_disable(dhd_bus_t *bus)
 	DHD_TRACE(("%s Enter\n", __FUNCTION__));
 
 	if (bus) {
+
 		if ((bus->sih->buscorerev == 2) || (bus->sih->buscorerev == 6) ||
 			(bus->sih->buscorerev == 4)) {
 			dhpcie_bus_mask_interrupt(bus);
-		} else if (bus->sih) {
+		}
+		else if (bus->sih) {
 			si_corereg(bus->sih, bus->sih->buscoreidx, PCIMailBoxMask,
 				bus->def_intmask, 0);
 		}
@@ -699,6 +703,8 @@ bool dhd_bus_watchdog(dhd_pub_t *dhd)
 	dhd_bus_t *bus;
 	bus = dhd->bus;
 
+
+
 	/* Poll for console output periodically */
 	if (dhd->busstate == DHD_BUS_DATA && dhd_console_ms != 0) {
 		bus->console.count += dhd_watchdog_ms;
@@ -717,7 +723,7 @@ bool dhd_bus_watchdog(dhd_pub_t *dhd)
 /* Download firmware image and nvram image */
 int
 dhd_bus_download_firmware(struct dhd_bus *bus, osl_t *osh,
-				char *pfw_path, char *pnv_path)
+                          char *pfw_path, char *pnv_path)
 {
 	int ret;
 
@@ -766,7 +772,7 @@ dhdpcie_download_code_file(struct dhd_bus *bus, char *pfw_path)
 		memptr += (DHD_SDALIGN - ((uint32)(uintptr)memblock % DHD_SDALIGN));
 
 	/* Download image */
-	while ((len = dhd_os_get_image_block((char *)memptr, MEMBLOCK, image))) {
+	while ((len = dhd_os_get_image_block((char*)memptr, MEMBLOCK, image))) {
 		if (len < 0) {
 			DHD_ERROR(("%s: dhd_os_get_image_block failed (%d)\n", __FUNCTION__, len));
 			bcmerror = BCME_ERROR;
@@ -777,7 +783,7 @@ dhdpcie_download_code_file(struct dhd_bus *bus, char *pfw_path)
 			/* if address is 0, store the reset instruction to be written in 0 */
 
 			if (offset == 0) {
-				bus->resetinstr = *(((uint32 *)memptr));
+				bus->resetinstr = *(((uint32*)memptr));
 				/* Add start of RAM address to the address given by user */
 				offset += bus->dongle_ram_base;
 			}
@@ -786,7 +792,7 @@ dhdpcie_download_code_file(struct dhd_bus *bus, char *pfw_path)
 		bcmerror = dhdpcie_bus_membytes(bus, TRUE, offset, memptr, len);
 		if (bcmerror) {
 			DHD_ERROR(("%s: error %d on writing %d membytes at 0x%08x\n",
-						__FUNCTION__, bcmerror, MEMBLOCK, offset));
+			        __FUNCTION__, bcmerror, MEMBLOCK, offset));
 			goto err;
 		}
 
@@ -809,8 +815,8 @@ dhdpcie_download_nvram(struct dhd_bus *bus)
 {
 	int bcmerror = -1;
 	uint len;
-	void *image = NULL;
-	char *memblock = NULL;
+	void * image = NULL;
+	char * memblock = NULL;
 	char *bufp;
 	char *pnv_path;
 	bool nvram_file_exists;
@@ -819,7 +825,7 @@ dhdpcie_download_nvram(struct dhd_bus *bus)
 
 	nvram_file_exists = ((pnv_path != NULL) && (pnv_path[0] != '\0'));
 	if (!nvram_file_exists && (bus->nvram_params == NULL))
-		return 0;
+		return (0);
 
 	if (nvram_file_exists) {
 		image = dhd_os_open_image(pnv_path);
@@ -830,14 +836,15 @@ dhdpcie_download_nvram(struct dhd_bus *bus)
 	memblock = MALLOC(bus->dhd->osh, MAX_NVRAMBUF_SIZE);
 	if (memblock == NULL) {
 		DHD_ERROR(("%s: Failed to allocate memory %d bytes\n",
-					__FUNCTION__, MAX_NVRAMBUF_SIZE));
+		           __FUNCTION__, MAX_NVRAMBUF_SIZE));
 		goto err;
 	}
 
 	/* Download variables */
 	if (nvram_file_exists) {
 		len = dhd_os_get_image_block(memblock, MAX_NVRAMBUF_SIZE, image);
-	} else {
+	}
+	else {
 		len = strlen(bus->nvram_params);
 		ASSERT(len <= MAX_NVRAMBUF_SIZE);
 		memcpy(memblock, bus->nvram_params, len);
@@ -855,11 +862,12 @@ dhdpcie_download_nvram(struct dhd_bus *bus)
 			bcmerror = dhdpcie_downloadvars(bus, memblock, len + 1);
 		if (bcmerror) {
 			DHD_ERROR(("%s: error downloading vars: %d\n",
-						__FUNCTION__, bcmerror));
+			           __FUNCTION__, bcmerror));
 		}
-	} else {
+	}
+	else {
 		DHD_ERROR(("%s: error reading nvram file: %d\n",
-					__FUNCTION__, len));
+		           __FUNCTION__, len));
 		bcmerror = BCME_ERROR;
 	}
 
@@ -907,7 +915,8 @@ _dhdpcie_download_firmware(struct dhd_bus *bus)
 #else
 			goto err;
 #endif
-		} else {
+		}
+		else {
 			embed = FALSE;
 			dlok = TRUE;
 		}
@@ -918,7 +927,8 @@ _dhdpcie_download_firmware(struct dhd_bus *bus)
 		if (dhdpcie_download_code_array(bus)) {
 			DHD_ERROR(("%s: dongle image array download failed\n", __FUNCTION__));
 			goto err;
-		} else {
+		}
+		else {
 			dlok = TRUE;
 		}
 	}
@@ -986,7 +996,8 @@ int dhd_bus_rxctl(struct dhd_bus *bus, uchar *msg, uint msglen)
 	if (timeleft == 0) {
 		bus->dhd->rxcnt_timeout++;
 		DHD_ERROR(("%s: rxcnt_timeout=%d\n", __FUNCTION__, bus->dhd->rxcnt_timeout));
-	} else
+	}
+	else
 		bus->dhd->rxcnt_timeout = 0;
 
 	if (rxlen)
@@ -1017,7 +1028,7 @@ dhdpcie_bus_readconsole(dhd_bus_t *bus)
 
 	/* Don't do anything until FWREADY updates console address */
 	if (bus->console_addr == 0)
-		return -EPERM;
+		return -1;
 
 	/* Read console log struct */
 	addr = bus->console_addr + OFFSETOF(hndrte_cons_t, log);
@@ -1199,7 +1210,7 @@ done:
 
 /* Process rx frame , Send up the layer to netif */
 void
-dhd_bus_rx_frame(struct dhd_bus *bus, void *pkt, int ifidx, uint pkt_count)
+dhd_bus_rx_frame(struct dhd_bus *bus, void* pkt, int ifidx, uint pkt_count)
 {
 	dhd_os_sdunlock(bus->dhd);
 	dhd_rx_frame(bus->dhd, ifidx, pkt, pkt_count, 0);
@@ -1246,7 +1257,7 @@ dhdpcie_bus_rtcm32(dhd_bus_t *bus, ulong offset)
 }
 
 void
-dhd_bus_cmn_writeshared(dhd_bus_t *bus, void *data, uint32 len, uint8 type)
+dhd_bus_cmn_writeshared(dhd_bus_t *bus, void * data, uint32 len, uint8 type)
 {
 	uint64 long_data;
 	ulong tcm_offset;
@@ -1254,117 +1265,117 @@ dhd_bus_cmn_writeshared(dhd_bus_t *bus, void *data, uint32 len, uint8 type)
 	DHD_INFO(("%s: writing to msgbuf type %d, len %d\n", __FUNCTION__, type, len));
 
 	switch (type) {
-	case DNGL_TO_HOST_BUF_ADDR:
-		long_data = HTOL64(*(uint64 *)data);
-		tcm_offset = bus->d2h_data_ring_mem_addr;
-		tcm_offset += OFFSETOF(ring_mem_t, base_addr);
-		dhdpcie_bus_membytes(bus, TRUE, tcm_offset, (uint8 *) &long_data, len);
-		prhex(__FUNCTION__, data, len);
-		break;
-	case HOST_TO_DNGL_BUF_ADDR:
-		long_data = HTOL64(*(uint64 *)data);
-		tcm_offset = bus->h2d_data_ring_mem_addr;
-		tcm_offset += OFFSETOF(ring_mem_t, base_addr);
-		dhdpcie_bus_membytes(bus, TRUE, tcm_offset, (uint8 *) &long_data, len);
-		prhex(__FUNCTION__, data, len);
-		break;
-	case HOST_TO_DNGL_WPTR:
-		tcm_offset = bus->h2d_data_ring_state_addr;
-		tcm_offset += OFFSETOF(ring_state_t, w_offset);
-		dhdpcie_bus_wtcm32(bus, tcm_offset, (uint32) HTOL32(*(uint32 *)data));
-		break;
-	case DNGL_TO_HOST_RPTR:
-		tcm_offset = bus->d2h_data_ring_state_addr;
-		tcm_offset += OFFSETOF(ring_state_t, r_offset);
-		dhdpcie_bus_wtcm16(bus, tcm_offset, (uint16) HTOL16(*(uint16 *)data));
-		break;
-	case HOST_TO_DNGL_CTRLBUF_ADDR:
-		long_data = HTOL64(*(uint64 *)data);
-		tcm_offset = bus->h2d_ctrl_ring_mem_addr;
-		tcm_offset += OFFSETOF(ring_mem_t, base_addr);
-		dhdpcie_bus_membytes(bus, TRUE, tcm_offset, (uint8 *) &long_data, len);
-		break;
-	case DNGL_TO_HOST_CTRLBUF_ADDR:
-		long_data = HTOL64(*(uint64 *)data);
-		tcm_offset = bus->d2h_ctrl_ring_mem_addr;
-		tcm_offset += OFFSETOF(ring_mem_t, base_addr);
-		dhdpcie_bus_membytes(bus, TRUE, tcm_offset, (uint8 *) &long_data, len);
-		break;
-	case HTOD_CTRL_WPTR:
-		tcm_offset = bus->h2d_ctrl_ring_state_addr;
-		tcm_offset += OFFSETOF(ring_state_t, w_offset);
-		dhdpcie_bus_wtcm32(bus, tcm_offset, (uint32) HTOL32(*(uint32 *)data));
-		break;
-	case DTOH_CTRL_RPTR:
-		tcm_offset = bus->d2h_ctrl_ring_state_addr;
-		tcm_offset += OFFSETOF(ring_state_t, r_offset);
-		dhdpcie_bus_wtcm16(bus, tcm_offset, (uint16) HTOL16(*(uint16 *)data));
-		break;
-	case DTOH_MB_DATA:
-		dhdpcie_bus_wtcm32(bus, bus->d2h_mb_data_ptr_addr,
-			(uint32) HTOL32(*(uint32 *)data));
-		break;
-	case HTOD_MB_DATA:
-		dhdpcie_bus_wtcm32(bus, bus->h2d_mb_data_ptr_addr,
-			(uint32) HTOL32(*(uint32 *)data));
-		break;
-	default:
-		break;
+		case DNGL_TO_HOST_BUF_ADDR :
+			long_data = HTOL64(*(uint64 *)data);
+			tcm_offset = bus->d2h_data_ring_mem_addr;
+			tcm_offset += OFFSETOF(ring_mem_t, base_addr);
+			dhdpcie_bus_membytes(bus, TRUE, tcm_offset, (uint8*) &long_data, len);
+			prhex(__FUNCTION__, data, len);
+			break;
+		case HOST_TO_DNGL_BUF_ADDR :
+			long_data = HTOL64(*(uint64 *)data);
+			tcm_offset = bus->h2d_data_ring_mem_addr;
+			tcm_offset += OFFSETOF(ring_mem_t, base_addr);
+			dhdpcie_bus_membytes(bus, TRUE, tcm_offset, (uint8*) &long_data, len);
+			prhex(__FUNCTION__, data, len);
+			break;
+		case HOST_TO_DNGL_WPTR :
+			tcm_offset = bus->h2d_data_ring_state_addr;
+			tcm_offset += OFFSETOF(ring_state_t, w_offset);
+			dhdpcie_bus_wtcm32(bus, tcm_offset, (uint32) HTOL32(*(uint32 *)data));
+			break;
+		case DNGL_TO_HOST_RPTR :
+			tcm_offset = bus->d2h_data_ring_state_addr;
+			tcm_offset += OFFSETOF(ring_state_t, r_offset);
+			dhdpcie_bus_wtcm16(bus, tcm_offset, (uint16) HTOL16(*(uint16 *)data));
+			break;
+		case HOST_TO_DNGL_CTRLBUF_ADDR:
+			long_data = HTOL64(*(uint64 *)data);
+			tcm_offset = bus->h2d_ctrl_ring_mem_addr;
+			tcm_offset += OFFSETOF(ring_mem_t, base_addr);
+			dhdpcie_bus_membytes(bus, TRUE, tcm_offset, (uint8 *) &long_data, len);
+			break;
+		case DNGL_TO_HOST_CTRLBUF_ADDR:
+			long_data = HTOL64(*(uint64 *)data);
+			tcm_offset = bus->d2h_ctrl_ring_mem_addr;
+			tcm_offset += OFFSETOF(ring_mem_t, base_addr);
+			dhdpcie_bus_membytes(bus, TRUE, tcm_offset, (uint8 *) &long_data, len);
+			break;
+		case HTOD_CTRL_WPTR:
+			tcm_offset = bus->h2d_ctrl_ring_state_addr;
+			tcm_offset += OFFSETOF(ring_state_t, w_offset);
+			dhdpcie_bus_wtcm32(bus, tcm_offset, (uint32) HTOL32(*(uint32 *)data));
+			break;
+		case DTOH_CTRL_RPTR:
+			tcm_offset = bus->d2h_ctrl_ring_state_addr;
+			tcm_offset += OFFSETOF(ring_state_t, r_offset);
+			dhdpcie_bus_wtcm16(bus, tcm_offset, (uint16) HTOL16(*(uint16 *)data));
+			break;
+		case DTOH_MB_DATA:
+			dhdpcie_bus_wtcm32(bus, bus->d2h_mb_data_ptr_addr,
+				(uint32) HTOL32(*(uint32 *)data));
+			break;
+		case HTOD_MB_DATA:
+			dhdpcie_bus_wtcm32(bus, bus->h2d_mb_data_ptr_addr,
+				(uint32) HTOL32(*(uint32 *)data));
+			break;
+		default:
+			break;
 	}
 }
 
 
 void
-dhd_bus_cmn_readshared(dhd_bus_t *bus, void *data, uint8 type)
+dhd_bus_cmn_readshared(dhd_bus_t *bus, void* data, uint8 type)
 {
 	pciedev_shared_t *sh;
 	ulong tcm_offset;
 
-	sh = (pciedev_shared_t *)bus->shared_addr;
+	sh = (pciedev_shared_t*)bus->shared_addr;
 
 	switch (type) {
-	case HOST_TO_DNGL_RPTR:
-		tcm_offset = bus->h2d_data_ring_state_addr;
-		tcm_offset += OFFSETOF(ring_state_t, r_offset);
-		*(uint16 *)data = LTOH16(dhdpcie_bus_rtcm16(bus, tcm_offset));
-		break;
-	case DNGL_TO_HOST_WPTR:
-		tcm_offset = bus->d2h_data_ring_state_addr;
-		tcm_offset += OFFSETOF(ring_state_t, w_offset);
-		*(uint32 *)data = LTOH32(dhdpcie_bus_rtcm32(bus, tcm_offset));
-		break;
-	case TOTAL_LFRAG_PACKET_CNT:
-		*(uint16 *)data = LTOH16(dhdpcie_bus_rtcm16(bus,
-			(ulong) &sh->total_lfrag_pkt_cnt));
-		break;
-	case HTOD_CTRL_RPTR:
-		tcm_offset = bus->h2d_ctrl_ring_state_addr;
-		tcm_offset += OFFSETOF(ring_state_t, r_offset);
-		*(uint16 *)data = LTOH16(dhdpcie_bus_rtcm16(bus, tcm_offset));
-		break;
-	case DTOH_CTRL_WPTR:
-		tcm_offset = bus->d2h_ctrl_ring_state_addr;
-		tcm_offset += OFFSETOF(ring_state_t, w_offset);
-		*(uint32 *)data = LTOH32(dhdpcie_bus_rtcm32(bus, tcm_offset));
-		break;
-	case HTOD_MB_DATA:
-		*(uint32 *)data = LTOH32(dhdpcie_bus_rtcm32(bus, bus->h2d_mb_data_ptr_addr));
-		break;
-	case DTOH_MB_DATA:
-		*(uint32 *)data = LTOH32(dhdpcie_bus_rtcm32(bus, bus->d2h_mb_data_ptr_addr));
-		break;
-	case MAX_HOST_RXBUFS:
-		*(uint16 *)data = LTOH16(dhdpcie_bus_rtcm16(bus,
-			(ulong) &sh->max_host_rxbufs));
-		break;
-	default:
-		break;
+		case HOST_TO_DNGL_RPTR :
+			tcm_offset = bus->h2d_data_ring_state_addr;
+			tcm_offset += OFFSETOF(ring_state_t, r_offset);
+			*(uint16*)data = LTOH16(dhdpcie_bus_rtcm16(bus, tcm_offset));
+			break;
+		case DNGL_TO_HOST_WPTR :
+			tcm_offset = bus->d2h_data_ring_state_addr;
+			tcm_offset += OFFSETOF(ring_state_t, w_offset);
+			*(uint32*)data = LTOH32(dhdpcie_bus_rtcm32(bus, tcm_offset));
+			break;
+		case TOTAL_LFRAG_PACKET_CNT :
+			*(uint16*)data = LTOH16(dhdpcie_bus_rtcm16(bus,
+				(ulong) &sh->total_lfrag_pkt_cnt));
+			break;
+		case HTOD_CTRL_RPTR:
+			tcm_offset = bus->h2d_ctrl_ring_state_addr;
+			tcm_offset += OFFSETOF(ring_state_t, r_offset);
+			*(uint16*)data = LTOH16(dhdpcie_bus_rtcm16(bus, tcm_offset));
+			break;
+		case DTOH_CTRL_WPTR:
+			tcm_offset = bus->d2h_ctrl_ring_state_addr;
+			tcm_offset += OFFSETOF(ring_state_t, w_offset);
+			*(uint32*)data = LTOH32(dhdpcie_bus_rtcm32(bus, tcm_offset));
+			break;
+		case HTOD_MB_DATA:
+			*(uint32*)data = LTOH32(dhdpcie_bus_rtcm32(bus, bus->h2d_mb_data_ptr_addr));
+			break;
+		case DTOH_MB_DATA:
+			*(uint32*)data = LTOH32(dhdpcie_bus_rtcm32(bus, bus->d2h_mb_data_ptr_addr));
+			break;
+		case MAX_HOST_RXBUFS :
+			*(uint16*)data = LTOH16(dhdpcie_bus_rtcm16(bus,
+				(ulong) &sh->max_host_rxbufs));
+			break;
+		default :
+			break;
 	}
 }
 
 uint32 dhd_bus_get_sharedflags(dhd_bus_t *bus)
 {
-	return ((pciedev_shared_t *)bus->pcie_sh)->flags;
+	return ((pciedev_shared_t*)bus->pcie_sh)->flags;
 }
 
 void
@@ -1374,7 +1385,7 @@ dhd_bus_clearcounts(dhd_pub_t *dhdp)
 
 int
 dhd_bus_iovar_op(dhd_pub_t *dhdp, const char *name,
-			void *params, int plen, void *arg, int len, bool set)
+                 void *params, int plen, void *arg, int len, bool set)
 {
 	dhd_bus_t *bus = dhdp->bus;
 	const bcm_iovar_t *vi = NULL;
@@ -1394,7 +1405,7 @@ dhd_bus_iovar_op(dhd_pub_t *dhdp, const char *name,
 	ASSERT(!set || (!params && !plen));
 
 	DHD_INFO(("%s: %s %s, len %d plen %d\n", __FUNCTION__,
-			name, (set ? "set" : "get"), len, plen));
+	         name, (set ? "set" : "get"), len, plen));
 
 	/* Look up var locally; if not found pass to host driver */
 	if ((vi = bcm_iovar_lookup(dhdpcie_iovars, name)) == NULL) {
@@ -1428,7 +1439,7 @@ exit:
 
 static int
 dhdpcie_bus_doiovar(dhd_bus_t *bus, const bcm_iovar_t *vi, uint32 actionid, const char *name,
-				void *params, int plen, void *arg, int len, int val_size)
+                void *params, int plen, void *arg, int len, int val_size)
 {
 	int bcmerror = 0;
 	int32 int_val = 0;
@@ -1437,7 +1448,7 @@ dhdpcie_bus_doiovar(dhd_bus_t *bus, const bcm_iovar_t *vi, uint32 actionid, cons
 	bool bool_val = 0;
 
 	DHD_TRACE(("%s: Enter, action %d name %s params %p plen %d arg %p len %d val_size %d\n",
-				__FUNCTION__, actionid, name, params, plen, arg, len, val_size));
+	           __FUNCTION__, actionid, name, params, plen, arg, len, val_size));
 
 	if ((bcmerror = bcm_iovar_lencheck(vi, arg, len, IOV_ISSET(actionid))) != 0)
 		goto exit;
@@ -1446,10 +1457,10 @@ dhdpcie_bus_doiovar(dhd_bus_t *bus, const bcm_iovar_t *vi, uint32 actionid, cons
 		bcopy(params, &int_val, sizeof(int_val));
 
 	if (plen >= (int)sizeof(int_val) * 2)
-		bcopy((void *)((uintptr)params + sizeof(int_val)), &int_val2, sizeof(int_val2));
+		bcopy((void*)((uintptr)params + sizeof(int_val)), &int_val2, sizeof(int_val2));
 
 	if (plen >= (int)sizeof(int_val) * 3)
-		bcopy((void *)((uintptr)params + 2 * sizeof(int_val)), &int_val3, sizeof(int_val3));
+		bcopy((void*)((uintptr)params + 2 * sizeof(int_val)), &int_val3, sizeof(int_val3));
 
 	bool_val = (int_val != 0) ? TRUE : FALSE;
 
@@ -1458,7 +1469,7 @@ dhdpcie_bus_doiovar(dhd_bus_t *bus, const bcm_iovar_t *vi, uint32 actionid, cons
 
 	/* Check if dongle is in reset. If so, only allow DEVRESET iovars */
 	if (bus->dhd->dongle_reset && !(actionid == IOV_SVAL(IOV_DEVRESET) ||
-						actionid == IOV_GVAL(IOV_DEVRESET))) {
+	                                actionid == IOV_GVAL(IOV_DEVRESET))) {
 		bcmerror = BCME_NOTREADY;
 		goto exit;
 	}
@@ -1561,65 +1572,66 @@ dhdpcie_bus_doiovar(dhd_bus_t *bus, const bcm_iovar_t *vi, uint32 actionid, cons
 		dsize = set ? plen - (2 * sizeof(int)) : len;
 		if (dsize < size) {
 			DHD_ERROR(("%s: error on %s membytes, addr 0x%08x size %d dsize %d\n",
-						__FUNCTION__, (set ? "set" : "get"), address, size, dsize));
+			           __FUNCTION__, (set ? "set" : "get"), address, size, dsize));
 			bcmerror = BCME_BADARG;
 			break;
 		}
 
 		DHD_INFO(("%s: Request to %s %d bytes at address 0x%08x\n dsize %d ", __FUNCTION__,
-					(set ? "write" : "read"), size, address, dsize));
+		          (set ? "write" : "read"), size, address, dsize));
 
 		/* check if CR4 */
 		if (si_setcore(bus->sih, ARMCR4_CORE_ID, 0)) {
 			/* if address is 0, store the reset instruction to be written in 0 */
 			if (set && address == bus->dongle_ram_base) {
-				bus->resetinstr = *(((uint32 *)params) + 2);
+				bus->resetinstr = *(((uint32*)params) + 2);
 			}
 		} else {
 		/* If we know about SOCRAM, check for a fit */
-			if ((bus->orig_ramsize) &&
-			((address > bus->orig_ramsize) || (address + size > bus->orig_ramsize))) {
-				uint8 enable, protect, remap;
-				si_socdevram(bus->sih, FALSE, &enable, &protect, &remap);
-				if (!enable || protect) {
-					DHD_ERROR(("%s: ramsize 0x%08x doesn't have %d bytes at 0x%08x\n",
-						__FUNCTION__, bus->orig_ramsize, size, address));
-					DHD_ERROR(("%s: socram enable %d, protect %d\n",
-						__FUNCTION__, enable, protect));
+		if ((bus->orig_ramsize) &&
+		    ((address > bus->orig_ramsize) || (address + size > bus->orig_ramsize)))
+		{
+			uint8 enable, protect, remap;
+			si_socdevram(bus->sih, FALSE, &enable, &protect, &remap);
+			if (!enable || protect) {
+				DHD_ERROR(("%s: ramsize 0x%08x doesn't have %d bytes at 0x%08x\n",
+					__FUNCTION__, bus->orig_ramsize, size, address));
+				DHD_ERROR(("%s: socram enable %d, protect %d\n",
+					__FUNCTION__, enable, protect));
+				bcmerror = BCME_BADARG;
+				break;
+			}
+
+			if (!REMAP_ENAB(bus) && (address >= SOCDEVRAM_ARM_ADDR)) {
+				uint32 devramsize = si_socdevram_size(bus->sih);
+				if ((address < SOCDEVRAM_ARM_ADDR) ||
+					(address + size > (SOCDEVRAM_ARM_ADDR + devramsize))) {
+					DHD_ERROR(("%s: bad address 0x%08x, size 0x%08x\n",
+						__FUNCTION__, address, size));
+					DHD_ERROR(("%s: socram range 0x%08x,size 0x%08x\n",
+						__FUNCTION__, SOCDEVRAM_ARM_ADDR, devramsize));
 					bcmerror = BCME_BADARG;
 					break;
 				}
-
-				if (!REMAP_ENAB(bus) && (address >= SOCDEVRAM_ARM_ADDR)) {
-					uint32 devramsize = si_socdevram_size(bus->sih);
-					if ((address < SOCDEVRAM_ARM_ADDR) ||
-						(address + size > (SOCDEVRAM_ARM_ADDR + devramsize))) {
-						DHD_ERROR(("%s: bad address 0x%08x, size 0x%08x\n",
-							__FUNCTION__, address, size));
-						DHD_ERROR(("%s: socram range 0x%08x,size 0x%08x\n",
-							__FUNCTION__, SOCDEVRAM_ARM_ADDR, devramsize));
-						bcmerror = BCME_BADARG;
-						break;
-					}
-					/* move it such that address is real now */
-					address -= SOCDEVRAM_ARM_ADDR;
-					address += SOCDEVRAM_BP_ADDR;
-					DHD_INFO(("%s: Request to %s %d bytes @ Mapped address 0x%08x\n",
-						__FUNCTION__, (set ? "write" : "read"), size, address));
-				} else if (REMAP_ENAB(bus) && REMAP_ISADDR(bus, address) && remap) {
-					/* Can not access remap region while devram remap bit is set
-					 * ROM content would be returned in this case
-					 */
-					DHD_ERROR(("%s: Need to disable remap for address 0x%08x\n",
-						__FUNCTION__, address));
-					bcmerror = BCME_ERROR;
-					break;
-				}
+				/* move it such that address is real now */
+				address -= SOCDEVRAM_ARM_ADDR;
+				address += SOCDEVRAM_BP_ADDR;
+				DHD_INFO(("%s: Request to %s %d bytes @ Mapped address 0x%08x\n",
+					__FUNCTION__, (set ? "write" : "read"), size, address));
+			} else if (REMAP_ENAB(bus) && REMAP_ISADDR(bus, address) && remap) {
+				/* Can not access remap region while devram remap bit is set
+				 * ROM content would be returned in this case
+				 */
+				DHD_ERROR(("%s: Need to disable remap for address 0x%08x\n",
+					__FUNCTION__, address));
+				bcmerror = BCME_ERROR;
+				break;
 			}
+		}
 		}
 
 		/* Generate the actual data pointer */
-		data = set ? (uint8 *)params + 2 * sizeof(int) : (uint8 *)arg;
+		data = set ? (uint8*)params + 2 * sizeof(int): (uint8*)arg;
 
 		/* Call to do the transfer */
 		bcmerror = dhdpcie_bus_membytes(bus, set, address, data, size);
@@ -1751,7 +1763,7 @@ dhdpcie_bus_download_state(dhd_bus_t *bus, bool enter)
 			if (bus->ramsize) {
 				uint32 zeros = 0;
 				if (dhdpcie_bus_membytes(bus, TRUE, bus->ramsize - 4,
-							(uint8 *)&zeros, 4) < 0) {
+				                     (uint8*)&zeros, 4) < 0) {
 					bcmerror = BCME_ERROR;
 					goto fail;
 				}
@@ -1890,7 +1902,7 @@ dhdpcie_bus_write_vars(dhd_bus_t *bus)
 #ifdef DHD_DEBUG
 		/* Verify NVRAM bytes */
 		DHD_INFO(("Compare NVRAM dl & ul; varsize=%d\n", varsize));
-		nvram_ularray = (uint8 *)MALLOC(bus->dhd->osh, varsize);
+		nvram_ularray = (uint8*)MALLOC(bus->dhd->osh, varsize);
 		if (!nvram_ularray)
 			return BCME_NOMEM;
 
@@ -1945,7 +1957,7 @@ dhdpcie_bus_write_vars(dhd_bus_t *bus)
 
 	/* Write the length token to the last word */
 	bcmerror = dhdpcie_bus_membytes(bus, TRUE, (phys_size - 4),
-		(uint8 *)&varsizew, 4);
+		(uint8*)&varsizew, 4);
 
 	return bcmerror;
 }
@@ -2167,7 +2179,8 @@ dhdpcie_bus_process_mailbox_intr(dhd_bus_t *bus, uint32 intstatus)
 		} else if (intstatus & I_BIT0) {
 			/* do nothing for Now */
 		}
-	} else {
+	}
+	else {
 		if (intstatus & (PCIE_MB_TOPCIE_FN0_0 | PCIE_MB_TOPCIE_FN0_1))
 			dhdpcie_handle_mb_data(bus);
 		if (intstatus & PCIE_MB_D2H_MB_MASK)
@@ -2250,9 +2263,9 @@ dhdpcie_readshared(dhd_bus_t *bus)
 
 	if ((sh->flags & PCIE_SHARED_VERSION_MASK) > PCIE_SHARED_VERSION) {
 		DHD_ERROR(("%s: pcie_shared version %d in dhd "
-					"is older than pciedev_shared version %d in dongle\n",
-					__FUNCTION__, PCIE_SHARED_VERSION,
-					sh->flags & PCIE_SHARED_VERSION_MASK));
+		           "is older than pciedev_shared version %d in dongle\n",
+		           __FUNCTION__, PCIE_SHARED_VERSION,
+		           sh->flags & PCIE_SHARED_VERSION_MASK));
 		return BCME_ERROR;
 	}
 	/* get ring_info, ring_state and mb data ptrs and store the addresses in bus structure */
@@ -2386,7 +2399,7 @@ dhdpcie_chipmatch(uint16 vendor, uint16 device)
 	if (vendor != PCI_VENDOR_ID_BROADCOM) {
 		DHD_ERROR(("%s: Unsupported vendor %x device %x\n", __FUNCTION__,
 			vendor, device));
-		return -ENODEV;
+		return (-ENODEV);
 	}
 
 	if ((device == BCM4350_D11AC_ID) || (device == BCM4350_D11AC2G_ID) ||
@@ -2411,7 +2424,7 @@ dhdpcie_chipmatch(uint16 vendor, uint16 device)
 
 
 	DHD_ERROR(("%s: Unsupported vendor %x device %x\n", __FUNCTION__, vendor, device));
-	return -ENODEV;
+	return (-ENODEV);
 }
 
 
@@ -2477,12 +2490,12 @@ dhdpcie_cc_nvmshadow(dhd_bus_t *bus, struct bcmstrbuf *b)
 			== OTPL_WRAP_TYPE_40NM) {
 			/* 40nm OTP: Size = (OtpSize + 1) * 1024 bits */
 			otp_size =  (((chipcregs->capabilities & CC_CAP_OTPSIZE)
-						>> CC_CAP_OTPSIZE_SHIFT) + 1) * 1024;
+				        >> CC_CAP_OTPSIZE_SHIFT) + 1) * 1024;
 			bcm_bprintf(b, "(Size %d bits)\n", otp_size);
 		} else {
 			/* This part is untested since newer chips have 40nm OTP */
 			otp_size = otp_size_65nm[(chipcregs->capabilities & CC_CAP_OTPSIZE)
-						>> CC_CAP_OTPSIZE_SHIFT];
+				        >> CC_CAP_OTPSIZE_SHIFT];
 			bcm_bprintf(b, "(Size %d bits)\n", otp_size);
 			DHD_INFO(("%s: 65nm/130nm OTP Size not tested. \n",
 				__FUNCTION__));
@@ -2501,7 +2514,7 @@ dhdpcie_cc_nvmshadow(dhd_bus_t *bus, struct bcmstrbuf *b)
 		(chipcregs->sromcontrol & SRC_OTPPRESENT)) {
 
 		bcm_bprintf(b, "OTP Strap selected.\n"
-					"\nOTP Shadow in ChipCommon:\n");
+		               "\nOTP Shadow in ChipCommon:\n");
 
 		dump_size = otp_size / 16 ; /* 16bit words */
 
@@ -2514,7 +2527,8 @@ dhdpcie_cc_nvmshadow(dhd_bus_t *bus, struct bcmstrbuf *b)
 		/* If SPROM > 8K only 8Kbits is mapped to ChipCommon (0x800 - 0xBFF) */
 		/* dump_size in 16bit words */
 		dump_size = sprom_size > 8 ? (8 * 1024) / 16 : sprom_size / 16;
-	} else {
+	}
+	else {
 		DHD_ERROR(("%s: NVM Shadow does not exist in ChipCommon\n",
 			__FUNCTION__));
 		return BCME_NOTFOUND;
@@ -2524,23 +2538,23 @@ dhdpcie_cc_nvmshadow(dhd_bus_t *bus, struct bcmstrbuf *b)
 		DHD_ERROR(("ChipCommon Regs. not initialized\n"));
 		return BCME_NOTREADY;
 	} else {
-		bcm_bprintf(b, "\n OffSet:");
+	    bcm_bprintf(b, "\n OffSet:");
 
-		/* Point to the SPROM/OTP shadow in ChipCommon */
-		nvm_shadow = chipcregs->sromotp;
+	    /* Point to the SPROM/OTP shadow in ChipCommon */
+	    nvm_shadow = chipcregs->sromotp;
 
-		/*
-		* Read 16 bits / iteration.
-		* dump_size & dump_offset in 16-bit words
-		*/
-		while (dump_offset < dump_size) {
-			if (dump_offset % 2 == 0)
-				/* Print the offset in the shadow space in Bytes */
-				bcm_bprintf(b, "\n 0x%04x", dump_offset * 2);
+	   /*
+	    * Read 16 bits / iteration.
+	    * dump_size & dump_offset in 16-bit words
+	    */
+	    while (dump_offset < dump_size) {
+		if (dump_offset % 2 == 0)
+			/* Print the offset in the shadow space in Bytes */
+			bcm_bprintf(b, "\n 0x%04x", dump_offset * 2);
 
-			bcm_bprintf(b, "\t0x%04x", *(nvm_shadow + dump_offset));
-			dump_offset += 0x1;
-		}
+		bcm_bprintf(b, "\t0x%04x", *(nvm_shadow + dump_offset));
+		dump_offset += 0x1;
+	    }
 	}
 
 	/* Switch back to the original core */

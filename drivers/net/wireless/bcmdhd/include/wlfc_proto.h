@@ -1,6 +1,5 @@
 /*
 * Copyright (C) 1999-2014, Broadcom Corporation
-* Copyright (C) 2016 XiaoMi, Inc.
 * 
 *      Unless you and Broadcom execute a separate written software license
 * agreement governing use of this software, this software is licensed to you
@@ -93,6 +92,7 @@
 #define WLFC_CTL_TYPE_MAC_REQUEST_PACKET	13
 #define WLFC_CTL_TYPE_HOST_REORDER_RXPKTS	14
 
+
 #define WLFC_CTL_TYPE_TX_ENTRY_STAMP		15
 #define WLFC_CTL_TYPE_RX_STAMP			16
 
@@ -180,7 +180,7 @@
 #define WL_TXSTATUS_SET_FREERUNCTR(x, ctr)	((x)  = \
 	((x) & ~(WL_TXSTATUS_FREERUNCTR_MASK)) | \
 	((ctr) & WL_TXSTATUS_FREERUNCTR_MASK))
-#define WL_TXSTATUS_GET_FREERUNCTR(x)		((x) & WL_TXSTATUS_FREERUNCTR_MASK)
+#define WL_TXSTATUS_GET_FREERUNCTR(x)		((x)& WL_TXSTATUS_FREERUNCTR_MASK)
 
 #define WL_SEQ_FROMFW_MASK		0x1 /* allow 1 bit */
 #define WL_SEQ_FROMFW_SHIFT		13

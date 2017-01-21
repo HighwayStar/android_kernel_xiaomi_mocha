@@ -5,14 +5,13 @@
  * Definitions subject to change without notice.
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
- *
+ * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
  * available at http://www.broadcom.com/licenses/GPLv2.php, with the
  * following added to such license:
- *
+ * 
  *      As a special exception, the copyright holders of this software give you
  * permission to link this software with independent modules, and to copy and
  * distribute the resulting executable under terms of your choice, provided that
@@ -20,7 +19,7 @@
  * the license of that module.  An independent module is a module which is not
  * derived from this software.  The special exception does not apply to any
  * modifications of the software.
- *
+ * 
  *      Notwithstanding the above, under no circumstances may you combine this
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
@@ -108,7 +107,7 @@
 #define CCA_ERRNO_INTERFER	4	/* After filtering for interference, no choices left */
 #define CCA_ERRNO_TOO_FEW	5	/* Only 1 channel was input */
 
-#define WL_STA_AID(a)		((a) & ~0xc000)
+#define WL_STA_AID(a)		((a) &~ 0xc000)
 
 /* Flags for sta_info_t indicating properties of STA */
 #define WL_STA_BRCM		0x00000001	/* Running a Broadcom driver */
@@ -361,7 +360,7 @@
 #define CRYPTO_ALGO_CKIP_MMH	8
 #define CRYPTO_ALGO_WEP_MMH		9
 #define CRYPTO_ALGO_NALG		10
-#endif
+#endif 
 
 #define CRYPTO_ALGO_SMS4		11
 #define CRYPTO_ALGO_PMK			12	/* for 802.1x supp to set PMK before 4-way */
@@ -391,7 +390,7 @@
 #else
 #define WL_KF_RES_4	(1 << 4)	/* Reserved for backward compat */
 #define WL_KF_RES_5	(1 << 5)	/* Reserved for backward compat */
-#endif
+#endif 
 #define WL_IBSS_PEER_GROUP_KEY	(1 << 6)	/* Indicates a group key for a IBSS PEER */
 
 /* wireless security bitvec */
@@ -421,7 +420,7 @@
 #if defined(BCMEXTCCX)
 #define WPA_AUTH_CCKM		0x0008	/* CCKM */
 #define WPA2_AUTH_CCKM		0x0010	/* CCKM2 */
-#endif
+#endif	
 /* #define WPA_AUTH_8021X 0x0020 */	/* 802.1x, reserved */
 #define WPA2_AUTH_UNSPECIFIED	0x0040	/* over 802.1x */
 #define WPA2_AUTH_PSK		0x0080	/* Pre-shared key */

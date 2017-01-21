@@ -3,7 +3,6 @@
  * of the SiliconBackplane-based Broadcom chips.
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -25,6 +24,7 @@
  *
  * $Id: hndpmu.c 433378 2013-10-31 17:19:39Z $
  */
+
 
 /*
  * Note: this file contains PLL/FLL related functions. A chip can contain multiple PLLs/FLLs.

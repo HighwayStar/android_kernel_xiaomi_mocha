@@ -2,7 +2,6 @@
  * Linux cfg80211 driver - Android related functions
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -172,7 +171,7 @@ typedef struct android_wifi_priv_cmd {
 #define JOIN_PREF_WPA_TUPLE_SIZE	12	/* Tuple size in bytes */
 #define JOIN_PREF_MAX_WPA_TUPLES	16
 #define MAX_BUF_SIZE		(JOIN_PREF_RSSI_SIZE + JOIN_PREF_WPA_HDR_SIZE +	\
-							(JOIN_PREF_WPA_TUPLE_SIZE * JOIN_PREF_MAX_WPA_TUPLES))
+				           (JOIN_PREF_WPA_TUPLE_SIZE * JOIN_PREF_MAX_WPA_TUPLES))
 #endif /* BCMFW_ROAM_ENABLE */
 
 
@@ -940,7 +939,7 @@ wl_android_set_roampref(struct net_device *dev, char *command, int total_len)
 
 	/* check to make sure pcmd does not overrun */
 	if (total_len_left < (num_akm_suites * WIDTH_AKM_SUITE))
-		return -EPERM;
+		return -1;
 
 	memset(buf, 0, sizeof(buf));
 	memset(akm_suites, 0, sizeof(akm_suites));
@@ -964,7 +963,7 @@ wl_android_set_roampref(struct net_device *dev, char *command, int total_len)
 	total_len_left -= 3;
 
 	if (total_len_left < (num_ucipher_suites * WIDTH_AKM_SUITE))
-		return -EPERM;
+		return -1;
 
 	/* Save the cipher suites passed in the command */
 	for (i = 0; i < num_ucipher_suites; i++) {
@@ -1011,7 +1010,7 @@ wl_android_set_roampref(struct net_device *dev, char *command, int total_len)
 				(JOIN_PREF_WPA_TUPLE_SIZE * num_tuples);
 		} else {
 			DHD_ERROR(("%s: Too many wpa configs for join_pref \n", __FUNCTION__));
-			return -EPERM;
+			return -1;
 		}
 	} else {
 		/* No WPA config, configure only RSSI preference */
@@ -1156,9 +1155,10 @@ wl_android_set_miracast(struct net_device *dev, char *command, int total_len)
 			DHD_ERROR(("%s: Connected station's beacon interval: "
 				"%d and set mchan_algo to %d \n",
 				__FUNCTION__, val, config.param));
-		} else
+		}
+		else {
 			config.param = MIRACAST_MCHAN_ALGO;
-
+		}
 		ret = wl_android_iolist_add(dev, &miracast_resume_list, &config);
 		if (ret)
 			goto resume;
@@ -1213,7 +1213,7 @@ resume:
 }
 
 
-int wl_keep_alive_set(struct net_device *dev, char *extra, int total_len)
+int wl_keep_alive_set(struct net_device *dev, char* extra, int total_len)
 {
 	char 				buf[256];
 	const char 			*str;
@@ -1224,11 +1224,13 @@ int wl_keep_alive_set(struct net_device *dev, char *extra, int total_len)
 	int res 				= -1;
 	uint period_msec = 0;
 
-	if (extra == NULL) {
+	if (extra == NULL)
+	{
 		 DHD_ERROR(("%s: extra is NULL\n", __FUNCTION__));
-		 return -EPERM;
+		 return -1;
 	}
-	if (sscanf(extra, "%d", &period_msec) != 1) {
+	if (sscanf(extra, "%d", &period_msec) != 1)
+	{
 		 DHD_ERROR(("%s: sscanf error. check period_msec value\n", __FUNCTION__));
 		 return -EINVAL;
 	}
@@ -1239,7 +1241,7 @@ int wl_keep_alive_set(struct net_device *dev, char *extra, int total_len)
 	str = "mkeep_alive";
 	str_len = strlen(str);
 	strncpy(buf, str, str_len);
-	buf[str_len] = '\0';
+	buf[ str_len ] = '\0';
 	mkeep_alive_pktp = (wl_mkeep_alive_pkt_t *) (buf + str_len + 1);
 	mkeep_alive_pkt.period_msec = period_msec;
 	buf_len = str_len + 1;
@@ -1257,9 +1259,13 @@ int wl_keep_alive_set(struct net_device *dev, char *extra, int total_len)
 	memcpy((char *)mkeep_alive_pktp, &mkeep_alive_pkt, WL_MKEEP_ALIVE_FIXED_LEN);
 
 	if ((res = wldev_ioctl(dev, WLC_SET_VAR, buf, buf_len, TRUE)) < 0)
+	{
 		DHD_ERROR(("%s:keep_alive set failed. res[%d]\n", __FUNCTION__, res));
+	}
 	else
+	{
 		DHD_ERROR(("%s:keep_alive set ok. res[%d]\n", __FUNCTION__, res));
+	}
 
 	return res;
 }
@@ -1467,7 +1473,8 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 	else if (strnicmp(command, CMD_KEEP_ALIVE, strlen(CMD_KEEP_ALIVE)) == 0) {
 		int skip = strlen(CMD_KEEP_ALIVE) + 1;
 		bytes_written = wl_keep_alive_set(net, command + skip, priv_cmd.total_len - skip);
-	} else if (strnicmp(command, CMD_ROAM_OFFLOAD, strlen(CMD_ROAM_OFFLOAD)) == 0) {
+	}
+	else if (strnicmp(command, CMD_ROAM_OFFLOAD, strlen(CMD_ROAM_OFFLOAD)) == 0) {
 		int enable = *(command + strlen(CMD_ROAM_OFFLOAD) + 1) - '0';
 		bytes_written = wl_cfg80211_enable_roam_offload(net, enable);
 	} else {

@@ -2,7 +2,6 @@
  * Header file of Broadcom Dongle Host Driver (DHD)
  * Prefered Network Offload code and Wi-Fi Location Service(WLS) code.
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -98,7 +97,7 @@ typedef struct cmd_tlv {
 } cmd_tlv_t;
 typedef enum dhd_pno_mode {
 	/* Wi-Fi Legacy PNO Mode */
-	DHD_PNO_NONE_MODE 	= 0,
+	DHD_PNO_NONE_MODE = 0,
 	DHD_PNO_LEGACY_MODE = (1 << (0)),
 	/* Wi-Fi Android BATCH SCAN Mode */
 	DHD_PNO_BATCH_MODE = (1 << (1)),
@@ -249,6 +248,6 @@ extern int dhd_pno_stop_for_hotlist(dhd_pub_t *dhd);
 extern int dhd_pno_event_handler(dhd_pub_t *dhd, wl_event_msg_t *event, void *event_data);
 extern int dhd_pno_init(dhd_pub_t *dhd);
 extern int dhd_pno_deinit(dhd_pub_t *dhd);
-#endif
+#endif 
 
 #endif /* __DHD_PNO_H__ */
