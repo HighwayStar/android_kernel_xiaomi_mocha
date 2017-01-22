@@ -4793,7 +4793,7 @@ dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen)
 	dhd->adapter = adapter;
 
 #ifdef GET_CUSTOM_MAC_ENABLE
-	wifi_platform_get_mac_addr(dhd->adapter, dhd->pub.mac.octet);
+	dhd_custom_get_mac_address(dhd->adapter, dhd->pub.mac.octet);
 #endif /* GET_CUSTOM_MAC_ENABLE */
 #ifdef CUSTOM_FORCE_NODFS_FLAG
 	dhd->pub.dhd_cflags |= WLAN_PLAT_NODFS_FLAG;
@@ -5591,7 +5591,7 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 		DHD_INFO(("%s : Set IOCTL response time.\n", __FUNCTION__));
 	}
 #ifdef GET_CUSTOM_MAC_ENABLE
-	ret = wifi_platform_get_mac_addr(dhd->info->adapter, ea_addr.octet);
+	ret = dhd_custom_get_mac_address(dhd->info->adapter, ea_addr.octet);
 	if (!ret) {
 		memset(buf, 0, sizeof(buf));
 		bcm_mkiovar("cur_etheraddr", (void *)&ea_addr, ETHER_ADDR_LEN, buf, sizeof(buf));
@@ -5742,14 +5742,6 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 	/* get a ccode and revision for the country code */
 	get_customized_country_code(dhd->info->adapter, dhd->dhd_cspec.country_abbrev,
 			&dhd->dhd_cspec, dhd->dhd_cflags);
-	/* Set Country code  */
-	if (dhd->dhd_cspec.ccode[0] != 0) {
-		bcm_mkiovar("country", (char *)&dhd->dhd_cspec,
-			sizeof(wl_country_t), iovbuf, sizeof(iovbuf));
-		if ((ret = dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf, sizeof(iovbuf), TRUE, 0)) < 0)
-			DHD_ERROR(("%s: country code setting failed\n", __FUNCTION__));
-	}
-
 
 	/* Set Listen Interval */
 	bcm_mkiovar("assoc_listen", (char *)&listen_interval, 4, iovbuf, sizeof(iovbuf));
@@ -6186,6 +6178,14 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 #ifdef WL11U
 	dhd_interworking_enable(dhd);
 #endif /* WL11U */
+
+	/* Set Country code  */
+	if (dhd->dhd_cspec.ccode[0] != 0) {
+		bcm_mkiovar("country", (char *)&dhd->dhd_cspec,
+			sizeof(wl_country_t), iovbuf, sizeof(iovbuf));
+		if ((ret = dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf, sizeof(iovbuf), TRUE, 0)) < 0)
+			DHD_ERROR(("%s: country code setting failed\n", __FUNCTION__));
+	}
 
 done:
 	return ret;
