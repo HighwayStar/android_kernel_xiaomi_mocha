@@ -163,7 +163,11 @@ int wifi_platform_set_power(wifi_adapter_info_t *adapter, bool on, unsigned long
 		}
 #endif /* ENABLE_4335BT_WAR */
 
+		if (on)
+			sysedp_set_state(plat_data->sysedpc, 1);
 		err = plat_data->set_power(on);
+		if (!on)
+			sysedp_set_state(plat_data->sysedpc, 0);
 	}
 
 	if (msec && !err)
@@ -231,14 +235,14 @@ static int wifi_plat_dev_drv_probe(struct platform_device *pdev)
 {
 	struct resource *resource;
 	wifi_adapter_info_t *adapter;
-
+	struct wifi_platform_data *plat_data;
 	/* Android style wifi platform data device ("bcmdhd_wlan" or "bcm4329_wlan")
 	 * is kept for backward compatibility and supports only 1 adapter
 	 */
 	ASSERT(dhd_wifi_platdata != NULL);
 	ASSERT(dhd_wifi_platdata->num_adapters == 1);
 	adapter = &dhd_wifi_platdata->adapters[0];
-	adapter->wifi_plat_data = (struct wifi_platform_data *)(pdev->dev.platform_data);
+	plat_data = adapter->wifi_plat_data = (struct wifi_platform_data *)(pdev->dev.platform_data);
 
 	resource = platform_get_resource_byname(pdev, IORESOURCE_IRQ, "bcmdhd_wlan_irq");
 	if (resource == NULL)
@@ -247,7 +251,7 @@ static int wifi_plat_dev_drv_probe(struct platform_device *pdev)
 		adapter->irq_num = resource->start;
 		adapter->intr_flags = resource->flags & IRQF_TRIGGER_MASK;
 	}
-
+	plat_data->sysedpc = sysedp_create_consumer("wifi", "wifi");
 	wifi_plat_dev_probe_ret = dhd_wifi_platform_load();
 	return wifi_plat_dev_probe_ret;
 }
@@ -255,6 +259,7 @@ static int wifi_plat_dev_drv_probe(struct platform_device *pdev)
 static int wifi_plat_dev_drv_remove(struct platform_device *pdev)
 {
 	wifi_adapter_info_t *adapter;
+	struct wifi_platform_data *plat_data;
 
 	/* Android style wifi platform data device ("bcmdhd_wlan" or "bcm4329_wlan")
 	 * is kept for backward compatibility and supports only 1 adapter
@@ -262,9 +267,13 @@ static int wifi_plat_dev_drv_remove(struct platform_device *pdev)
 	ASSERT(dhd_wifi_platdata != NULL);
 	ASSERT(dhd_wifi_platdata->num_adapters == 1);
 	adapter = &dhd_wifi_platdata->adapters[0];
+
+	plat_data = adapter->wifi_plat_data;
 	if (is_power_on) {
 		wifi_platform_set_power(adapter, FALSE, WIFI_TURNOFF_DELAY);
 		wifi_platform_bus_enumerate(adapter, FALSE);
+		sysedp_free_consumer(plat_data->sysedpc);
+		plat_data->sysedpc = 0;
 	}
 
 	return 0;
