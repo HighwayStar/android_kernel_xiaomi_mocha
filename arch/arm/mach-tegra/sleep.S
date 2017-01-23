@@ -209,6 +209,17 @@ ENDPROC(tegra_flush_l1_cache)
  * tegra?_tear_down_cpu
  */
 ENTRY(tegra_sleep_cpu_finish)
+       mov     r4, r0
+#if defined(CONFIG_TEGRA_USE_SECURE_KERNEL)
+       ldr     r0, =0x84000001
+       ldr     r1, =((1 << 16) | 4)
+       ldr     r2, =TEGRA_RESET_HANDLER_BASE
+       bl      tegra_sm_generic
+#endif
+
+       bl      tegra_flush_cache
+
+       mov     r0, r4
 	bl	tegra_cpu_exit_coherency
 
 #ifdef CONFIG_ARCH_TEGRA_2x_SOC

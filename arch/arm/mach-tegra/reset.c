@@ -20,6 +20,7 @@
 #include <linux/bitops.h>
 #include <linux/tegra-soc.h>
 #include <linux/tegra-fuse.h>
+#include <linux/tegra_sm.h>
 
 #include <asm/cacheflush.h>
 #include <asm/psci.h>
@@ -50,12 +51,8 @@ static void tegra_cpu_reset_handler_enable(void)
 	memcpy(iram_base, (void *)__tegra_cpu_reset_handler_start,
 		tegra_cpu_reset_handler_size);
 
-#if defined(CONFIG_ARM_PSCI)
-	if (psci_ops.cpu_on) {
-		psci_ops.cpu_on(0, TEGRA_RESET_HANDLER_BASE +
-			tegra_cpu_reset_handler_offset);
-	} else {
-#endif
+	tegra_sm_generic(0x82000001,
+		TEGRA_RESET_HANDLER_BASE + tegra_cpu_reset_handler_offset, 0);
 
 		/* NOTE: This must be the one and only write to the EVP CPU
 		 * reset vector in the entire system. */
@@ -74,9 +71,6 @@ static void tegra_cpu_reset_handler_enable(void)
 			writel(reg, sb_ctrl);
 			wmb();
 		}
-#if defined(CONFIG_ARM_PSCI)
-	}
-#endif
 
 	is_enabled = true;
 }
