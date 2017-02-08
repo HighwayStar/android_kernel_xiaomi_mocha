@@ -295,19 +295,23 @@ static int tegra_fb_blank(int blank, struct fb_info *info)
 	struct tegra_fb_info *tegra_fb = info->par;
 	struct tegra_dc *dc = tegra_fb->win.dc;
 
+
 	switch (blank) {
 	case FB_BLANK_UNBLANK:
 		dev_dbg(&tegra_fb->ndev->dev, "unblank\n");
+                pr_info("panel: %s  FB_BLANK_UNBLANK  +++\n", __func__);
+                /* Turn off seamless transistion mode after
+                   first update from android */
+                dc->out->flags &= ~TEGRA_DC_OUT_INITIALIZED_MODE;
+
 		tegra_dc_enable(dc);
-		if (!dc->suspended && dc->blanked &&
-		    !tegra_dc_restore(dc)) {
 			struct tegra_dc_win *win = &tegra_fb->win;
 			tegra_dc_update_windows(&win, 1);
 			tegra_dc_sync_windows(&win, 1);
 			tegra_dc_program_bandwidth(dc, true);
-		}
 
 		dc->blanked = false;
+                pr_info("panel: %s  FB_BLANK_UNBLANK  +++ return!\n", __func__);
 		return 0;
 
 	case FB_BLANK_NORMAL:
@@ -323,10 +327,17 @@ static int tegra_fb_blank(int blank, struct fb_info *info)
 	case FB_BLANK_HSYNC_SUSPEND:
 	case FB_BLANK_POWERDOWN:
 		dev_dbg(&tegra_fb->ndev->dev, "blank - powerdown\n");
+                pr_info("panel: %s  FB_BLANK_POWERDOWN ---\n", __func__);
+                /* Skip powerdown to support seamless transistion
+                   from bootloader to android display */
+                if (dc->out->flags & TEGRA_DC_OUT_INITIALIZED_MODE)
+                       return 0;
+
 		/* To pan fb while switching from X */
 		if (!dc->suspended && dc->enabled)
 			tegra_fb->curr_xoffset = -1;
-		tegra_dc_disable(dc);
+                tegra_dc_disable(dc);
+                pr_info("panel: %s  FB_BLANK_POWERDOWN --- return!\n", __func__);
 		return 0;
 
 	default:
@@ -374,12 +385,10 @@ static int tegra_fb_pan_display(struct fb_var_screeninfo *var,
 		tegra_fb->win.flags |= TEGRA_WIN_FLAG_FB;
 		tegra_fb->win.virt_addr = info->screen_base;
 
-		if (!tegra_fb->win.dc->suspended) {
-			struct tegra_dc_win *win = &tegra_fb->win;
-			tegra_dc_update_windows(&win, 1);
-			tegra_dc_sync_windows(&win, 1);
-			tegra_dc_program_bandwidth(win->dc, true);
-		}
+		struct tegra_dc_win *win = &tegra_fb->win;
+		tegra_dc_update_windows(&win, 1);
+		tegra_dc_sync_windows(&win, 1);
+		tegra_dc_program_bandwidth(win->dc, true);
 	}
 
 	return 0;
