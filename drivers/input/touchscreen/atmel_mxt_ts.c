@@ -14,6 +14,7 @@
  */
 
 #include <linux/module.h>
+#include <linux/proc_fs.h>
 #include <linux/init.h>
 #include <linux/delay.h>
 #include <linux/firmware.h>
@@ -4088,6 +4089,51 @@ static const struct attribute_group mxt_attr_group = {
 	.attrs = mxt_attrs,
 };
 
+static int mxt_proc_init()
+{
+	int ret = 0;
+	char *buf, *path = NULL;
+	char *double_tap_sysfs_node, *key_disabler_sysfs_node;;
+	struct proc_dir_entry *proc_entry_tp = NULL;
+	struct proc_dir_entry *proc_symlink_tmp  = NULL;
+
+	buf = kzalloc(PATH_MAX, GFP_KERNEL);
+	if (buf)
+		path = "/sys/devices/platform/tegra12-i2c.3/i2c-3/3-004a";
+
+	proc_entry_tp = proc_mkdir("touchpanel", NULL);
+	if (proc_entry_tp == NULL) {
+		ret = -ENOMEM;
+		pr_err("%s: Couldn't create touchpanel\n", __func__);
+	}
+
+	double_tap_sysfs_node = kzalloc(PATH_MAX, GFP_KERNEL);
+	if (double_tap_sysfs_node)
+		sprintf(double_tap_sysfs_node, "%s/%s", path, "wakeup_mode");
+	proc_symlink_tmp = proc_symlink("double_tap_enable",
+			proc_entry_tp, double_tap_sysfs_node);
+	if (proc_symlink_tmp == NULL) {
+		ret = -ENOMEM;
+		pr_err("%s: Couldn't create double_tap_enable symlink\n", __func__);
+	}
+
+	key_disabler_sysfs_node = kzalloc(PATH_MAX, GFP_KERNEL);
+	if (key_disabler_sysfs_node)
+		sprintf(key_disabler_sysfs_node, "%s/%s", path, "enable_keys");
+	proc_symlink_tmp = proc_symlink("capacitive_keys_enable",
+			proc_entry_tp, key_disabler_sysfs_node);
+	if (proc_symlink_tmp == NULL) {
+		ret = -ENOMEM;
+		pr_err("%s: Couldn't create capacitive_keys_enable symlink\n", __func__);
+	}
+
+	kfree(buf);
+	kfree(double_tap_sysfs_node);
+	kfree(key_disabler_sysfs_node);
+
+	return ret;
+}
+
 static void mxt_set_t7_for_gesture(struct mxt_data *data, bool enable)
 {
 	struct device *dev = &data->client->dev;
@@ -4673,6 +4719,8 @@ retry:
 			error);
 		goto err_free_irq;
 	}
+
+	mxt_proc_init();
 
 	sysfs_bin_attr_init(&data->mem_access_attr);
 	data->mem_access_attr.attr.name = "mem_access";

@@ -19,6 +19,7 @@
  */
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/proc_fs.h>
 #include <linux/slab.h>
 #include <linux/interrupt.h>
 #include <linux/delay.h>
@@ -549,6 +550,38 @@ static ssize_t synaptics_rmi4_suspend_store(struct device *dev,
 
 	return count;
 }
+
+static int synaptics_rmi4_proc_init()
+{
+	int ret = 0;
+	char *buf, *path = NULL;
+	char *key_disabler_sysfs_node = NULL;
+	struct proc_dir_entry *proc_entry_tp = NULL;
+	struct proc_dir_entry *proc_symlink_tmp  = NULL;
+
+	buf = kzalloc(PATH_MAX, GFP_KERNEL);
+	if (buf)
+		path = "/sys/devices/platform/tegra12-i2c.3/i2c-3/3-0020/input/input3/0dbutton";
+
+	proc_entry_tp = proc_mkdir("touchpanel", NULL);
+	if (proc_entry_tp == NULL) {
+		ret = -ENOMEM;
+		pr_err("%s: Couldn't create touchpanel\n", __func__);
+	}
+
+	key_disabler_sysfs_node = kzalloc(PATH_MAX, GFP_KERNEL);
+	proc_symlink_tmp = proc_symlink("capacitive_keys_enable",
+			proc_entry_tp, path);
+	if (proc_symlink_tmp == NULL) {
+		ret = -ENOMEM;
+		pr_err("%s: Couldn't create capacitive_keys_enable symlink\n", __func__);
+	}
+
+	kfree(buf);
+
+	return ret;
+}
+
 
  /**
  * synaptics_rmi4_f11_abs_report()
@@ -2880,6 +2913,8 @@ static int synaptics_rmi4_probe(struct platform_device *pdev)
 			goto err_sysfs;
 		}
 	}
+
+	synaptics_rmi4_proc_init();
 
 	return retval;
 
