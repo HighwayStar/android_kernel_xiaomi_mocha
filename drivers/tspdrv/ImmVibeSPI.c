@@ -444,6 +444,9 @@ static bool g_bNeedToRestartPlayBack = false;
 
 #define PWM_CH_ID 3
 
+static struct kobject *vibe_kobj;
+static int vibe_strength;
+
 #if DRV2604_USE_PWM_MODE
 struct pwm_device {
 	struct list_head node;
@@ -647,6 +650,26 @@ static void drv2604_change_mode(char mode)
 	usleep_range(4000, 5000); /* Added by Xiaomi */
 }
 
+static ssize_t pwmvalue_show(struct device *dev,
+                 struct device_attribute *attr, char *buf)
+{
+	size_t count = 0;
+	count += sprintf(buf, "%d\n", vibe_strength);
+	return count;
+}
+
+static ssize_t pwmvalue_store(struct device *dev,
+                 struct device_attribute *attr, const char *buf, size_t count)
+{
+	int vs = 0;
+	sscanf(buf, "%d ",&vs);
+	if (vs < 0 || vs > 127) vs = 100;
+	vibe_strength = vs;
+	return count;
+}
+
+static DEVICE_ATTR(pwmvalue, (S_IWUSR|S_IRUGO), pwmvalue_show, pwmvalue_store);
+
 /* - Xiaomi - timed output interface -------------------------------------------------------------------------------- */
 #define YES 1
 #define NO  0
@@ -704,7 +727,7 @@ static void vibrator_enable(struct timed_output_dev *dev, int value)
 #if DRV2604_USE_RTP_MODE
 			/* Only change the mode if not already in RTP mode; RTP input already set at init */
 			if (mode != MODE_REAL_TIME_PLAYBACK) {
-				drv2604_set_rtp_val(REAL_TIME_PLAYBACK_CALIBRATION_STRENGTH);
+				drv2604_set_rtp_val(vibe_strength);
 				drv2604_change_mode(MODE_REAL_TIME_PLAYBACK);
 				vibrator_is_playing = YES;
 				g_bAmpEnabled = true;
@@ -1112,12 +1135,14 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_Initialize(void)
 {
 	struct i2c_adapter *adapter;
 	struct i2c_client *client;
+        int retVal = 0;
 
 	DbgOut((DBL_VERBOSE, "ImmVibeSPI_ForceOut_Initialize.\n"));
 
 	g_bAmpEnabled = true;	/* to force ImmVibeSPI_ForceOut_AmpDisable disabling the amp */
 
 /* From Xiaomi start*/
+        vibe_strength = REAL_TIME_PLAYBACK_CALIBRATION_STRENGTH;
 	if (gpio_request(GPIO_VIBTONE_EN1, "vibrator-en") < 0) {
 		printk(KERN_ALERT"drv2604: error requesting gpio\n");
 		return VIBE_E_FAIL;
@@ -1130,7 +1155,7 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_Initialize(void)
 		client = i2c_new_device(adapter, &info);
 
 		if (client) {
-			int retVal = i2c_add_driver(&drv2604_driver);
+			retVal = i2c_add_driver(&drv2604_driver);
 
 			if (retVal)
 				return VIBE_E_FAIL;
@@ -1183,6 +1208,15 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_Initialize(void)
 
 	ImmVibeSPI_ForceOut_AmpDisable(0);
 
+	vibe_kobj = kobject_create_and_add("vibrator", NULL);
+	if (!vibe_kobj)
+		return VIBE_S_SUCCESS;
+
+	retVal = sysfs_create_file(vibe_kobj, &dev_attr_pwmvalue.attr);
+
+	if (retVal)
+		DbgOut((DBL_VERBOSE, "drv2604: vibrator creat fail.\n"));
+
 	return VIBE_S_SUCCESS;
 }
 
@@ -1203,6 +1237,7 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_Terminate(void)
 	ImmVibeSPI_ForceOut_AmpDisable(0);
 
 /* From Xiaomi start */
+	kobject_del(vibe_kobj);
 	gpio_direction_output(GPIO_VIBTONE_EN1, GPIO_LEVEL_LOW);
 	gpio_free(GPIO_VIBTONE_EN1);
 /* From Xiaomi end */
