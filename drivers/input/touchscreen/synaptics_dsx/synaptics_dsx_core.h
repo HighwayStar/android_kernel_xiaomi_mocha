@@ -5,7 +5,6 @@
  *
  * Copyright (C) 2012 Alexandra Chin <alexandra.chin@tw.synaptics.com>
  * Copyright (C) 2012 Scott Lin <scott.lin@tw.synaptics.com>
- * Copyright (C) 2016 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,6 +55,7 @@
 #define SYNAPTICS_RMI4_F51 (0x51)
 #define SYNAPTICS_RMI4_F54 (0x54)
 #define SYNAPTICS_RMI4_F55 (0x55)
+#define SYNAPTICS_RMI4_FDB (0xdb)
 
 #define SYNAPTICS_RMI4_PRODUCT_INFO_SIZE 2
 #define SYNAPTICS_RMI4_DATE_CODE_SIZE 3
@@ -85,16 +85,12 @@
 
 enum exp_fn {
 	RMI_DEV = 0,
-	RMI_F54,
 	RMI_FW_UPDATER,
+	RMI_TEST_REPORTING,
 	RMI_PROXIMITY,
 	RMI_ACTIVE_PEN,
+	RMI_DEBUG,
 	RMI_LAST,
-};
-
-struct synaptics_dsx_hw_interface {
-	struct synaptics_dsx_board_data *board_data;
-	const struct synaptics_dsx_bus_access *bus_access;
 };
 
 /*
@@ -131,7 +127,6 @@ struct synaptics_rmi4_fn_full_addr {
 
 struct synaptics_rmi4_f12_extra_data {
 	unsigned char data1_offset;
-	unsigned char data4_offset;
 	unsigned char data15_offset;
 	unsigned char data15_size;
 	unsigned char data15_data[(F12_FINGERS_TO_SUPPORT + 7) / 8];
@@ -224,6 +219,7 @@ struct synaptics_rmi4_data {
 	struct synaptics_rmi4_device_info rmi4_mod_info;
 	struct regulator *regulator;
 	struct mutex rmi4_reset_mutex;
+	struct mutex rmi4_report_mutex;
 	struct mutex rmi4_io_ctrl_mutex;
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	struct early_suspend early_suspend;
@@ -250,12 +246,9 @@ struct synaptics_rmi4_data {
 	int sensor_max_y;
 	bool flash_prog_mode;
 	bool irq_enabled;
-	bool touch_stopped;
 	bool fingers_on_2d;
 	bool sensor_sleep;
 	bool stay_awake;
-	bool staying_awake;
-	bool wakeup_enable;
 	int (*irq_enable)(struct synaptics_rmi4_data *rmi4_data, bool enable);
 	int (*reset_device)(struct synaptics_rmi4_data *rmi4_data);
 };
@@ -266,6 +259,13 @@ struct synaptics_dsx_bus_access {
 		unsigned char *data, unsigned short length);
 	int (*write)(struct synaptics_rmi4_data *rmi4_data, unsigned short addr,
 		unsigned char *data, unsigned short length);
+};
+
+struct synaptics_dsx_hw_interface {
+	const struct synaptics_dsx_board_data *board_data;
+	const struct synaptics_dsx_bus_access *bus_access;
+	int (*bl_hw_init)(struct synaptics_rmi4_data *rmi4_data);
+	int (*ui_hw_init)(struct synaptics_rmi4_data *rmi4_data);
 };
 
 struct synaptics_rmi4_exp_fn {

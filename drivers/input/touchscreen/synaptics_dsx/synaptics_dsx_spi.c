@@ -5,7 +5,6 @@
  *
  * Copyright (C) 2012 Alexandra Chin <alexandra.chin@tw.synaptics.com>
  * Copyright (C) 2012 Scott Lin <scott.lin@tw.synaptics.com>
- * Copyright (C) 2016 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -317,13 +316,13 @@ static struct spi_driver synaptics_rmi4_spi_driver = {
 };
 
 
-int synaptics_rmi4_bus_init()
+int synaptics_rmi4_bus_init(void)
 {
 	return spi_register_driver(&synaptics_rmi4_spi_driver);
 }
 EXPORT_SYMBOL(synaptics_rmi4_bus_init);
 
-void synaptics_rmi4_bus_exit()
+void synaptics_rmi4_bus_exit(void)
 {
 	spi_unregister_driver(&synaptics_rmi4_spi_driver);
 

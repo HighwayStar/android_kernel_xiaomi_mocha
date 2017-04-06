@@ -12,20 +12,23 @@ menuconfig TOUCHSCREEN_SYNAPTICS_DSX
 
 if TOUCHSCREEN_SYNAPTICS_DSX
 
-#choice
-#	default TOUCHSCREEN_SYNAPTICS_DSX_I2C
-#	prompt "Synaptics DSX touchscreen bus interface"
+choice
+	default TOUCHSCREEN_SYNAPTICS_DSX_I2C
+	prompt "Synaptics DSX touchscreen bus interface"
 config TOUCHSCREEN_SYNAPTICS_DSX_I2C
 	bool "I2C"
 	depends on I2C
 config TOUCHSCREEN_SYNAPTICS_DSX_SPI
 	bool "SPI"
 	depends on SPI_MASTER
-#endchoice
+config TOUCHSCREEN_SYNAPTICS_DSX_RMI_HID_I2C
+	bool "HID/I2C (RMI MODE)"
+	depends on I2C
+endchoice
 
 config TOUCHSCREEN_SYNAPTICS_DSX_CORE
 	tristate "Synaptics DSX core driver module"
-	depends on TOUCHSCREEN_SYNAPTICS_DSX_I2C || TOUCHSCREEN_SYNAPTICS_DSX_SPI
+	depends on I2C || SPI_MASTER
 	help
 	  Say Y here to enable basic touch reporting functionalities.
 
@@ -88,5 +91,16 @@ config TOUCHSCREEN_SYNAPTICS_DSX_ACTIVE_PEN
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called synaptics_dsx_active_pen.
+
+config TOUCHSCREEN_SYNAPTICS_DSX_DEBUG
+	tristate "Synaptics DSX touchscreen debug module"
+	depends on TOUCHSCREEN_SYNAPTICS_DSX_CORE
+	help
+	  Say Y here to enable support for RMI debug functionalities.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called synaptics_dsx_debug.
 
 endif
