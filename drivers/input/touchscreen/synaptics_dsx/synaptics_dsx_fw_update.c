@@ -27,10 +27,9 @@
 #include <linux/input/synaptics_dsx.h>
 #include "synaptics_dsx_core.h"
 
-#define FW_IMAGE_NAME "synaptics/startup_fw_update.img"
-/*
+
 #define DO_STARTUP_FW_UPDATE
-*/
+
 #define FORCE_UPDATE false
 #define DO_LOCKDOWN false
 
@@ -1344,6 +1343,8 @@ static int fwu_start_reflash(void)
 	const unsigned char *fw_image;
 	const struct firmware *fw_entry = NULL;
 	struct synaptics_rmi4_data *rmi4_data = fwu->rmi4_data;
+	const struct synaptics_dsx_board_data *bdata =
+			rmi4_data->hw_if->board_data;
 
 	if (rmi4_data->sensor_sleep) {
 		dev_err(rmi4_data->pdev->dev.parent,
@@ -1359,7 +1360,7 @@ static int fwu_start_reflash(void)
 	if (fwu->ext_data_source) {
 		fw_image = fwu->ext_data_source;
 	} else {
-		strncpy(fwu->image_name, FW_IMAGE_NAME, MAX_IMAGE_NAME_LEN);
+		strncpy(fwu->image_name, bdata->fw_name, MAX_IMAGE_NAME_LEN);
 		dev_dbg(rmi4_data->pdev->dev.parent,
 				"%s: Requesting firmware image %s\n",
 				__func__, fwu->image_name);

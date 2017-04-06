@@ -2100,7 +2100,7 @@ static void synaptics_rmi4_set_params(struct synaptics_rmi4_data *rmi4_data)
 
 #ifdef TYPE_B_PROTOCOL
 	input_mt_init_slots(rmi4_data->input_dev,
-			rmi4_data->num_of_fingers);
+			rmi4_data->num_of_fingers,0);
 #endif
 
 	f1a = NULL;
@@ -2194,37 +2194,95 @@ static int synaptics_rmi4_set_gpio(struct synaptics_rmi4_data *rmi4_data)
 	const struct synaptics_dsx_board_data *bdata =
 			rmi4_data->hw_if->board_data;
 
-	retval = bdata->gpio_config(
-			bdata->irq_gpio,
-			true, 0, 0);
-	if (retval < 0) {
-		dev_err(rmi4_data->pdev->dev.parent,
-				"%s: Failed to configure attention GPIO\n",
-				__func__);
-		goto err_gpio_irq;
+	if (bdata->gpio_config) {
+		retval = bdata->gpio_config(
+				bdata->irq_gpio,
+				true, 0, 0);
+		if (retval < 0) {
+			dev_err(rmi4_data->pdev->dev.parent,
+					"%s: Failed to configure attention GPIO\n",
+					__func__);
+			goto err_gpio_irq;
+		}
+	} else {
+		if (gpio_is_valid(bdata->irq_gpio)) {
+			/* configure touchscreen irq gpio */
+			retval = gpio_request(bdata->irq_gpio, "rmi4_irq_gpio");
+			if (retval) {
+				dev_err(rmi4_data->pdev->dev.parent,
+					"%s: unable to request gpio [%d]\n", __func__,
+							bdata->irq_gpio);
+				goto err_gpio_irq;
+			}
+			retval = gpio_direction_input(bdata->irq_gpio);
+			if (retval) {
+				dev_err(rmi4_data->pdev->dev.parent,
+					"%s: unable to set_direction for gpio [%d]\n",
+					__func__, bdata->irq_gpio);
+				goto err_irq_gpio_req;
+			}
+		}
 	}
 
 	if (bdata->power_gpio >= 0) {
-		retval = bdata->gpio_config(
-				bdata->power_gpio,
+		if (bdata->gpio_config) {
+			retval = bdata->gpio_config(
+					bdata->power_gpio,
 				true, 1, !bdata->power_on_state);
-		if (retval < 0) {
-			dev_err(rmi4_data->pdev->dev.parent,
-					"%s: Failed to configure power GPIO\n",
-					__func__);
-			goto err_gpio_power;
+			if (retval < 0) {
+				dev_err(rmi4_data->pdev->dev.parent,
+						"%s: Failed to configure power GPIO\n",
+						__func__);
+				goto err_gpio_power;
+			}
+		} else if (gpio_is_valid(bdata->power_gpio)) {
+			/* configure touchscreen power gpio */
+			retval = gpio_request(bdata->power_gpio, "rmi4_power_gpio");
+			if (retval) {
+				dev_err(rmi4_data->pdev->dev.parent,
+					"%s: unable to request gpio [%d]\n", __func__,
+							bdata->power_gpio);
+				goto err_irq_gpio_req;
+			}
+			retval = gpio_direction_output(bdata->power_gpio, 0);
+			if (retval) {
+				dev_err(rmi4_data->pdev->dev.parent,
+					"%s: unable to set_direction for gpio [%d]\n",
+					__func__, bdata->power_gpio);
+				goto err_gpio_power;
+			}
 		}
 	}
 
 	if (bdata->reset_gpio >= 0) {
-		retval = bdata->gpio_config(
-				bdata->reset_gpio,
-				true, 1, !bdata->reset_on_state);
-		if (retval < 0) {
-			dev_err(rmi4_data->pdev->dev.parent,
-					"%s: Failed to configure reset GPIO\n",
-					__func__);
-			goto err_gpio_reset;
+		if (bdata->gpio_config) {
+			retval = bdata->gpio_config(
+					bdata->reset_gpio,
+					true, 1, !bdata->reset_on_state);
+			if (retval < 0) {
+				dev_err(rmi4_data->pdev->dev.parent,
+						"%s: Failed to configure reset GPIO\n",
+						__func__);
+				goto err_gpio_reset;
+			}
+		} else {
+			if (gpio_is_valid(bdata->reset_gpio)) {
+				/* configure touchscreen reset gpio */
+				retval = gpio_request(bdata->reset_gpio, "rmi4_reset_gpio");
+				if (retval) {
+					dev_err(rmi4_data->pdev->dev.parent,
+						"%s: unable to request gpio [%d]\n", __func__,
+								bdata->reset_gpio);
+					goto err_gpio_reset;
+				}
+				retval = gpio_direction_output(bdata->reset_gpio, 0);
+				if (retval) {
+					dev_err(rmi4_data->pdev->dev.parent,
+						"%s: unable to set_direction for gpio [%d]\n",
+						__func__, bdata->reset_gpio);
+					goto err_gpio_reset_req;
+				}
+			}
 		}
 	}
 
@@ -2242,6 +2300,11 @@ static int synaptics_rmi4_set_gpio(struct synaptics_rmi4_data *rmi4_data)
 
 	return 0;
 
+err_gpio_reset_req:
+	if (!bdata->gpio_config)
+		if (gpio_is_valid(bdata->reset_gpio))
+			gpio_free(bdata->reset_gpio);
+
 err_gpio_reset:
 	if (bdata->power_gpio >= 0) {
 		bdata->gpio_config(
@@ -2250,10 +2313,20 @@ err_gpio_reset:
 	}
 
 err_gpio_power:
-	bdata->gpio_config(
-			bdata->irq_gpio,
-			false, 0, 0);
+	if (bdata->gpio_config)
+		bdata->gpio_config(
+				bdata->irq_gpio,
+				false, 0, 0);
+	else if (gpio_is_valid(bdata->power_gpio))
+		gpio_set_value_cansleep(bdata->power_gpio, 0);
 
+	if (!bdata->gpio_config)
+		if (gpio_is_valid(bdata->power_gpio))
+			gpio_free(bdata->power_gpio);
+err_irq_gpio_req:
+	if (!bdata->gpio_config)
+		if (gpio_is_valid(bdata->irq_gpio))
+			gpio_free(bdata->irq_gpio);
 err_gpio_irq:
 	return retval;
 }
@@ -2518,7 +2591,7 @@ EXPORT_SYMBOL(synaptics_rmi4_new_function);
  * and creates a work queue for detection of other expansion Function
  * modules.
  */
-static int __devinit synaptics_rmi4_probe(struct platform_device *pdev)
+static int synaptics_rmi4_probe(struct platform_device *pdev)
 {
 	int retval;
 	unsigned char attr_count;
@@ -2580,15 +2653,14 @@ static int __devinit synaptics_rmi4_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, rmi4_data);
 
-	if (bdata->gpio_config) {
-		retval = synaptics_rmi4_set_gpio(rmi4_data);
-		if (retval < 0) {
-			dev_err(&pdev->dev,
-					"%s: Failed to set up GPIO's\n",
-					__func__);
-			goto err_set_gpio;
-		}
+	retval = synaptics_rmi4_set_gpio(rmi4_data);
+	if (retval < 0) {
+		dev_err(&pdev->dev,
+				"%s: Failed to set up GPIO's\n",
+				__func__);
+		goto err_set_gpio;
 	}
+
 
 	if (hw_if->ui_hw_init) {
 		retval = hw_if->ui_hw_init(rmi4_data);
@@ -2686,6 +2758,17 @@ err_set_input_dev:
 					bdata->power_gpio,
 					false, 0, 0);
 		}
+	} else {
+		if (gpio_is_valid(bdata->irq_gpio))
+			gpio_free(bdata->irq_gpio);
+
+		if (gpio_is_valid(bdata->reset_gpio))
+			gpio_free(bdata->reset_gpio);
+
+		if (gpio_is_valid(bdata->power_gpio)) {
+			gpio_set_value_cansleep(bdata->power_gpio, 0);
+			gpio_free(bdata->power_gpio);
+		}
 	}
 
 err_ui_hw_init:
@@ -2711,7 +2794,7 @@ err_regulator:
  * frees the interrupt, unregisters the driver from the input subsystem,
  * turns off the power to the sensor, and frees other allocated resources.
  */
-static int __devexit synaptics_rmi4_remove(struct platform_device *pdev)
+static int synaptics_rmi4_remove(struct platform_device *pdev)
 {
 	unsigned char attr_count;
 	struct synaptics_rmi4_data *rmi4_data = platform_get_drvdata(pdev);
@@ -3027,7 +3110,7 @@ static struct platform_driver synaptics_rmi4_driver = {
 #endif
 	},
 	.probe = synaptics_rmi4_probe,
-	.remove = __devexit_p(synaptics_rmi4_remove),
+	.remove = synaptics_rmi4_remove,
 };
 
  /**

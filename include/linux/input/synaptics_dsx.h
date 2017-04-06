@@ -31,7 +31,7 @@
  */
 struct synaptics_dsx_cap_button_map {
 	unsigned char nbuttons;
-	unsigned char *map;
+	unsigned int *map;
 };
 
 /*
@@ -64,11 +64,14 @@ struct synaptics_dsx_board_data {
 	int irq_gpio;
 	int irq_on_state;
 	int power_gpio;
+        int dcdc_gpio;
 	int power_on_state;
 	int reset_gpio;
 	int reset_on_state;
 	unsigned long irq_flags;
 	unsigned short device_descriptor_addr;
+        const char *fw_name;
+        const char *self_test_name;
 	unsigned int panel_x;
 	unsigned int panel_y;
 	unsigned int power_delay_ms;
