@@ -2,7 +2,6 @@
  * Linux cfgp2p driver
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -256,7 +255,8 @@ wl_cfgp2p_ifidx(struct bcm_cfg80211 *cfg, struct ether_addr *mac, s32 *index);
 extern s32
 wl_cfgp2p_init_discovery(struct bcm_cfg80211 *cfg);
 extern s32
-wl_cfgp2p_enable_discovery(struct bcm_cfg80211 *cfg, struct net_device *dev, const u8 *ie, u32 ie_len);
+wl_cfgp2p_enable_discovery(struct bcm_cfg80211 *cfg, struct net_device *dev, const u8 *ie,
+	u32 ie_len);
 extern s32
 wl_cfgp2p_disable_discovery(struct bcm_cfg80211 *cfg);
 extern s32
@@ -331,13 +331,13 @@ extern s32
 wl_cfgp2p_down(struct bcm_cfg80211 *cfg);
 
 extern s32
-wl_cfgp2p_set_p2p_noa(struct bcm_cfg80211 *cfg, struct net_device *ndev, char *buf, int len);
+wl_cfgp2p_set_p2p_noa(struct bcm_cfg80211 *cfg, struct net_device *ndev, char* buf, int len);
 
 extern s32
-wl_cfgp2p_get_p2p_noa(struct bcm_cfg80211 *cfg, struct net_device *ndev, char *buf, int len);
+wl_cfgp2p_get_p2p_noa(struct bcm_cfg80211 *cfg, struct net_device *ndev, char* buf, int len);
 
 extern s32
-wl_cfgp2p_set_p2p_ps(struct bcm_cfg80211 *cfg, struct net_device *ndev, char *buf, int len);
+wl_cfgp2p_set_p2p_ps(struct bcm_cfg80211 *cfg, struct net_device *ndev, char* buf, int len);
 
 extern u8 *
 wl_cfgp2p_retreive_p2pattrib(void *buf, u8 element_id);

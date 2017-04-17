@@ -2,7 +2,6 @@
  * Misc useful os-independent macros and functions.
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -158,7 +157,7 @@ typedef struct {
 
 typedef struct {
 	uint32                  _prec_log;
-	pktq_counters_t *_prec_cnt[PKTQ_MAX_PREC];     /* Counters per queue  */
+	pktq_counters_t*        _prec_cnt[PKTQ_MAX_PREC];     /* Counters per queue  */
 } pktq_log_t;
 #endif /* PKTQ_LOG */
 
@@ -175,7 +174,7 @@ struct pktq {
 	/* q array must be last since # of elements can be either PKTQ_MAX_PREC or 1 */
 	struct pktq_prec q[PKTQ_MAX_PREC];
 #ifdef PKTQ_LOG
-	pktq_log_t *pktqlog;
+	pktq_log_t*      pktqlog;
 #endif
 };
 
@@ -217,7 +216,7 @@ typedef struct {
 	void *arg;
 } pktpool_cbinfo_t;
 /* call back fn extension to populate host address in pool pkt */
-typedef int (*pktpool_cb_extn_t)(struct pktpool *pool, void *arg, void *pkt);
+typedef int (*pktpool_cb_extn_t)(struct pktpool *pool, void *arg, void* pkt);
 typedef struct {
 	pktpool_cb_extn_t cb;
 	void *arg;
@@ -258,7 +257,7 @@ typedef struct pktpool {
 	uint8 id;               /* pktpool ID:  index in registry */
 	bool istx;              /* direction: transmit or receive data path */
 
-	void *freelist;        /* free list: see PKTNEXTFREE(), PKTSETNEXTFREE() */
+	void * freelist;        /* free list: see PKTNEXTFREE(), PKTSETNEXTFREE() */
 	uint16 avail;           /* number of packets in pool's free list */
 	uint16 len;             /* number of packets managed by pool */
 	uint16 maxlen;          /* maximum size of pool <= PKTPOOL_LEN_MAX */
@@ -819,7 +818,7 @@ static INLINE uint32 getbit##NB(void *ptr, uint32 ix)               \
 	uint32 *addr = (uint32 *)ptr;                                   \
 	uint32 *a = addr + (ix >> RSH);                                 \
 	uint32 pos = (ix & OFF) << LSH;                                 \
-	return (*a >> pos) & MSK;                                     \
+	return ((*a >> pos) & MSK);                                     \
 }
 
 DECLARE_MAP_API(2,  4, 1, 15U, 0x0003) /* setbit2() and getbit2() */
@@ -1023,7 +1022,8 @@ extern void bcm_uint64_divide(uint32* r, uint32 a_high, uint32 a_low, uint32 b);
 
 /* Table driven count set bits. */
 static const uint8 /* Table only for use by bcm_cntsetbits */
-_CSBTBL[256] = {
+_CSBTBL[256] =
+{
 #	define B2(n)    n,     n + 1,     n + 1,     n + 2
 #	define B4(n) B2(n), B2(n + 1), B2(n + 1), B2(n + 2)
 #	define B6(n) B4(n), B4(n + 1), B4(n + 1), B4(n + 2)
@@ -1034,8 +1034,8 @@ static INLINE uint32 /* Uses table _CSBTBL for fast counting of 1's in a u32 */
 bcm_cntsetbits(const uint32 u32)
 {
 	/* function local scope declaration of const _CSBTBL[] */
-	const uint8 *p = (const uint8 *)&u32;
-	return _CSBTBL[p[0]] + _CSBTBL[p[1]] + _CSBTBL[p[2]] + _CSBTBL[p[3]];
+	const uint8 * p = (const uint8 *)&u32;
+	return (_CSBTBL[p[0]] + _CSBTBL[p[1]] + _CSBTBL[p[2]] + _CSBTBL[p[3]]);
 }
 
 
@@ -1046,7 +1046,7 @@ C_bcm_count_leading_zeros(uint32 u32)
 	while (u32) {
 		shifts++; u32 >>= 1;
 	}
-	return 32U - shifts;
+	return (32U - shifts);
 }
 
 #ifdef BCMDRIVER
@@ -1089,37 +1089,37 @@ struct bcm_mwbmap;	/* forward declaration for use as an opaque mwbmap handle */
 #define BCM_MWBMAP_INVALID_IDX	((uint32)(~0U))
 
 /* Incarnate a multiword bitmap based small index allocator */
-extern struct bcm_mwbmap *bcm_mwbmap_init(osl_t *osh, uint32 items_max);
+extern struct bcm_mwbmap * bcm_mwbmap_init(osl_t * osh, uint32 items_max);
 
 /* Free up the multiword bitmap index allocator */
-extern void bcm_mwbmap_fini(osl_t *osh, struct bcm_mwbmap *mwbmap_hdl);
+extern void bcm_mwbmap_fini(osl_t * osh, struct bcm_mwbmap * mwbmap_hdl);
 
 /* Allocate a unique small index using a multiword bitmap index allocator */
-extern uint32 bcm_mwbmap_alloc(struct bcm_mwbmap *mwbmap_hdl);
+extern uint32 bcm_mwbmap_alloc(struct bcm_mwbmap * mwbmap_hdl);
 
 /* Force an index at a specified position to be in use */
-extern void bcm_mwbmap_force(struct bcm_mwbmap *mwbmap_hdl, uint32 bitix);
+extern void bcm_mwbmap_force(struct bcm_mwbmap * mwbmap_hdl, uint32 bitix);
 
 /* Free a previously allocated index back into the multiword bitmap allocator */
-extern void bcm_mwbmap_free(struct bcm_mwbmap *mwbmap_hdl, uint32 bitix);
+extern void bcm_mwbmap_free(struct bcm_mwbmap * mwbmap_hdl, uint32 bitix);
 
 /* Fetch the toal number of free indices in the multiword bitmap allocator */
-extern uint32 bcm_mwbmap_free_cnt(struct bcm_mwbmap *mwbmap_hdl);
+extern uint32 bcm_mwbmap_free_cnt(struct bcm_mwbmap * mwbmap_hdl);
 
 /* Determine whether an index is inuse or free */
-extern bool bcm_mwbmap_isfree(struct bcm_mwbmap *mwbmap_hdl, uint32 bitix);
+extern bool bcm_mwbmap_isfree(struct bcm_mwbmap * mwbmap_hdl, uint32 bitix);
 
 /* Debug dump a multiword bitmap allocator */
-extern void bcm_mwbmap_show(struct bcm_mwbmap *mwbmap_hdl);
+extern void bcm_mwbmap_show(struct bcm_mwbmap * mwbmap_hdl);
 
-extern void bcm_mwbmap_audit(struct bcm_mwbmap *mwbmap_hdl);
+extern void bcm_mwbmap_audit(struct bcm_mwbmap * mwbmap_hdl);
 /* End - Multiword bitmap based small Id allocator. */
 #endif /* BCMDRIVER */
 
-extern void bcm_uint64_right_shift(uint32 *r, uint32 a_high, uint32 a_low, uint32 b);
+extern void bcm_uint64_right_shift(uint32* r, uint32 a_high, uint32 a_low, uint32 b);
 
-void bcm_add_64(uint32 *r_hi, uint32 *r_lo, uint32 offset);
-void bcm_sub_64(uint32 *r_hi, uint32 *r_lo, uint32 offset);
+void bcm_add_64(uint32* r_hi, uint32* r_lo, uint32 offset);
+void bcm_sub_64(uint32* r_hi, uint32* r_lo, uint32 offset);
 
 #ifdef __cplusplus
 	}

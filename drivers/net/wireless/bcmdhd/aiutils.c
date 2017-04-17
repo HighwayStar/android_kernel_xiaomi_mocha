@@ -3,7 +3,6 @@
  * of the SiliconBackplane-based Broadcom chips.
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -410,6 +409,7 @@ ai_setcoreidx(si_t *sih, uint coreidx)
 	return regs;
 }
 
+
 void
 ai_coreaddrspaceX(si_t *sih, uint asidx, uint32 *addr, uint32 *size)
 {
@@ -772,7 +772,7 @@ ai_corereg_addr(si_t *sih, uint coreidx, uint regoff)
 		/* map if does not exist */
 		if (!cores_info->regs[coreidx]) {
 			cores_info->regs[coreidx] = REG_MAP(cores_info->coresba[coreidx],
-						SI_CORE_SIZE);
+			                            SI_CORE_SIZE);
 			ASSERT(GOODREGS(cores_info->regs[coreidx]));
 		}
 		r = (uint32 *)((uchar *)cores_info->regs[coreidx] + regoff);
@@ -791,19 +791,19 @@ ai_corereg_addr(si_t *sih, uint coreidx, uint regoff)
 			fast = TRUE;
 			if (SI_FAST(sii))
 				r = (uint32 *)((char *)sii->curmap +
-							PCI_16KB0_PCIREGS_OFFSET + regoff);
+				               PCI_16KB0_PCIREGS_OFFSET + regoff);
 			else
 				r = (uint32 *)((char *)sii->curmap +
-							((regoff >= SBCONFIGOFF) ?
-							PCI_BAR0_PCISBR_OFFSET : PCI_BAR0_PCIREGS_OFFSET) +
-							regoff);
+				               ((regoff >= SBCONFIGOFF) ?
+				                PCI_BAR0_PCISBR_OFFSET : PCI_BAR0_PCIREGS_OFFSET) +
+				               regoff);
 		}
 	}
 
 	if (!fast)
 		return 0;
 
-	return r;
+	return (r);
 }
 
 void

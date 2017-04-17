@@ -3,14 +3,13 @@
  * Generic interface to handle dhd deferred work events
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
- *
+ * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
  * available at http://www.broadcom.com/licenses/GPLv2.php, with the
  * following added to such license:
- *
+ * 
  *      As a special exception, the copyright holders of this software give you
  * permission to link this software with independent modules, and to copy and
  * distribute the resulting executable under terms of your choice, provided that
@@ -18,7 +17,7 @@
  * the license of that module.  An independent module is a module which is not
  * derived from this software.  The special exception does not apply to any
  * modifications of the software.
- *
+ * 
  *      Notwithstanding the above, under no circumstances may you combine this
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
@@ -73,7 +72,7 @@ static inline struct kfifo*
 dhd_kfifo_init(u8 *buf, int size, spinlock_t *lock)
 {
 	struct kfifo *fifo;
-	gfp_t flags = CAN_SLEEP() ? GFP_KERNEL : GFP_ATOMIC;
+	gfp_t flags = CAN_SLEEP()? GFP_KERNEL : GFP_ATOMIC;
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33))
 	fifo = kfifo_init(buf, size, flags, lock);
@@ -100,9 +99,9 @@ void*
 dhd_deferred_work_init(void *dhd_info)
 {
 	struct dhd_deferred_wq	*work = NULL;
-	u8 *buf;
+	u8*	buf;
 	unsigned long	fifo_size = 0;
-	gfp_t	flags = CAN_SLEEP() ? GFP_KERNEL : GFP_ATOMIC;
+	gfp_t	flags = CAN_SLEEP()? GFP_KERNEL : GFP_ATOMIC;
 
 	if (!dhd_info) {
 		DHD_ERROR(("%s: dhd info not initialized\n", __FUNCTION__));
@@ -124,8 +123,8 @@ dhd_deferred_work_init(void *dhd_info)
 
 	/* allocate buffer to hold prio events */
 	fifo_size = DHD_PRIO_WORK_FIFO_SIZE;
-	fifo_size = is_power_of_2(fifo_size) ? fifo_size : roundup_pow_of_two(fifo_size);
-	buf = (u8 *)kzalloc(fifo_size, flags);
+	fifo_size = is_power_of_2(fifo_size)? fifo_size : roundup_pow_of_two(fifo_size);
+	buf = (u8*)kzalloc(fifo_size, flags);
 	if (!buf) {
 		DHD_ERROR(("%s: prio work fifo allocation failed \n", __FUNCTION__));
 		goto return_null;
@@ -140,8 +139,8 @@ dhd_deferred_work_init(void *dhd_info)
 
 	/* allocate buffer to hold work events */
 	fifo_size = DHD_WORK_FIFO_SIZE;
-	fifo_size = is_power_of_2(fifo_size) ? fifo_size : roundup_pow_of_two(fifo_size);
-	buf = (u8 *)kzalloc(fifo_size, flags);
+	fifo_size = is_power_of_2(fifo_size)? fifo_size : roundup_pow_of_two(fifo_size);
+	buf = (u8*)kzalloc(fifo_size, flags);
 	if (!buf) {
 		DHD_ERROR(("%s: work fifo allocation failed \n", __FUNCTION__));
 		goto return_null;

@@ -5,7 +5,6 @@
  * DHD OS, bus, and protocol modules.
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -93,8 +92,8 @@ extern int dhd_process_pkt_reorder_info(dhd_pub_t *dhd, uchar *reorder_info_buf,
 
 #ifdef BCMPCIE
 extern int dhd_prot_process_msgbuf(dhd_pub_t *dhd);
-extern int dhd_prot_process_ctrlbuf(dhd_pub_t *dhd);
-extern bool dhd_prot_dtohsplit(dhd_pub_t *dhd);
+extern int dhd_prot_process_ctrlbuf(dhd_pub_t * dhd);
+extern bool dhd_prot_dtohsplit(dhd_pub_t * dhd);
 extern int dhd_post_dummy_msg(dhd_pub_t *dhd);
 extern int dhdmsgbuf_lpbk_req(dhd_pub_t *dhd, uint len);
 extern void dhd_prot_rx_dataoffset(dhd_pub_t *dhd, uint32 offset);

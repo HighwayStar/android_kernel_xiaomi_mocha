@@ -2,7 +2,6 @@
  * Broadcom HND chip & on-chip-interconnect-related definitions.
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -189,7 +188,6 @@
  * and chipcommon being the first core:
  */
 #define	SI_CC_IDX		0
-
 /* SOC Interconnect types (aka chip types) */
 #define	SOCI_SB			0
 #define	SOCI_AI			1

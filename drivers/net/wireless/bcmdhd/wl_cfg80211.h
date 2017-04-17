@@ -2,7 +2,6 @@
  * Linux cfg80211 driver
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -172,6 +171,7 @@ do {									\
 #define WL_SCAN_SUPPRESS_RETRY 3000
 
 #define WL_PM_ENABLE_TIMEOUT 10000
+
 
 /* driver status */
 enum wl_status {
@@ -526,7 +526,7 @@ struct bcm_cfg80211 {
 	bool scan_tried;	/* indicates if first scan attempted */
 #if defined(BCMSDIO)
 	bool wlfc_on;
-#endif
+#endif 
 	bool vsdb_mode;
 	bool roamoff_on_concurrent;
 	u8 *ioctl_buf;		/* ioctl buffer */
@@ -859,13 +859,13 @@ extern s32 wl_cfg80211_down(void *para);
 extern s32 wl_cfg80211_notify_ifadd(int ifidx, char *name, uint8 *mac, uint8 bssidx);
 extern s32 wl_cfg80211_notify_ifdel(int ifidx, char *name, uint8 *mac, uint8 bssidx);
 extern s32 wl_cfg80211_notify_ifchange(int ifidx, char *name, uint8 *mac, uint8 bssidx);
-extern struct net_device *wl_cfg80211_allocate_if(struct bcm_cfg80211 *cfg, int ifidx, char *name,
+extern struct net_device* wl_cfg80211_allocate_if(struct bcm_cfg80211 *cfg, int ifidx, char *name,
 	uint8 *mac, uint8 bssidx);
-extern int wl_cfg80211_register_if(struct bcm_cfg80211 *cfg, int ifidx, struct net_device *ndev);
-extern int wl_cfg80211_remove_if(struct bcm_cfg80211 *cfg, int ifidx, struct net_device *ndev);
+extern int wl_cfg80211_register_if(struct bcm_cfg80211 *cfg, int ifidx, struct net_device* ndev);
+extern int wl_cfg80211_remove_if(struct bcm_cfg80211 *cfg, int ifidx, struct net_device* ndev);
 extern int wl_cfg80211_scan_stop(bcm_struct_cfgdev *cfgdev);
 extern bool wl_cfg80211_is_vsdb_mode(void);
-extern void *wl_cfg80211_get_dhdp(void);
+extern void* wl_cfg80211_get_dhdp(void);
 extern bool wl_cfg80211_is_p2p_active(void);
 extern void wl_cfg80211_dbg_level(u32 level);
 extern s32 wl_cfg80211_get_p2p_dev_addr(struct net_device *net, struct ether_addr *p2pdev_addr);
@@ -876,7 +876,7 @@ extern s32 wl_cfg80211_set_wps_p2p_ie(struct net_device *net, char *buf, int len
 extern s32 wl_cfg80211_set_p2p_ps(struct net_device *net, char* buf, int len);
 
 /* btcoex functions */
-void *wl_cfg80211_btcoex_init(struct net_device *ndev);
+void* wl_cfg80211_btcoex_init(struct net_device *ndev);
 void wl_cfg80211_btcoex_deinit(void);
 
 #ifdef WL_SUPPORT_AUTO_CHANNEL
@@ -920,6 +920,7 @@ extern void wl_cfg80211_update_power_mode(struct net_device *dev);
 #define wl_escan_print_sync_id(a, b, c)
 #define wl_escan_increment_sync_id(a, b)
 #define wl_escan_init_sync_id(a)
+
 extern void wl_cfg80211_ibss_vsie_set_buffer(vndr_ie_setbuf_t *ibss_vsie, int ibss_vsie_len);
 extern s32 wl_cfg80211_ibss_vsie_delete(struct net_device *dev);
 

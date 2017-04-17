@@ -2,7 +2,6 @@
  * DHD Protocol Module for CDC and BDC.
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -437,6 +436,7 @@ dhd_prot_hdrpull(dhd_pub_t *dhd, int *ifidx, void *pktbuf, uchar *reorder_buf_in
 	PKTPULL(dhd->osh, pktbuf, BDC_HEADER_LEN);
 #endif /* BDC */
 
+
 #ifdef PROP_TXSTATUS
 	if (!DHD_PKTTAG_PKTDIR(PKTTAG(pktbuf))) {
 		/*
@@ -449,7 +449,7 @@ dhd_prot_hdrpull(dhd_pub_t *dhd, int *ifidx, void *pktbuf, uchar *reorder_buf_in
 #endif /* PROP_TXSTATUS */
 
 exit:
-		PKTPULL(dhd->osh, pktbuf, (data_offset << 2));
+	PKTPULL(dhd->osh, pktbuf, (data_offset << 2));
 	return 0;
 }
 

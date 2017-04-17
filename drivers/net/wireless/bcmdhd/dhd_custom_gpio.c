@@ -1,7 +1,6 @@
 /*
 * Customer code to add GPIO control during WLAN start/stop
 * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
 * 
 *      Unless you and Broadcom execute a separate written software license
 * agreement governing use of this software, this software is licensed to you
@@ -28,7 +27,6 @@
 #include <linuxver.h>
 #include <osl.h>
 #include <bcmutils.h>
-
 #include <dngl_stats.h>
 #include <dhd.h>
 #include <dhd_linux.h>
@@ -42,7 +40,7 @@
 #if defined(CUSTOMER_HW2)
 
 
-#endif
+#endif 
 
 #if defined(OOB_INTR_ONLY)
 
@@ -60,9 +58,6 @@ static int dhd_oob_gpio_num = -1;
 module_param(dhd_oob_gpio_num, int, 0644);
 MODULE_PARM_DESC(dhd_oob_gpio_num, "DHD oob gpio number");
 
-static unsigned char mac[6];
-module_param_array(mac, byte, NULL, 0644);
-MODULE_PARM_DESC(mac, "DHD mac address");
 /* This function will return:
  *  1) return :  Host gpio interrupt number per customer platform
  *  2) irq_flags_ptr : Type of Host interrupt as Level or Edge
@@ -101,7 +96,7 @@ int dhd_customer_oob_irq_map(void *adapter, unsigned long *irq_flags_ptr)
 	gpio_request(dhd_oob_gpio_num, "oob irq");
 	host_oob_irq = gpio_to_irq(dhd_oob_gpio_num);
 	gpio_direction_input(dhd_oob_gpio_num);
-#endif
+#endif 
 #endif 
 
 	return (host_oob_irq);
@@ -130,12 +125,7 @@ dhd_custom_get_mac_address(void *adapter, unsigned char *buf)
 
 	/* Customer access to MAC address stored outside of DHD driver */
 #if defined(CUSTOMER_HW2) && (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35))
-    if ((mac[0] != 0) || (mac[1] != 0)) {
-		bcopy((char *)&mac, buf, 6);
-		return ret;
-	}
 	ret = wifi_platform_get_mac_addr(adapter, buf);
-	printk("get mac here\n");
 #endif
 
 #ifdef EXAMPLE_GET_MAC
@@ -246,7 +236,7 @@ const struct cntry_locales_custom translate_custom_table[] = {
 	{"SI", "SI", 1},
 	{"SK", "SK", 1},
 	{"TR", "TR", 7},
-	{"TW", "TW", 0},
+	{"TW", "TW", 1},
 	{"IR", "XZ", 11},	/* Universal if Country code is IRAN, (ISLAMIC REPUBLIC OF) */
 	{"SD", "XZ", 11},	/* Universal if Country code is SUDAN */
 	{"SY", "XZ", 11},	/* Universal if Country code is SYRIAN ARAB REPUBLIC */
@@ -257,8 +247,6 @@ const struct cntry_locales_custom translate_custom_table[] = {
 #ifdef BCM4330_CHIP
 	{"RU", "RU", 1},
 	{"US", "US", 5}
-#else
-	{"RU", "RU", 5}
 #endif
 #endif /* CUSTOMER_HW2 */
 };
@@ -270,7 +258,7 @@ const struct cntry_locales_custom translate_custom_table[] = {
 */
 void get_customized_country_code(void *adapter, char *country_iso_code, wl_country_t *cspec)
 {
-#if !defined(CUSTOMER_HW2) && (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 39))
+#if defined(CUSTOMER_HW2) && (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 39))
 
 	struct cntry_locales_custom *cloc_ptr;
 

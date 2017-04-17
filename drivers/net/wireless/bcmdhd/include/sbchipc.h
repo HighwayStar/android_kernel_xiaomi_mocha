@@ -8,7 +8,6 @@
  * $Id: sbchipc.h 433333 2013-10-31 10:34:27Z $
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you

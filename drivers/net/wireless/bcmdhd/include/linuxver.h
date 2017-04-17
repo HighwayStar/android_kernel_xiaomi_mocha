@@ -3,7 +3,6 @@
  * Pave over some 2.2 versus 2.4 versus 2.6 kernel differences.
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -717,7 +716,7 @@ not match our unaligned address for < 2.6.24
 #define CAN_SLEEP()	(FALSE)
 #endif
 
-#define KMALLOC_FLAG (CAN_SLEEP() ? GFP_KERNEL : GFP_ATOMIC)
+#define KMALLOC_FLAG (CAN_SLEEP() ? GFP_KERNEL: GFP_ATOMIC)
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
 #define RANDOM32	prandom_u32

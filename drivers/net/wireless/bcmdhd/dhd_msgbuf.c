@@ -5,14 +5,13 @@
  * DHD OS, bus, and protocol modules.
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
- *
+ * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
  * available at http://www.broadcom.com/licenses/GPLv2.php, with the
  * following added to such license:
- *
+ * 
  *      As a special exception, the copyright holders of this software give you
  * permission to link this software with independent modules, and to copy and
  * distribute the resulting executable under terms of your choice, provided that
@@ -20,7 +19,7 @@
  * the license of that module.  An independent module is a module which is not
  * derived from this software.  The special exception does not apply to any
  * modifications of the software.
- *
+ * 
  *      Notwithstanding the above, under no circumstances may you combine this
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
@@ -80,7 +79,7 @@ extern void *pktid_get_packet(void *pktid_map_handle,
 #define PKTID_TO_NATIVE(pktid_map_handle, id, pa, pa_len)		\
 	pktid_get_packet((pktid_map_handle), (uint32)(id), (void *)&(pa), (uint32 *) &(pa_len))
 
-#define MODX(x, n)	((x) & ((n) - 1))
+#define MODX(x, n)	((x) & ((n) -1))
 #define align(x, n)	(MODX(x, n) ? ((x) - MODX(x, n) + (n)) : ((x) - MODX(x, n)))
 #define RX_DMA_OFFSET	8
 #define IOCT_RETBUF_SIZE	(RX_DMA_OFFSET + WLC_IOCTL_MAXLEN)
@@ -100,9 +99,9 @@ typedef struct dhd_prot {
 	circularbuf_t *dtohbuf;
 	circularbuf_t *htodbuf;
 	uint32	rx_dataoffset;
-	void *retbuf;
+	void*	retbuf;
 	dmaaddr_t retbuf_phys;
-	void *ioctbuf;	/* For holding ioct request buf */
+	void*	ioctbuf;	/* For holding ioct request buf */
 	dmaaddr_t ioctbuf_phys;	/* physical address for ioctbuf */
 	dhd_mb_ring_t mb_ring_fn;
 	void *htod_ring;
@@ -129,7 +128,7 @@ static int dhdmsgbuf_query_ioctl(dhd_pub_t *dhd, int ifidx, uint cmd,
 	void *buf, uint len, uint8 action);
 static int dhd_msgbuf_set_ioctl(dhd_pub_t *dhd, int ifidx, uint cmd,
 	void *buf, uint len, uint8 action);
-static int dhdmsgbuf_cmplt(dhd_pub_t *dhd, uint32 id, uint32 len, void *buf, void *retbuf);
+static int dhdmsgbuf_cmplt(dhd_pub_t *dhd, uint32 id, uint32 len, void* buf, void* retbuf);
 static int dhd_msgbuf_init_dtoh(dhd_pub_t *dhd);
 
 static int dhd_msgbuf_rxbuf_post(dhd_pub_t *dhd);
@@ -138,16 +137,16 @@ static int dhd_msgbuf_init_htod_ctrl(dhd_pub_t *dhd);
 static int dhd_msgbuf_init_dtoh_ctrl(dhd_pub_t *dhd);
 static int dhd_prot_rxbufpost(dhd_pub_t *dhd, uint32 count);
 static void dhd_prot_return_rxbuf(dhd_pub_t *dhd, uint16 rxcnt);
-static void dhd_prot_rxcmplt_process(dhd_pub_t *dhd, void *buf);
-static void dhd_prot_event_process(dhd_pub_t *dhd, uint8 *buf, uint16 len);
-static void dhd_prot_process_msgtype(dhd_pub_t *dhd, uint8 *buf, uint16 len);
-static void dhd_process_msgtype(dhd_pub_t *dhd, uint8 *buf, uint16 len);
+static void dhd_prot_rxcmplt_process(dhd_pub_t *dhd, void* buf);
+static void dhd_prot_event_process(dhd_pub_t *dhd, uint8* buf, uint16 len);
+static void dhd_prot_process_msgtype(dhd_pub_t *dhd, uint8* buf, uint16 len);
+static void dhd_process_msgtype(dhd_pub_t *dhd, uint8* buf, uint16 len);
 
-static void dhd_prot_txstatus_process(dhd_pub_t *dhd, void *buf);
-static void dhd_prot_ioctcmplt_process(dhd_pub_t *dhd, void *buf);
-void *dhd_alloc_circularbuf_space(dhd_pub_t *dhd, circularbuf_t *handle, uint16 msglen, uint path);
-static int dhd_fillup_ioct_reqst(dhd_pub_t *dhd, uint16 len, uint cmd, void *buf, int ifidx);
-static int dhd_fillup_ioct_reqst_ptrbased(dhd_pub_t *dhd, uint16 len, uint cmd, void *buf,
+static void dhd_prot_txstatus_process(dhd_pub_t *dhd, void * buf);
+static void dhd_prot_ioctcmplt_process(dhd_pub_t *dhd, void * buf);
+void* dhd_alloc_circularbuf_space(dhd_pub_t *dhd, circularbuf_t *handle, uint16 msglen, uint path);
+static int dhd_fillup_ioct_reqst(dhd_pub_t *dhd, uint16 len, uint cmd, void* buf, int ifidx);
+static int dhd_fillup_ioct_reqst_ptrbased(dhd_pub_t *dhd, uint16 len, uint cmd, void* buf,
 	int ifidx);
 static INLINE void dhd_prot_packet_free(dhd_pub_t *dhd, uint32 pktid);
 static INLINE void *dhd_prot_packet_get(dhd_pub_t *dhd, uint32 pktid);
@@ -361,7 +360,8 @@ int dhd_prot_init(dhd_pub_t *dhd)
 	shared_flags = dhd_bus_get_sharedflags(dhd->bus);
 	if (shared_flags & PCIE_SHARED_HTOD_SPLIT) {
 		prot->htodsplit = TRUE;
-		if (dhd_msgbuf_init_htod_ctrl(dhd) == BCME_NOMEM) {
+		if (dhd_msgbuf_init_htod_ctrl(dhd) == BCME_NOMEM)
+		{
 			prot->htodsplit = FALSE;
 			DHD_ERROR(("%s:%d: HTOD ctrl ring alloc failed!\n",
 				__FUNCTION__, __LINE__));
@@ -369,7 +369,8 @@ int dhd_prot_init(dhd_pub_t *dhd)
 	}
 	if (shared_flags & PCIE_SHARED_DTOH_SPLIT) {
 		prot->dtohsplit = TRUE;
-		if (dhd_msgbuf_init_dtoh_ctrl(dhd) == BCME_NOMEM) {
+		if (dhd_msgbuf_init_dtoh_ctrl(dhd) == BCME_NOMEM)
+		{
 			prot->dtohsplit = FALSE;
 			DHD_ERROR(("%s:%d: DTOH ctrl ring alloc failed!\n",
 				__FUNCTION__, __LINE__));
@@ -467,7 +468,7 @@ dhd_prot_rxbufpost(dhd_pub_t *dhd, uint32 count)
 	if (rxbuf_post == NULL) {
 		DHD_INFO(("%s:%d: HTOD Msgbuf Not available\n",
 			__FUNCTION__, __LINE__));
-		return -EPERM;
+		return -1;
 	}
 
 	/* CMN msg header */
@@ -488,7 +489,7 @@ dhd_prot_rxbufpost(dhd_pub_t *dhd, uint32 count)
 			DHD_ERROR(("%s:%d: PKTGET for rxbuf failed\n", __FUNCTION__, __LINE__));
 			printf("%s:%d: PKTGET for rxbuf failed. Need to handle this gracefully\n",
 				__FUNCTION__, __LINE__);
-			return -EPERM;
+			return -1;
 		}
 
 		pktlen = PKTLEN(dhd->osh, p);
@@ -666,7 +667,7 @@ dhd_prot_process_msgbuf(dhd_pub_t *dhd)
 }
 
 int BCMFASTPATH
-dhd_prot_process_ctrlbuf(dhd_pub_t *dhd)
+dhd_prot_process_ctrlbuf(dhd_pub_t * dhd)
 {
 	dhd_prot_t *prot = dhd->prot;
 	circularbuf_t *dtoh_ctrlbuf = (circularbuf_t *)prot->dtoh_ctrlbuf;
@@ -697,7 +698,7 @@ dhd_prot_process_ctrlbuf(dhd_pub_t *dhd)
 }
 
 static void BCMFASTPATH
-dhd_prot_process_msgtype(dhd_pub_t *dhd, uint8 *buf, uint16 len)
+dhd_prot_process_msgtype(dhd_pub_t *dhd, uint8* buf, uint16 len)
 {
 	dhd_prot_t *prot = dhd->prot;
 	uint32 cur_dma_len = 0;
@@ -711,7 +712,8 @@ dhd_prot_process_msgtype(dhd_pub_t *dhd, uint8 *buf, uint16 len)
 			ASSERT(cur_dma_len <= len);
 			buf += prot->rx_dataoffset;
 			len -= (uint16)prot->rx_dataoffset;
-		} else {
+		}
+		else {
 			cur_dma_len = len;
 		}
 		dhd_process_msgtype(dhd, buf, (uint16)cur_dma_len);
@@ -728,34 +730,38 @@ dhd_check_sequence_num(cmn_msg_hdr_t *msg)
 	static uint32 data_seq_no_old = 0;
 
 	switch (msg->msgtype) {
-	case MSG_TYPE_IOCTL_CMPLT:
-		if (msg->u.seq.seq_no && msg->u.seq.seq_no != (ioctl_seq_no_old + 1)) {
-			DHD_ERROR(("Error in IOCTL MsgBuf Sequence number!!"
-			"new seq no %u, old seq number %u\n",
-			msg->u.seq.seq_no, ioctl_seq_no_old));
-		}
-		ioctl_seq_no_old  = msg->u.seq.seq_no;
-		break;
-	case MSG_TYPE_RX_CMPLT:
-	case MSG_TYPE_WL_EVENT:
-	case MSG_TYPE_TX_STATUS:
-	case MSG_TYPE_LOOPBACK:
-		if (msg->u.seq.seq_no && msg->u.seq.seq_no != (data_seq_no_old + 1)) {
-			DHD_ERROR(("Error in DATA MsgBuf Sequence number!!"
-				"new seq no %u	 old seq number %u\n",
-				msg->u.seq.seq_no, data_seq_no_old));
-		}
-		data_seq_no_old = msg->u.seq.seq_no;
-		break;
-	default:
-		printf("Unknown MSGTYPE in %s \n", __FUNCTION__);
-		break;
+		case MSG_TYPE_IOCTL_CMPLT:
+			if (msg->u.seq.seq_no && msg->u.seq.seq_no != (ioctl_seq_no_old + 1))
+			{
+				DHD_ERROR(("Error in IOCTL MsgBuf Sequence number!!"
+				"new seq no %u, old seq number %u\n",
+				msg->u.seq.seq_no, ioctl_seq_no_old));
+			}
+			ioctl_seq_no_old  = msg->u.seq.seq_no;
+			break;
+
+		case MSG_TYPE_RX_CMPLT:
+		case MSG_TYPE_WL_EVENT :
+		case MSG_TYPE_TX_STATUS :
+		case MSG_TYPE_LOOPBACK:
+			if (msg->u.seq.seq_no && msg->u.seq.seq_no != (data_seq_no_old + 1))
+			{
+				DHD_ERROR(("Error in DATA MsgBuf Sequence number!!"
+					"new seq no %u	 old seq number %u\n",
+					msg->u.seq.seq_no, data_seq_no_old));
+			}
+			data_seq_no_old = msg->u.seq.seq_no;
+			break;
+
+		default:
+			printf("Unknown MSGTYPE in %s \n", __FUNCTION__);
+			break;
 
 	}
 }
 
 static void BCMFASTPATH
-dhd_process_msgtype(dhd_pub_t *dhd, uint8 *buf, uint16 len)
+dhd_process_msgtype(dhd_pub_t *dhd, uint8* buf, uint16 len)
 {
 	uint16 pktlen = len;
 	uint16 msglen;
@@ -773,31 +779,31 @@ dhd_process_msgtype(dhd_pub_t *dhd, uint8 *buf, uint16 len)
 
 		DHD_INFO(("msgtype %d, msglen is %d \n", msgtype, msglen));
 		switch (msgtype) {
-		case MSG_TYPE_IOCTL_CMPLT:
-			DHD_INFO((" MSG_TYPE_IOCTL_CMPLT\n"));
-			dhd_prot_ioctcmplt_process(dhd, buf);
-			break;
-		case MSG_TYPE_RX_CMPLT:
-			DHD_INFO((" MSG_TYPE_RX_CMPLT\n"));
-			dhd_prot_rxcmplt_process(dhd, buf);
-			break;
-		case MSG_TYPE_WL_EVENT:
-			DHD_INFO((" MSG_TYPE_WL_EVENT\n"));
-			dhd_prot_event_process(dhd, buf, msglen);
-			break;
-		case MSG_TYPE_TX_STATUS:
-			DHD_INFO((" MSG_TYPE_TX_STATUS\n"));
-			dhd_prot_txstatus_process(dhd, buf);
-			break;
-		case MSG_TYPE_LOOPBACK:
-			bcm_print_bytes("LPBK RESP: ", (uint8 *)msg, msglen);
-			DHD_ERROR((" MSG_TYPE_LOOPBACK, len %d\n", msglen));
-			break;
-		default:
-			DHD_ERROR(("Unknown state in %s,"
-			"rxoffset %d\n", __FUNCTION__, dhd->prot->rx_dataoffset));
-			bcm_print_bytes("UNKNOWN msg", (uchar *)msg, msglen);
-			break;
+			case MSG_TYPE_IOCTL_CMPLT:
+				DHD_INFO((" MSG_TYPE_IOCTL_CMPLT\n"));
+				dhd_prot_ioctcmplt_process(dhd, buf);
+				break;
+			case MSG_TYPE_RX_CMPLT:
+				DHD_INFO((" MSG_TYPE_RX_CMPLT\n"));
+				dhd_prot_rxcmplt_process(dhd, buf);
+				break;
+			case MSG_TYPE_WL_EVENT:
+				DHD_INFO((" MSG_TYPE_WL_EVENT\n"));
+				dhd_prot_event_process(dhd, buf, msglen);
+				break;
+			case MSG_TYPE_TX_STATUS:
+				DHD_INFO((" MSG_TYPE_TX_STATUS\n"));
+				dhd_prot_txstatus_process(dhd, buf);
+				break;
+			case MSG_TYPE_LOOPBACK:
+				bcm_print_bytes("LPBK RESP: ", (uint8 *)msg, msglen);
+				DHD_ERROR((" MSG_TYPE_LOOPBACK, len %d\n", msglen));
+				break;
+			default :
+				DHD_ERROR(("Unknown state in %s,"
+				"rxoffset %d\n", __FUNCTION__, dhd->prot->rx_dataoffset));
+				bcm_print_bytes("UNKNOWN msg", (uchar *)msg, msglen);
+				break;
 
 		}
 
@@ -810,12 +816,12 @@ dhd_process_msgtype(dhd_pub_t *dhd, uint8 *buf, uint16 len)
 	}
 }
 static void
-dhd_prot_ioctcmplt_process(dhd_pub_t *dhd, void *buf)
+dhd_prot_ioctcmplt_process(dhd_pub_t *dhd, void * buf)
 {
 	uint32 retlen, status, inline_data = 0;
 	uint32 pkt_id, xt_id;
 
-	ioct_resp_hdr_t *ioct_resp = (ioct_resp_hdr_t *)buf;
+	ioct_resp_hdr_t * ioct_resp = (ioct_resp_hdr_t *)buf;
 	retlen = ltoh32(ioct_resp->ret_len);
 	pkt_id = ltoh32(ioct_resp->pkt_id);
 	xt_id = ltoh32(ioct_resp->xt_id);
@@ -836,10 +842,10 @@ dhd_prot_ioctcmplt_process(dhd_pub_t *dhd, void *buf)
 }
 
 static void BCMFASTPATH
-dhd_prot_txstatus_process(dhd_pub_t *dhd, void *buf)
+dhd_prot_txstatus_process(dhd_pub_t *dhd, void * buf)
 {
 	dhd_prot_t *prot = dhd->prot;
-	txstatus_hdr_t *txstatus;
+	txstatus_hdr_t * txstatus;
 	unsigned long flags;
 	uint32 pktid;
 
@@ -868,14 +874,14 @@ dhd_prot_txstatus_process(dhd_pub_t *dhd, void *buf)
 }
 
 static void
-dhd_prot_event_process(dhd_pub_t *dhd, uint8 *buf, uint16 len)
+dhd_prot_event_process(dhd_pub_t *dhd, uint8* buf, uint16 len)
 {
-	wl_event_hdr_t *evnt;
+	wl_event_hdr_t * evnt;
 	uint32 bufid;
 	uint16 buflen;
 	int ifidx = 0;
 	uint pkt_count = 1;
-	void *pkt;
+	void* pkt;
 	unsigned long flags;
 
 	/* Event complete header */
@@ -906,14 +912,14 @@ dhd_prot_event_process(dhd_pub_t *dhd, uint8 *buf, uint16 len)
 }
 
 static void BCMFASTPATH
-dhd_prot_rxcmplt_process(dhd_pub_t *dhd, void *buf)
+dhd_prot_rxcmplt_process(dhd_pub_t *dhd, void* buf)
 {
 	rxcmplt_hdr_t *rxcmplt_h;
 	rxcmplt_tup_t *rx_tup;
 	uint32 bufid;
 	uint16 buflen, cmpltcnt;
 	uint16 data_offset;             /* offset at which data starts */
-	void *pkt;
+	void * pkt;
 	int ifidx = 0;
 	uint pkt_count = 0;
 	uint32 i;
@@ -1113,7 +1119,7 @@ dhd_prot_return_rxbuf(dhd_pub_t *dhd, uint16 rxcnt)
 }
 
 /* Use protocol to issue ioctl to dongle */
-int dhd_prot_ioctl(dhd_pub_t *dhd, int ifidx, wl_ioctl_t *ioc, void *buf, int len)
+int dhd_prot_ioctl(dhd_pub_t *dhd, int ifidx, wl_ioctl_t * ioc, void * buf, int len)
 {
 	dhd_prot_t *prot = dhd->prot;
 	int ret = -1;
@@ -1136,7 +1142,7 @@ int dhd_prot_ioctl(dhd_pub_t *dhd, int ifidx, wl_ioctl_t *ioc, void *buf, int le
 			ioc->cmd, (unsigned long)ioc->cmd, prot->lastcmd,
 			(unsigned long)prot->lastcmd));
 		if ((ioc->cmd == WLC_SET_VAR) || (ioc->cmd == WLC_GET_VAR)) {
-			DHD_TRACE(("iovar cmd=%s\n", (char *)buf));
+			DHD_TRACE(("iovar cmd=%s\n", (char*)buf));
 		}
 		goto done;
 	}
@@ -1204,7 +1210,8 @@ dhdmsgbuf_lpbk_req(dhd_pub_t *dhd, uint len)
 	if (dhd->prot->htodsplit) {
 		ioct_rqst = (ioct_reqst_hdr_t *)dhd_alloc_circularbuf_space(dhd,
 			htod_msgbuf, msglen, HOST_TO_DNGL_CTRL);
-	} else {
+	}
+	else {
 		ioct_rqst = (ioct_reqst_hdr_t *)dhd_alloc_circularbuf_space(dhd,
 			htod_msgbuf, msglen, HOST_TO_DNGL_DATA);
 	}
@@ -1251,11 +1258,15 @@ dhdmsgbuf_query_ioctl(dhd_pub_t *dhd, int ifidx, uint cmd, void *buf, uint len, 
 	DHD_TRACE(("%s: Enter\n", __FUNCTION__));
 
 	/* Respond "bcmerror" and "bcmerrorstr" with local cache */
-	if (cmd == WLC_GET_VAR && buf) {
-		if (!strcmp((char *)buf, "bcmerrorstr")) {
+	if (cmd == WLC_GET_VAR && buf)
+	{
+		if (!strcmp((char *)buf, "bcmerrorstr"))
+		{
 			strncpy((char *)buf, bcmerrorstr(dhd->dongle_error), BCME_STRLEN);
 			goto done;
-		} else if (!strcmp((char *)buf, "bcmerror")) {
+		}
+		else if (!strcmp((char *)buf, "bcmerror"))
+		{
 			*(int *)buf = dhd->dongle_error;
 			goto done;
 		}
@@ -1280,30 +1291,31 @@ done:
 	return ret;
 }
 static int
-dhdmsgbuf_cmplt(dhd_pub_t *dhd, uint32 id, uint32 len, void *buf, void *retbuf)
+dhdmsgbuf_cmplt(dhd_pub_t *dhd, uint32 id, uint32 len, void* buf, void* retbuf)
 {
 	dhd_prot_t *prot = dhd->prot;
 	ioct_resp_hdr_t  ioct_resp;
-	uint8 *data;
+	uint8* data;
 	int retlen;
 	int msgbuf_len = 0;
 
 	DHD_TRACE(("%s: Enter\n", __FUNCTION__));
 
-	retlen = dhd_bus_rxctl(dhd->bus, (uchar *)&ioct_resp, msgbuf_len);
+	retlen = dhd_bus_rxctl(dhd->bus, (uchar*)&ioct_resp, msgbuf_len);
 
 	if (retlen <= 0)
-		return -EPERM;
+		return -1;
 
 	/* get ret buf */
 	if (buf != NULL) {
 		if (retlen <= 4) {
-			bcopy((void *)&ioct_resp.inline_data, buf, retlen);
+			bcopy((void*)&ioct_resp.inline_data, buf, retlen);
 			DHD_INFO(("%s: data is %d, ret_len is %d\n",
 				__FUNCTION__, ioct_resp.inline_data, retlen));
-		} else {
-			data = (uint8 *)retbuf;
-			bcopy((void *)&data[prot->rx_dataoffset], buf, retlen);
+		}
+		else {
+			data = (uint8*)retbuf;
+			bcopy((void*)&data[prot->rx_dataoffset], buf, retlen);
 		}
 	}
 	return ioct_resp.status;
@@ -1354,7 +1366,7 @@ int dhd_prot_ctl_complete(dhd_pub_t *dhd)
 
 /* Check for and handle local prot-specific iovar commands */
 int dhd_prot_iovar_op(dhd_pub_t *dhd, const char *name,
-				void *params, int plen, void *arg, int len, bool set)
+                             void *params, int plen, void *arg, int len, bool set)
 {
 	return BCME_UNSUPPORTED;
 }
@@ -1394,7 +1406,8 @@ dhd_post_dummy_msg(dhd_pub_t *dhd)
 		htod_msgbuf = (circularbuf_t *)prot->htod_ctrlbuf;
 		hevent = (hostevent_hdr_t *)dhd_alloc_circularbuf_space(dhd,
 			htod_msgbuf, msglen, HOST_TO_DNGL_CTRL);
-	} else {
+	}
+	else {
 		htod_msgbuf = (circularbuf_t *)prot->htodbuf;
 		hevent = (hostevent_hdr_t *)dhd_alloc_circularbuf_space(dhd,
 			htod_msgbuf, msglen, HOST_TO_DNGL_DATA);
@@ -1402,7 +1415,7 @@ dhd_post_dummy_msg(dhd_pub_t *dhd)
 
 	if (hevent == NULL) {
 		dhd_os_spin_unlock(dhd, flags);
-		return -EPERM;
+		return -1;
 	}
 
 	/* CMN msg header */
@@ -1425,7 +1438,7 @@ dhd_post_dummy_msg(dhd_pub_t *dhd)
 void * BCMFASTPATH
 dhd_alloc_circularbuf_space(dhd_pub_t *dhd, circularbuf_t *handle, uint16 msglen, uint path)
 {
-	void *ret_buf;
+	void * ret_buf;
 
 	ret_buf = circularbuf_reserve_for_write(handle, msglen);
 	if (ret_buf == NULL) {
@@ -1448,12 +1461,12 @@ dhd_alloc_circularbuf_space(dhd_pub_t *dhd, circularbuf_t *handle, uint16 msglen
 	return ret_buf;
 }
 INLINE bool
-dhd_prot_dtohsplit(dhd_pub_t *dhd)
+dhd_prot_dtohsplit(dhd_pub_t* dhd)
 {
 	return dhd->prot->dtohsplit;
 }
 static int
-dhd_fillup_ioct_reqst(dhd_pub_t *dhd, uint16 len, uint cmd, void *buf, int ifidx)
+dhd_fillup_ioct_reqst(dhd_pub_t *dhd, uint16 len, uint cmd, void* buf, int ifidx)
 {
 	dhd_prot_t *prot = dhd->prot;
 	ioct_reqst_hdr_t *ioct_rqst;
@@ -1481,7 +1494,8 @@ dhd_fillup_ioct_reqst(dhd_pub_t *dhd, uint16 len, uint cmd, void *buf, int ifidx
 		htod_msgbuf = (circularbuf_t *)prot->htod_ctrlbuf;
 		ioct_rqst = (ioct_reqst_hdr_t *)dhd_alloc_circularbuf_space(dhd,
 			htod_msgbuf, msglen, HOST_TO_DNGL_CTRL);
-	} else {
+	}
+	else {
 		htod_msgbuf = (circularbuf_t *)prot->htodbuf;
 		ioct_rqst = (ioct_reqst_hdr_t *)dhd_alloc_circularbuf_space(dhd,
 			htod_msgbuf, msglen, HOST_TO_DNGL_DATA);
@@ -1489,7 +1503,7 @@ dhd_fillup_ioct_reqst(dhd_pub_t *dhd, uint16 len, uint cmd, void *buf, int ifidx
 
 	if (ioct_rqst == NULL) {
 		dhd_os_spin_unlock(dhd, flags);
-		return -EPERM;
+		return -1;
 	}
 
 	/* Common msg buf hdr */
@@ -1525,13 +1539,13 @@ dhd_fillup_ioct_reqst(dhd_pub_t *dhd, uint16 len, uint cmd, void *buf, int ifidx
 /* Form a separate request buffer where a 4 byte cmn header is added in the front */
 /* buf contents from parent function is copied to remaining section of this buffer */
 static int
-dhd_fillup_ioct_reqst_ptrbased(dhd_pub_t *dhd, uint16 len, uint cmd, void *buf, int ifidx)
+dhd_fillup_ioct_reqst_ptrbased(dhd_pub_t *dhd, uint16 len, uint cmd, void* buf, int ifidx)
 {
 	dhd_prot_t *prot = dhd->prot;
 	ioctptr_reqst_hdr_t *ioct_rqst;
 	uint16 msglen = sizeof(ioctptr_reqst_hdr_t);
-	circularbuf_t *htod_msgbuf;
-	cmn_msg_hdr_t *ioct_buf;	/* For ioctl payload */
+	circularbuf_t * htod_msgbuf;
+	cmn_msg_hdr_t * ioct_buf;	/* For ioctl payload */
 	uint16 alignlen, rqstlen = len;
 	unsigned long flags;
 
@@ -1547,16 +1561,17 @@ dhd_fillup_ioct_reqst_ptrbased(dhd_pub_t *dhd, uint16 len, uint cmd, void *buf, 
 	/* Request for cbuf space */
 	if (dhd->prot->htodsplit) {
 		htod_msgbuf = (circularbuf_t *)prot->htod_ctrlbuf;
-		ioct_rqst = (ioctptr_reqst_hdr_t *)dhd_alloc_circularbuf_space(dhd,
+		ioct_rqst = (ioctptr_reqst_hdr_t*)dhd_alloc_circularbuf_space(dhd,
 			htod_msgbuf, msglen, HOST_TO_DNGL_CTRL);
-	} else {
+	}
+	else {
 		htod_msgbuf = (circularbuf_t *)prot->htodbuf;
-		ioct_rqst = (ioctptr_reqst_hdr_t *)dhd_alloc_circularbuf_space(dhd,
+		ioct_rqst = (ioctptr_reqst_hdr_t*)dhd_alloc_circularbuf_space(dhd,
 			htod_msgbuf, msglen, HOST_TO_DNGL_DATA);
 	}
 	if (ioct_rqst == NULL) {
 		dhd_os_spin_unlock(dhd, flags);
-		return -EPERM;
+		return -1;
 	}
 
 	/* Common msg buf hdr */
@@ -1660,7 +1675,8 @@ pktid_map_uninit(void *pktid_map_handle)
 
 	if (handle != NULL) {
 		void *osh = handle->osh;
-		for (ix = 0; ix < MAX_PKTID_ITEMS; ix++) {
+		for (ix = 0; ix < MAX_PKTID_ITEMS; ix++)
+		{
 			if (!bcm_mwbmap_isfree(handle->mwbmap_hdl, ix)) {
 				/* Mark the slot as free */
 				bcm_mwbmap_free(handle->mwbmap_hdl, ix);
@@ -1672,7 +1688,7 @@ pktid_map_uninit(void *pktid_map_handle)
 					(uint) handle->pktid_list[ix+1].pa_len,
 					handle->pktid_list[ix+1].dma, 0, 0);
 				PKTFREE(osh,
-					(unsigned long *)handle->pktid_list[ix+1].native, TRUE);
+					(unsigned long*)handle->pktid_list[ix+1].native, TRUE);
 			}
 		}
 		bcm_mwbmap_fini(osh, handle->mwbmap_hdl);

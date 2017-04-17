@@ -4,7 +4,6 @@
  * software that might want wifi things as it grows.
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -691,9 +690,12 @@ wf_chspec_valid(chanspec_t chanspec)
 				}
 
 				if (i == num_ch) {
-					/* check for channel 165 which is not the side band of 40MHz 5G channel */
+					/* check for channel 165 which is not the side band
+					 * of 40MHz 5G channel
+					 */
 					if (chspec_ch == 165)
 						i = 0;
+
 					/* check for legacy JP channels on failure */
 					if (chspec_ch == 34 || chspec_ch == 38 ||
 					    chspec_ch == 42 || chspec_ch == 46)
@@ -1038,7 +1040,8 @@ wf_chspec_primary80_channel(chanspec_t chanspec)
 
 	if (CHSPEC_IS80(chanspec))	{
 		primary80_chan = CHSPEC_CHANNEL(chanspec);
-	} else if (CHSPEC_IS8080(chanspec)) {
+	}
+	else if (CHSPEC_IS8080(chanspec)) {
 		chan1 = wf_chspec_get80Mhz_ch(CHSPEC_CHAN1(chanspec));
 		chan2 = wf_chspec_get80Mhz_ch(CHSPEC_CHAN2(chanspec));
 
@@ -1050,23 +1053,29 @@ wf_chspec_primary80_channel(chanspec_t chanspec)
 			if (!(sb < 0)) {
 				primary80_chan = chan2;
 			}
-		} else {
+		}
+		else {
 			primary80_chan = chan1;
 		}
-	} else if (CHSPEC_IS160(chanspec)) {
+	}
+	else if (CHSPEC_IS160(chanspec)) {
 		chan1 = CHSPEC_CHANNEL(chanspec);
 		sb = channel_to_sb(chan1, primary_20mhz, 160);
 		if (!(sb < 0)) {
 		    /* based on the sb value  primary 80 channel can be retrieved
 			 * if sb is in range 0 to 3 the lower band is the 80Mhz primary band
 			 */
-			if (sb < 4)
+			if (sb < 4) {
 				primary80_chan = chan1 - CH_40MHZ_APART;
+			}
 			/* if sb is in range 4 to 7 the lower band is the 80Mhz primary band */
 			else
+			{
 				primary80_chan = chan1 + CH_40MHZ_APART;
+			}
 		}
-	} else {
+	}
+	else {
 		/* for 20 and 40 Mhz */
 		primary80_chan = -1;
 	}
@@ -1087,8 +1096,9 @@ wf_chspec_secondary80_channel(chanspec_t chanspec)
 	int sb = 0;
 
 	primary_20mhz = wf_chspec_ctlchan(chanspec);
-	if (CHSPEC_IS80(chanspec))
+	if (CHSPEC_IS80(chanspec)) {
 		secondary80_chan = -1;
+	}
 	else if (CHSPEC_IS8080(chanspec)) {
 		chan1 = wf_chspec_get80Mhz_ch(CHSPEC_CHAN1(chanspec));
 		chan2 = wf_chspec_get80Mhz_ch(CHSPEC_CHAN2(chanspec));
@@ -1098,24 +1108,32 @@ wf_chspec_secondary80_channel(chanspec_t chanspec)
 		if (sb < 0) {
 			/* no, so does the primary channel fit with the 2nd 80MHz channel ? */
 			sb = channel_to_sb(chan2, primary_20mhz, 80);
-			if (!(sb < 0))
+			if (!(sb < 0)) {
 				secondary80_chan = chan1;
-		} else
+			}
+		}
+		else {
 			secondary80_chan = chan2;
-	} else if (CHSPEC_IS160(chanspec)) {
+		}
+	}
+	else if (CHSPEC_IS160(chanspec)) {
 		chan1 = CHSPEC_CHANNEL(chanspec);
 		sb = channel_to_sb(chan1, primary_20mhz, 160);
 		if (!(sb < 0)) {
 		    /* based on the sb value  secondary 80 channel can be retrieved
 			  *if sb is in range 0 to 3 upper band is the secondary 80Mhz  band
 			  */
-			if (sb < 4)
+			if (sb < 4) {
 				secondary80_chan = chan1 + CH_40MHZ_APART;
+			}
 			/* if sb is in range 4 to 7 the lower band is the secondary 80Mhz band */
 			else
+			{
 				secondary80_chan = chan1 - CH_40MHZ_APART;
+			}
 		}
-	} else {
+	}
+	else {
 		/* for 20 and 40 Mhz */
 		secondary80_chan  = -1;
 	}
@@ -1146,29 +1164,36 @@ wf_chspec_primary80_chspec(chanspec_t chspec)
 		if (sb < 4) {
 			/* Primary 80MHz is on lower side */
 			center_chan = chan1;
-		} else {
+		}
+		else
+		{
 			/* Primary 80MHz is on upper side */
 			center_chan = chan2;
 			sb -= 4;
 		}
 		/* Create primary 80MHz chanspec */
-		chspec80 = (WL_CHANSPEC_BAND_5G | WL_CHANSPEC_BW_80 | sb | center_chan);
-	} else if (CHSPEC_IS160(chspec)) {
+		chspec80 = (WL_CHANSPEC_BAND_5G | WL_CHANSPEC_BW_80 |sb | center_chan);
+	}
+	else if (CHSPEC_IS160(chspec)) {
 		center_chan = CHSPEC_CHANNEL(chspec);
 		sb = CHSPEC_CTL_SB(chspec);
 
 		if (sb < 4) {
 			/* Primary 80MHz is on upper side */
 			center_chan -= CH_40MHZ_APART;
-		} else {
+		}
+		else
+		{
 			/* Primary 80MHz is on lower side */
 			center_chan += CH_40MHZ_APART;
 			sb -= 4;
 		}
 		/* Create primary 80MHz chanspec */
 		chspec80 = (WL_CHANSPEC_BAND_5G | WL_CHANSPEC_BW_80 | sb | center_chan);
-	} else
+	}
+	else
+	{
 		chspec80 = INVCHANSPEC;
-
+	}
 	return chspec80;
 }

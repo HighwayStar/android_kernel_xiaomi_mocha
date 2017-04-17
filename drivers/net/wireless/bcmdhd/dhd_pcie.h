@@ -2,14 +2,13 @@
  * Linux DHD Bus Module for PCIE
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
- *
+ * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
  * available at http://www.broadcom.com/licenses/GPLv2.php, with the
  * following added to such license:
- *
+ * 
  *      As a special exception, the copyright holders of this software give you
  * permission to link this software with independent modules, and to copy and
  * distribute the resulting executable under terms of your choice, provided that
@@ -17,7 +16,7 @@
  * the license of that module.  An independent module is a module which is not
  * derived from this software.  The special exception does not apply to any
  * modifications of the software.
- *
+ * 
  *      Notwithstanding the above, under no circumstances may you combine this
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
@@ -36,7 +35,7 @@
 #define PCMSGBUF_HDRLEN 20
 #define DONGLE_REG_MAP_SIZE (32 * 1024)
 #define DONGLE_TCM_MAP_SIZE (4096 * 1024)
-#define DONGLE_MIN_MEMSIZE (128 * 1024)
+#define DONGLE_MIN_MEMSIZE (128 *1024)
 #ifdef DHD_DEBUG
 #define DHD_PCIE_SUCCESS 0
 #define DHD_PCIE_FAILURE 1
@@ -155,12 +154,12 @@ typedef struct dhd_bus {
 
 /* function declarations */
 
-extern uint32 *dhdpcie_bus_reg_map(osl_t *osh, ulong addr, int size);
+extern uint32* dhdpcie_bus_reg_map(osl_t *osh, ulong addr, int size);
 extern int dhdpcie_bus_register(void);
 extern void dhdpcie_bus_unregister(void);
 extern bool dhdpcie_chipmatch(uint16 vendor, uint16 device);
 
-extern struct dhd_bus *dhdpcie_bus_attach(osl_t *osh, volatile char *regs, volatile char *tcm);
+extern struct dhd_bus* dhdpcie_bus_attach(osl_t *osh, volatile char* regs, volatile char* tcm);
 extern uint32 dhdpcie_bus_cfg_read_dword(struct dhd_bus *bus, uint32 addr, uint32 size);
 extern void dhdpcie_bus_cfg_write_dword(struct dhd_bus *bus, uint32 addr, uint32 size, uint32 data);
 extern void dhdpcie_bus_intr_disable(struct dhd_bus *bus);

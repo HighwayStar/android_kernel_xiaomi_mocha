@@ -4,8 +4,7 @@
  *     abstract OS and BUS specific details of SDIO
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
- *
+ * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
@@ -54,7 +53,8 @@ extern bcmsdh_info_t *bcmsdh_attach(osl_t *osh, void *sdioh, ulong *regsva);
 /**
  * BCMSDH API context
  */
-struct bcmsdh_info {
+struct bcmsdh_info
+{
 	bool	init_success;	/* underlying driver successfully attached */
 	void	*sdioh;		/* handler for sdioh */
 	uint32  vendevid;	/* Target Vendor and Device ID on SD bus */
@@ -199,8 +199,8 @@ extern int bcmsdh_reset(bcmsdh_info_t *sdh);
 typedef struct {
 	/* probe the device */
 	void *(*probe)(uint16 vend_id, uint16 dev_id, uint16 bus, uint16 slot,
-				uint16 func, uint bustype, void *regsva, osl_t *osh,
-				void *param);
+	                uint16 func, uint bustype, void * regsva, osl_t * osh,
+	                void * param);
 	/* remove the device */
 	void (*remove)(void *context);
 	/* can we suspend now */
@@ -220,10 +220,10 @@ extern void bcmsdh_unreg_sdio_notify(void);
 
 #if defined(OOB_INTR_ONLY)
 extern int bcmsdh_oob_intr_register(bcmsdh_info_t *bcmsdh, bcmsdh_cb_fn_t oob_irq_handler,
-	void *oob_irq_handler_context);
+	void* oob_irq_handler_context);
 extern void bcmsdh_oob_intr_unregister(bcmsdh_info_t *sdh);
 extern void bcmsdh_oob_intr_set(bcmsdh_info_t *sdh, bool enable);
-#endif
+#endif 
 extern void bcmsdh_dev_pm_stay_awake(bcmsdh_info_t *sdh);
 extern void bcmsdh_dev_relax(bcmsdh_info_t *sdh);
 extern bool bcmsdh_dev_pm_enabled(bcmsdh_info_t *sdh);

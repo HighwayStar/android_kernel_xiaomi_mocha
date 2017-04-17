@@ -2,14 +2,13 @@
  * Initialization and support routines for self-booting compressed image.
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
- *
+ * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
  * available at http://www.broadcom.com/licenses/GPLv2.php, with the
  * following added to such license:
- *
+ * 
  *      As a special exception, the copyright holders of this software give you
  * permission to link this software with independent modules, and to copy and
  * distribute the resulting executable under terms of your choice, provided that
@@ -17,7 +16,7 @@
  * the license of that module.  An independent module is a module which is not
  * derived from this software.  The special exception does not apply to any
  * modifications of the software.
- *
+ * 
  *      Notwithstanding the above, under no circumstances may you combine this
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
@@ -87,7 +86,8 @@ circularbuf_check_sanity(circularbuf_t *handle)
 	if ((handle->e_ptr > handle->depth) ||
 	    (handle->r_ptr > handle->e_ptr) ||
 		(handle->rp_ptr > handle->e_ptr) ||
-		(handle->w_ptr > handle->e_ptr)) {
+		(handle->w_ptr > handle->e_ptr))
+	{
 		printf("%s:%d: Pointers are corrupted.\n", __FUNCTION__, __LINE__);
 		circularbuf_debug_print(handle);
 		ASSERT(0);
@@ -116,7 +116,7 @@ circularbuf_check_sanity(circularbuf_t *handle)
  *
  * -----------------------------------------------------------------------------
  */
-void *BCMFASTPATH
+void * BCMFASTPATH
 circularbuf_reserve_for_write(circularbuf_t *handle, uint16 size)
 {
 	int16 avail_space;
@@ -131,7 +131,8 @@ circularbuf_reserve_for_write(circularbuf_t *handle, uint16 size)
 		avail_space = handle->r_ptr - handle->wp_ptr;
 
 	ASSERT(avail_space <= handle->depth);
-	if (avail_space > size) {
+	if (avail_space > size)
+	{
 		/* Great. We have enough space. */
 		ret_ptr = CIRCULARBUF_START(handle) + handle->wp_ptr;
 
@@ -152,9 +153,11 @@ circularbuf_reserve_for_write(circularbuf_t *handle, uint16 size)
 	 * not enough space in the end of the circular buffer. But, there might be
 	 * room in the beginning of the buffer.
 	 */
-	if (handle->wp_ptr >= handle->r_ptr) {
+	if (handle->wp_ptr >= handle->r_ptr)
+	{
 		avail_space = handle->r_ptr;
-		if (avail_space > size) {
+		if (avail_space > size)
+		{
 			/* OK. There is room in the beginning. Let's go ahead and use that.
 			 * But, before that, we have left a hole at the end of the circular
 			 * buffer as that was not sufficient to accomodate the requested

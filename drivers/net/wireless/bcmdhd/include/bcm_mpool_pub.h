@@ -180,7 +180,7 @@ int bcm_mpm_create_prealloc_pool(bcm_mpm_mgr_h mgr,
                                  int nobj,
                                  void *memstart,
                                  unsigned int memsize,
-								 const char poolname[BCM_MP_NAMELEN],
+                                 const char poolname[BCM_MP_NAMELEN],
                                  bcm_mp_pool_h *newp);
 
 
@@ -219,8 +219,8 @@ int bcm_mpm_delete_prealloc_pool(bcm_mpm_mgr_h mgr, bcm_mp_pool_h *poolp);
  *
  */
 int bcm_mpm_create_heap_pool(bcm_mpm_mgr_h mgr, unsigned int obj_sz,
-						const char poolname[BCM_MP_NAMELEN],
-						bcm_mp_pool_h *newp);
+                             const char poolname[BCM_MP_NAMELEN],
+                             bcm_mp_pool_h *newp);
 
 
 /*

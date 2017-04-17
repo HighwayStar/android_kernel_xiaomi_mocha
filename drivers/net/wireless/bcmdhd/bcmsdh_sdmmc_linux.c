@@ -75,7 +75,7 @@
 extern void wl_cfg80211_set_parent_dev(void *dev);
 extern void sdioh_sdmmc_devintr_off(sdioh_info_t *sd);
 extern void sdioh_sdmmc_devintr_on(sdioh_info_t *sd);
-extern void *bcmsdh_probe(osl_t *osh, void *dev, void *sdioh, void *adapter_info, uint bus_type,
+extern void* bcmsdh_probe(osl_t *osh, void *dev, void *sdioh, void *adapter_info, uint bus_type,
 	uint bus_num, uint slot_num);
 extern int bcmsdh_remove(bcmsdh_info_t *bcmsdh);
 
@@ -115,23 +115,23 @@ static int sdioh_probe(struct sdio_func *func)
 	wl_cfg80211_set_parent_dev(&func->dev);
 #endif
 
-	/* allocate SDIO Host Controller state info */
-	osh = osl_attach(&func->dev, SDIO_BUS, TRUE);
-	if (osh == NULL) {
-		sd_err(("%s: osl_attach failed\n", __FUNCTION__));
-		goto fail;
-	}
-	osl_static_mem_init(osh, adapter);
-	sdioh = sdioh_attach(osh, func);
-	if (sdioh == NULL) {
-		sd_err(("%s: sdioh_attach failed\n", __FUNCTION__));
-		goto fail;
-	}
-	sdioh->bcmsdh = bcmsdh_probe(osh, &func->dev, sdioh, adapter, SDIO_BUS, host_idx, rca);
-	if (sdioh->bcmsdh == NULL) {
-		sd_err(("%s: bcmsdh_probe failed\n", __FUNCTION__));
-		goto fail;
-	}
+	 /* allocate SDIO Host Controller state info */
+	 osh = osl_attach(&func->dev, SDIO_BUS, TRUE);
+	 if (osh == NULL) {
+		 sd_err(("%s: osl_attach failed\n", __FUNCTION__));
+		 goto fail;
+	 }
+	 osl_static_mem_init(osh, adapter);
+	 sdioh = sdioh_attach(osh, func);
+	 if (sdioh == NULL) {
+		 sd_err(("%s: sdioh_attach failed\n", __FUNCTION__));
+		 goto fail;
+	 }
+	 sdioh->bcmsdh = bcmsdh_probe(osh, &func->dev, sdioh, adapter, SDIO_BUS, host_idx, rca);
+	 if (sdioh->bcmsdh == NULL) {
+		 sd_err(("%s: bcmsdh_probe failed\n", __FUNCTION__));
+		 goto fail;
+	 }
 
 	sdio_set_drvdata(func, sdioh);
 	return 0;
@@ -176,11 +176,8 @@ static int bcmsdh_sdmmc_probe(struct sdio_func *func,
 	sd_info(("Function#: 0x%04x\n", func->num));
 
 	/* 4318 doesn't have function 2 */
-	if ((func->num == 2) || (func->num == 1 && func->device == 0x4)) {
+	if ((func->num == 2) || (func->num == 1 && func->device == 0x4))
 		ret = sdioh_probe(func);
-		if (mmc_power_save_host(func->card->host))
-			sd_err(("%s: card power save fail", __FUNCTION__));
-	}
 
 	return ret;
 }
@@ -250,7 +247,7 @@ static int bcmsdh_sdmmc_suspend(struct device *pdev)
 	}
 #if defined(OOB_INTR_ONLY)
 	bcmsdh_oob_intr_set(sdioh->bcmsdh, FALSE);
-#endif
+#endif 
 	dhd_mmc_suspend = TRUE;
 	smp_mb();
 
@@ -270,7 +267,7 @@ static int bcmsdh_sdmmc_resume(struct device *pdev)
 	dhd_mmc_suspend = FALSE;
 #if defined(OOB_INTR_ONLY)
 	bcmsdh_resume(sdioh->bcmsdh);
-#endif
+#endif 
 
 	smp_mb();
 	return 0;

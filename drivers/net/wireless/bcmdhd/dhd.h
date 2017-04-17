@@ -5,7 +5,6 @@
  * DHD OS, bus, and protocol modules.
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -320,8 +319,8 @@ typedef struct dhd_pub {
 	uint32 arp_version;
 #endif
 #ifdef CUSTOM_SET_CPUCORE
-	struct task_struct *current_dpc;
-	struct task_struct *current_rxf;
+	struct task_struct * current_dpc;
+	struct task_struct * current_rxf;
 	int chan_isvht80;
 #endif /* CUSTOM_SET_CPUCORE */
 } dhd_pub_t;
@@ -351,7 +350,7 @@ typedef struct dhd_pub {
 	#else
 		#define DHD_PM_RESUME_RETURN_ERROR(a)	do { \
 			if (dhd_mmc_suspend) return a; } while (0)
-	#endif
+	#endif 
 	#define DHD_PM_RESUME_RETURN		do { if (dhd_mmc_suspend) return; } while (0)
 
 	#define DHD_SPINWAIT_SLEEP_INIT(a) DECLARE_WAIT_QUEUE_HEAD(a);
@@ -519,7 +518,7 @@ extern unsigned int dhd_os_get_ioctl_resp_timeout(void);
 extern void dhd_os_set_ioctl_resp_timeout(unsigned int timeout_msec);
 
 extern int dhd_os_get_image_block(char * buf, int len, void * image);
-extern void *dhd_os_open_image(char *filename);
+extern void * dhd_os_open_image(char * filename);
 extern void dhd_os_close_image(void * image);
 extern void dhd_os_wd_timer(void *bus, uint wdtick);
 extern void dhd_os_sdlock(dhd_pub_t * pub);
@@ -607,7 +606,7 @@ extern int dhd_event_ifadd(struct dhd_info *dhd, struct wl_event_data_if *ifeven
 	char *name, uint8 *mac);
 extern int dhd_event_ifdel(struct dhd_info *dhd, struct wl_event_data_if *ifevent,
 	char *name, uint8 *mac);
-extern struct net_device * dhd_allocate_if(dhd_pub_t *dhdpub, int ifidx, char *name,
+extern struct net_device* dhd_allocate_if(dhd_pub_t *dhdpub, int ifidx, char *name,
 	uint8 *mac, uint8 bssidx, bool need_rtnl_lock);
 extern int dhd_remove_if(dhd_pub_t *dhdpub, int ifidx, bool need_rtnl_lock);
 extern void dhd_vif_add(struct dhd_info *dhd, int ifidx, char * name);
@@ -802,6 +801,7 @@ extern uint dhd_pktgen_len;
 /* optionally set by a module_param_string() */
 #define MOD_PARAM_PATHLEN	2048
 #define MOD_PARAM_INFOLEN	512
+
 #ifdef SOFTAP
 extern char fw_path2[MOD_PARAM_PATHLEN];
 #endif
@@ -849,7 +849,7 @@ void dhd_bus_update_fw_nv_path(struct dhd_bus *bus, char *pfw_path, char *pnv_pa
 void dhd_set_bus_state(void *bus, uint32 state);
 
 /* Remove proper pkts(either one no-frag pkt or whole fragmented pkts) */
-typedef int (*f_droppkt_t)(dhd_pub_t *dhdp, int prec, void *p, bool bPktInQ);
+typedef int (*f_droppkt_t)(dhd_pub_t *dhdp, int prec, void* p, bool bPktInQ);
 extern bool dhd_prec_drop_pkts(dhd_pub_t *dhdp, struct pktq *pq, int prec, f_droppkt_t fn);
 
 #ifdef PROP_TXSTATUS
@@ -857,7 +857,7 @@ int dhd_os_wlfc_block(dhd_pub_t *pub);
 int dhd_os_wlfc_unblock(dhd_pub_t *pub);
 #endif /* PROP_TXSTATUS */
 
-uint8 *dhd_os_prealloc(dhd_pub_t *dhdpub, int section, uint size, bool kmalloc_if_fail);
+uint8* dhd_os_prealloc(dhd_pub_t *dhdpub, int section, uint size, bool kmalloc_if_fail);
 void dhd_os_prefree(dhd_pub_t *dhdpub, void *addr, uint size);
 
 #if defined(CONFIG_DHD_USE_STATIC_BUF)

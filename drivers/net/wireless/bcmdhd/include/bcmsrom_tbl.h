@@ -2,14 +2,13 @@
  * Table that encodes the srom formats for PCI/PCIe NICs.
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
- *
+ * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
  * available at http://www.broadcom.com/licenses/GPLv2.php, with the
  * following added to such license:
- *
+ * 
  *      As a special exception, the copyright holders of this software give you
  * permission to link this software with independent modules, and to copy and
  * distribute the resulting executable under terms of your choice, provided that
@@ -17,7 +16,7 @@
  * the license of that module.  An independent module is a module which is not
  * derived from this software.  The special exception does not apply to any
  * modifications of the software.
- *
+ * 
  *      Notwithstanding the above, under no circumstances may you combine this
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
@@ -74,7 +73,7 @@ static const sromvar_t pci_sromvars[] = {
 	{"devid",	0xffffff00,	SRFL_PRHEX, SROM_DEVID_PCIE, 0xffff},
 #else
 	{"devid",	0xffffff00,	SRFL_PRHEX|SRFL_NOVAR,	PCI_F0DEVID,	0xffff},
-#endif
+#endif 
 	{"boardrev",	0x0000000e,	SRFL_PRHEX,	SROM_AABREV,		SROM_BR_MASK},
 	{"boardrev",	0x000000f0,	SRFL_PRHEX,	SROM4_BREV,		0xffff},
 	{"boardrev",	0xffffff00,	SRFL_PRHEX,	SROM8_BREV,		0xffff},
@@ -539,7 +538,7 @@ static const sromvar_t pci_sromvars[] = {
 	{"subband5gver",	0xfffff800, 	SRFL_PRHEX,	SROM11_SUBBAND5GVER, 	0xffff},
 	{"paparambwver",	0xfffff800, 	0,		SROM11_MCSLR5GLPO, 	0xf000},
 	/* Special PA Params for 4350 5G Band, 40/80 MHz BW Ant #0 */
-	{"pa5gbw4080a0", 0xfffff800, SRFL_PRHEX | SRFL_ARRAY, SROM11_PATH2 + SROM11_5GB0_PA, 0xffff},
+	{"pa5gbw4080a0", 0xfffff800, SRFL_PRHEX | SRFL_ARRAY, SROM11_PATH2 +SROM11_5GB0_PA, 0xffff},
 	{"", 0xfffff800,	SRFL_PRHEX | SRFL_ARRAY, SROM11_PATH2 + SROM11_5GB0_PA + 1, 0xffff},
 	{"", 0xfffff800,	SRFL_PRHEX | SRFL_ARRAY, SROM11_PATH2 + SROM11_5GB0_PA + 2, 0xffff},
 	{"", 0xfffff800,	SRFL_PRHEX | SRFL_ARRAY, SROM11_PATH2 + SROM11_5GB1_PA,     0xffff},

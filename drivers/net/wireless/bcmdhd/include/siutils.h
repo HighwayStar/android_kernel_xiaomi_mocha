@@ -3,7 +3,6 @@
  * of Broadcom HNBU chips.
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -254,7 +253,7 @@ extern void si_gci_handler_process(si_t *sih);
 /* GCI GPIO event handlers */
 extern void *si_gci_gpioint_handler_register(si_t *sih, uint8 gpio, uint8 sts,
 	gci_gpio_handler_t cb, void *arg);
-extern void si_gci_gpioint_handler_unregister(si_t *sih, void *gci_i);
+extern void si_gci_gpioint_handler_unregister(si_t *sih, void* gci_i);
 
 /* Wake-on-wireless-LAN (WOWL) */
 extern bool si_pci_pmecap(si_t *sih);
@@ -282,14 +281,14 @@ static INLINE void * si_eci_init(si_t *sih) {return NULL;}
 #define si_seci(sih) 0
 #define si_seci_upd(sih, a)	do {} while (0)
 static INLINE void * si_seci_init(si_t *sih, uint8 use_seci) {return NULL;}
-static INLINE void *si_gci_init(si_t *sih) {return NULL; }
+static INLINE void * si_gci_init(si_t *sih) {return NULL;}
 #define si_seci_down(sih) do {} while (0)
 #define si_gci(sih) 0
 
 /* OTP status */
 extern bool si_is_otp_disabled(si_t *sih);
 extern bool si_is_otp_powered(si_t *sih);
-extern void si_otp_power(si_t *sih, bool on, uint32 *min_res_mask);
+extern void si_otp_power(si_t *sih, bool on, uint32* min_res_mask);
 
 /* SPROM availability */
 extern bool si_is_sprom_available(si_t *sih);
@@ -307,6 +306,7 @@ extern int si_cis_source(si_t *sih);
 #define	CSM_FAB7	0x1	/* CSM Fab7 chip */
 #define	TSMC_FAB12	0x2	/* TSMC Fab12/Fab14 chip */
 #define	SMIC_FAB4	0x3	/* SMIC Fab4 chip */
+
 extern int si_otp_fabid(si_t *sih, uint16 *fabid, bool rw);
 extern uint16 si_fabid(si_t *sih);
 

@@ -2,7 +2,6 @@
  * BCMSDH Function Driver for the native SDIO/MMC driver in the Linux Kernel
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -995,7 +994,7 @@ sdioh_request_packet_chain(sdioh_info_t *sd, uint fix_inc, uint write, uint func
 		while (pnext != NULL && ttl_len < max_req_size) {
 			int pkt_len;
 			int sg_data_size;
-			uint8 *pdata = (uint8 *)PKTDATA(sd->osh, pnext);
+			uint8 *pdata = (uint8*)PKTDATA(sd->osh, pnext);
 
 			ASSERT(pdata != NULL);
 			pkt_len = PKTLEN(sd->osh, pnext);
@@ -1048,7 +1047,6 @@ sdioh_request_packet_chain(sdioh_info_t *sd, uint fix_inc, uint write, uint func
 		mmc_cmd.arg |= (addr & 0x1FFFF) << 9;
 		mmc_cmd.arg |= blk_num & 0x1FF;
 		mmc_cmd.flags = MMC_RSP_SPI_R5 | MMC_RSP_R5 | MMC_CMD_ADTC;
-
 		mmc_req.cmd = &mmc_cmd;
 		mmc_req.data = &mmc_dat;
 		if (!fifo)
@@ -1073,7 +1071,7 @@ sdioh_request_packet_chain(sdioh_info_t *sd, uint fix_inc, uint write, uint func
 
 static SDIOH_API_RC
 sdioh_buffer_tofrom_bus(sdioh_info_t *sd, uint fix_inc, uint write, uint func,
-				uint addr, uint8 *buf, uint len)
+                     uint addr, uint8 *buf, uint len)
 {
 	bool fifo = (fix_inc == SDIOH_DATA_FIX);
 	int err_ret = 0;
@@ -1333,7 +1331,7 @@ sdioh_start(sdioh_info_t *sd, int stage)
 		   2.6.27. The implementation prior to that is buggy, and needs broadcom's
 		   patch for it
 		*/
-		if ((ret = mmc_power_restore_host((sd->func[0])->card->host))) {
+		if ((ret = sdio_reset_comm(sd->func[0]->card))) {
 			sd_err(("%s Failed, error = %d\n", __FUNCTION__, ret));
 			return ret;
 		}
@@ -1420,8 +1418,6 @@ sdioh_stop(sdioh_info_t *sd)
 #endif
 		bcmsdh_oob_intr_set(sd->bcmsdh, FALSE);
 #endif /* !defined(OOB_INTR_ONLY) */
-		if (mmc_power_save_host((sd->func[0])->card->host))
-			sd_err(("%s card power save fail\n", __FUNCTION__));
 	}
 	else
 		sd_err(("%s Failed\n", __FUNCTION__));

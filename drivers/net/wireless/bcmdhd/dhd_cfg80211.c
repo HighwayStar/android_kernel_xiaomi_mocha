@@ -2,7 +2,6 @@
  * Linux cfg80211 driver - Dongle Host Driver (DHD) related
  *
  * Copyright (C) 1999-2014, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -112,18 +111,18 @@ s32 dhd_cfg80211_clean_p2p_info(struct bcm_cfg80211 *cfg)
 	return 0;
 }
 
-struct net_device *wl_cfg80211_allocate_if(struct bcm_cfg80211 *cfg, int ifidx, char *name,
+struct net_device* wl_cfg80211_allocate_if(struct bcm_cfg80211 *cfg, int ifidx, char *name,
 	uint8 *mac, uint8 bssidx)
 {
 	return dhd_allocate_if(cfg->pub, ifidx, name, mac, bssidx, FALSE);
 }
 
-int wl_cfg80211_register_if(struct bcm_cfg80211 *cfg, int ifidx, struct net_device *ndev)
+int wl_cfg80211_register_if(struct bcm_cfg80211 *cfg, int ifidx, struct net_device* ndev)
 {
 	return dhd_register_if(cfg->pub, ifidx, FALSE);
 }
 
-int wl_cfg80211_remove_if(struct bcm_cfg80211 *cfg, int ifidx, struct net_device *ndev)
+int wl_cfg80211_remove_if(struct bcm_cfg80211 *cfg, int ifidx, struct net_device* ndev)
 {
 	return dhd_remove_if(cfg->pub, ifidx, FALSE);
 }
@@ -138,6 +137,7 @@ static s32 wl_dongle_up(struct net_device *ndev, u32 up)
 	}
 	return err;
 }
+
 s32 dhd_config_dongle(struct bcm_cfg80211 *cfg)
 {
 #ifndef DHD_SDALIGN
