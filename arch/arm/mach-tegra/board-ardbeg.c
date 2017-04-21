@@ -1425,6 +1425,20 @@ static noinline void __init ardbeg_setup_bluedroid_pm(void)
 }
 #endif
 
+static struct platform_device bcm_ldisc_device = {
+    .name = "bcm_ldisc",
+    .id = -1,
+    .dev = {
+
+    },
+};
+
+void __init add_bcm_ldisc_device(void)
+{
+	printk("%s",__func__);
+	platform_device_register(&bcm_ldisc_device);
+}
+
 static void __init tegra_ardbeg_late_init(void)
 {
 	struct board_info board_info;
@@ -1488,6 +1502,7 @@ static void __init tegra_ardbeg_late_init(void)
 #ifdef CONFIG_BLUEDROID_PM
 	ardbeg_setup_bluedroid_pm();
 #endif
+	add_bcm_ldisc_device();
 	tegra_register_fuse();
 
 	ardbeg_sysedp_dynamic_capping_init();
